@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9E9E3E732D5FC90D001928B6 /* SoundpipeAudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9E9E3E722D5FC90D001928B6 /* SoundpipeAudioKit */; };
+		9E9E3E752D5FC912001928B6 /* AudioKitEX in Frameworks */ = {isa = PBXBuildFile; productRef = 9E9E3E742D5FC912001928B6 /* AudioKitEX */; };
+		9E9E3E772D5FC916001928B6 /* AudioKit in Frameworks */ = {isa = PBXBuildFile; productRef = 9E9E3E762D5FC916001928B6 /* AudioKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9E9E3DF12D5F6A93001928B6 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +58,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9E9E3E772D5FC916001928B6 /* AudioKit in Frameworks */,
+				9E9E3E732D5FC90D001928B6 /* SoundpipeAudioKit in Frameworks */,
+				9E9E3E752D5FC912001928B6 /* AudioKitEX in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +87,7 @@
 				9E9E3DE22D5F6A92001928B6 /* MusicBlocks */,
 				9E9E3DF32D5F6A93001928B6 /* MusicBlocksTests */,
 				9E9E3DFD2D5F6A93001928B6 /* MusicBlocksUITests */,
+				9E9E3E712D5FC90D001928B6 /* Frameworks */,
 				9E9E3DE12D5F6A92001928B6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +100,13 @@
 				9E9E3DFA2D5F6A93001928B6 /* MusicBlocksUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9E9E3E712D5FC90D001928B6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -106,12 +123,18 @@
 			buildRules = (
 			);
 			dependencies = (
+				9E9E3E6D2D5F6D86001928B6 /* PBXTargetDependency */,
+				9E9E3E6B2D5F6D80001928B6 /* PBXTargetDependency */,
+				9E9E3E672D5F6D67001928B6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				9E9E3DE22D5F6A92001928B6 /* MusicBlocks */,
 			);
 			name = MusicBlocks;
 			packageProductDependencies = (
+				9E9E3E722D5FC90D001928B6 /* SoundpipeAudioKit */,
+				9E9E3E742D5FC912001928B6 /* AudioKitEX */,
+				9E9E3E762D5FC916001928B6 /* AudioKit */,
 			);
 			productName = MusicBlocks;
 			productReference = 9E9E3DE02D5F6A92001928B6 /* MusicBlocks.app */;
@@ -195,6 +218,11 @@
 			);
 			mainGroup = 9E9E3DD72D5F6A92001928B6;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				9E9E3E652D5F6D55001928B6 /* XCRemoteSwiftPackageReference "SoundpipeAudioKit" */,
+				9E9E3E682D5F6D70001928B6 /* XCRemoteSwiftPackageReference "AudioKitEX" */,
+				9E9E3E692D5F6D78001928B6 /* XCRemoteSwiftPackageReference "AudioKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9E9E3DE12D5F6A92001928B6 /* Products */;
 			projectDirPath = "";
@@ -265,6 +293,18 @@
 			isa = PBXTargetDependency;
 			target = 9E9E3DDF2D5F6A92001928B6 /* MusicBlocks */;
 			targetProxy = 9E9E3DFB2D5F6A93001928B6 /* PBXContainerItemProxy */;
+		};
+		9E9E3E672D5F6D67001928B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 9E9E3E662D5F6D67001928B6 /* SoundpipeAudioKit */;
+		};
+		9E9E3E6B2D5F6D80001928B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 9E9E3E6A2D5F6D80001928B6 /* AudioKitEX */;
+		};
+		9E9E3E6D2D5F6D86001928B6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = 9E9E3E6C2D5F6D86001928B6 /* AudioKit */;
 		};
 /* End PBXTargetDependency section */
 
@@ -399,6 +439,7 @@
 				DEVELOPMENT_TEAM = WDPKVDHVQC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Necesitamos acceso al micrófono para poder afinar tu instrumento";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -428,6 +469,7 @@
 				DEVELOPMENT_TEAM = WDPKVDHVQC;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Necesitamos acceso al micrófono para poder afinar tu instrumento";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -558,6 +600,66 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9E9E3E652D5F6D55001928B6 /* XCRemoteSwiftPackageReference "SoundpipeAudioKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AudioKit/SoundpipeAudioKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.6.1;
+			};
+		};
+		9E9E3E682D5F6D70001928B6 /* XCRemoteSwiftPackageReference "AudioKitEX" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AudioKit/AudioKitEX.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.6.1;
+			};
+		};
+		9E9E3E692D5F6D78001928B6 /* XCRemoteSwiftPackageReference "AudioKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AudioKit/AudioKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.6.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9E9E3E662D5F6D67001928B6 /* SoundpipeAudioKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9E9E3E652D5F6D55001928B6 /* XCRemoteSwiftPackageReference "SoundpipeAudioKit" */;
+			productName = SoundpipeAudioKit;
+		};
+		9E9E3E6A2D5F6D80001928B6 /* AudioKitEX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9E9E3E682D5F6D70001928B6 /* XCRemoteSwiftPackageReference "AudioKitEX" */;
+			productName = AudioKitEX;
+		};
+		9E9E3E6C2D5F6D86001928B6 /* AudioKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9E9E3E692D5F6D78001928B6 /* XCRemoteSwiftPackageReference "AudioKit" */;
+			productName = AudioKit;
+		};
+		9E9E3E722D5FC90D001928B6 /* SoundpipeAudioKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9E9E3E652D5F6D55001928B6 /* XCRemoteSwiftPackageReference "SoundpipeAudioKit" */;
+			productName = SoundpipeAudioKit;
+		};
+		9E9E3E742D5FC912001928B6 /* AudioKitEX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9E9E3E682D5F6D70001928B6 /* XCRemoteSwiftPackageReference "AudioKitEX" */;
+			productName = AudioKitEX;
+		};
+		9E9E3E762D5FC916001928B6 /* AudioKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9E9E3E692D5F6D78001928B6 /* XCRemoteSwiftPackageReference "AudioKit" */;
+			productName = AudioKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9E9E3DD82D5F6A92001928B6 /* Project object */;
 }

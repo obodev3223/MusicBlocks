@@ -13,13 +13,7 @@ struct ContentView: View {
     @StateObject private var audioController = AudioController.sharedInstance
     
     var body: some View {
-        NavigationView {
-            MainMenuView()
-                .navigationBarHidden(true)
-        }
-        .onAppear {
-            setupAudio()
-        }
+        PracticeTunerSceneView()
     }
     
     private func setupAudio() {
