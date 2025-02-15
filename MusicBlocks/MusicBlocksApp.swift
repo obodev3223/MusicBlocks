@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct FrikiTunerApp: App {
+struct MusicBlocksApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -1,6 +1,6 @@
 //
-//  PracticeTunerScene.swift
-//  FrikiTuner
+//  GameSceneScene.swift
+//  MusicBlocks
 //
 //  Created by Jose R. García on 11/2/25.
 //
@@ -9,7 +9,7 @@ import SpriteKit
 import UIKit
 import SwiftUI
 
-class PracticeTunerScene: SKScene {
+class MusicBlocksScene: SKScene {
     @Environment(\.screenSize) var screenSize
     
     // MARK: - Layout Configuration
@@ -398,7 +398,7 @@ struct SpriteViewRepresentable: UIViewRepresentable {
         view.preferredFramesPerSecond = 60
         view.ignoresSiblingOrder = true
         
-        let scene = PracticeTunerScene()
+        let scene = MusicBlocksScene()
         scene.scaleMode = .resizeFill
         scene.size = size
         view.presentScene(scene)
@@ -413,10 +413,10 @@ struct SpriteViewRepresentable: UIViewRepresentable {
     }
 }
 
-struct PracticeTunerSceneView: View {
+struct MusicBlocksSceneView: View {
     var body: some View {
         GeometryReader { geometry in
-            SpriteView(scene: PracticeTunerScene(size: geometry.size))
+            SpriteView(scene: MusicBlocksScene(size: geometry.size))
                 .ignoresSafeArea() // Elimina cualquier margen
                 .frame(maxWidth: .infinity, maxHeight: .infinity) // Ocupa toda la pantalla
                 .navigationBarHidden(true) // Ocultar barra de navegación

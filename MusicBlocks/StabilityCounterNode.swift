@@ -1,6 +1,6 @@
 //
 //  StabilityCounterNode.swift
-//  FrikiTuner
+//  MusicBlocks
 //
 //  Created by Jose R. García on 13/2/25.
 //

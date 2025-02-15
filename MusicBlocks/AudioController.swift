@@ -1,6 +1,6 @@
 //
 //  AudioController.swift
-//  FrikiTuner
+//  MusicBlocks
 //
 //  Created by Jose R. García on 10/2/25.
 //

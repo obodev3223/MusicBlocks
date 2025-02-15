@@ -13,7 +13,7 @@ struct ContentView: View {
     @StateObject private var audioController = AudioController.sharedInstance
     
     var body: some View {
-        PracticeTunerSceneView()
+        MusicBlocksSceneView()
     }
     
     private func setupAudio() {

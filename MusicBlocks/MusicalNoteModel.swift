@@ -1,6 +1,6 @@
 //
 //  MusicalNoteModel.swift
-//  FrikiTuner
+//  MusicBlocks
 //
 //  Created by Jose R. García on 11/2/25.
 //
