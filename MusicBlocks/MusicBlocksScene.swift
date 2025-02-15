@@ -16,20 +16,24 @@ class MusicBlocksScene: SKScene {
     private struct Layout {
         /// Márgenes de seguridad para el contenido
         static let margins = UIEdgeInsets(
-                top: 8,
-                left: 10,
-                bottom: UIScreen.main.bounds.height * 0.05, // Dinámico según la pantalla
-                right: 10
-            )
-            static let cornerRadius: CGFloat = 15
+            top: 8,
+            left: 10,
+            bottom: UIScreen.main.bounds.height * 0.05, // Dinámico según la pantalla
+            right: 10
+        )
+        static let cornerRadius: CGFloat = 15
+        
+        // Espacio entre elementos
+        static let verticalSpacing: CGFloat = 20 // Nuevo: espacio vertical entre elementos
         
         // Proporciones de las áreas principales
-            static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
-            static let mainAreaHeightRatio: CGFloat = 0.74    // 74% de altura
-            static let bottomBarHeightRatio: CGFloat = 0.08   // 8% de altura
-            static let sideBarWidthRatio: CGFloat = 0.08     // 15% del ancho
-            static let mainAreaWidthRatio: CGFloat = 0.66    // 66% del ancho (dejando 17% para cada barra lateral)
-            static let sideBarExtensionHeightRatio: CGFloat = 0.15 // 15% de la altura de la barra lateral
+        static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
+        static let mainAreaHeightRatio: CGFloat = 0.74    // 74% de altura
+        static let bottomBarHeightRatio: CGFloat = 0.08   // 8% de altura
+        static let sideBarWidthRatio: CGFloat = 0.08     // 15% del ancho
+        static let mainAreaWidthRatio: CGFloat = 0.66    // 66% del ancho
+        static let sideBarHeightRatio: CGFloat = 0.444   // Nuevo: 74% * 0.6 = ~44.4% (40% más corto)
+        static let sideBarExtensionHeightRatio: CGFloat = 0.15
             
             // Tamaños relativos de fuente
             static let scoreFontRatio: CGFloat = 0.5         // 50% de la altura de su contenedor
@@ -90,28 +94,36 @@ class MusicBlocksScene: SKScene {
     }
     
     private func setupScene() {
-        backgroundColor = .lightGray //color que prefieras para el fondo
+        backgroundColor = .lightGray
         
         let safeWidth = size.width - Layout.margins.left - Layout.margins.right
         let safeHeight = size.height - Layout.margins.top - Layout.margins.bottom
         
-        // Configurar cada área con sus dimensiones relativas
+        // Calcular alturas
+        let topBarHeight = safeHeight * Layout.topBarHeightRatio
+        let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
+        let bottomBarHeight = safeHeight * Layout.bottomBarHeightRatio
+        
+        // Calcular anchos
         let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
         let sideBarWidth = safeWidth * Layout.sideBarWidthRatio
         
         // Configurar barras superior e inferior
-        setupTopBar(width: safeWidth, height: safeHeight * Layout.topBarHeightRatio)
-        setupBottomBar(width: safeWidth, height: safeHeight * Layout.bottomBarHeightRatio)
+        setupTopBar(width: safeWidth, height: topBarHeight)
+        setupBottomBar(width: safeWidth, height: bottomBarHeight)
         
-        // Configurar área principal
+        // Configurar área principal con ajuste de posición
         setupMainArea(width: mainAreaWidth,
-                     height: safeHeight * Layout.mainAreaHeightRatio)
+                     height: mainAreaHeight,
+                     topBarHeight: topBarHeight)
         
-        // Configurar barras laterales
+        // Configurar barras laterales (40% más cortas)
+        let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
         setupSideBars(width: sideBarWidth,
-                     height: safeHeight * Layout.mainAreaHeightRatio)
+                     height: sideBarHeight,
+                     topBarHeight: topBarHeight)
         
-        // Configurar overlay de éxito (más pequeño y centrado)
+        // Configurar overlay de éxito
         setupSuccessOverlay(size: CGSize(width: mainAreaWidth * 0.5,
                                        height: safeHeight * 0.25))
         
@@ -139,13 +151,16 @@ class MusicBlocksScene: SKScene {
         topBar.addChild(scoreLabel)
     }
     
-    private func setupMainArea(width: CGFloat, height: CGFloat) {
+    private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
         let mainArea = SKShapeNode(rectOf: CGSize(width: width, height: height),
                                   cornerRadius: Layout.cornerRadius)
         mainArea.fillColor = .white
         mainArea.strokeColor = .blue
-        mainArea.position = CGPoint(x: size.width/2,
-                                  y: size.height/2)
+        // Ajustar posición para dejar espacio después de la barra superior
+        mainArea.position = CGPoint(
+            x: size.width/2,
+            y: size.height/2 - (Layout.verticalSpacing/2)
+        )
         addChild(mainArea)
         
         currentNoteLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
@@ -176,46 +191,46 @@ class MusicBlocksScene: SKScene {
     }
     
     /// Configura las barras laterales con indicadores
-    private func setupSideBars(width: CGFloat, height: CGFloat) {
-        // Barra izquierda
-        setupSideBar(width: width, height: height, isLeft: true)
-        // Barra derecha
-        setupSideBar(width: width, height: height, isLeft: false)
-    }
+    private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
+            // Barra izquierda
+            setupSideBar(width: width, height: height, isLeft: true, topBarHeight: topBarHeight)
+            // Barra derecha
+            setupSideBar(width: width, height: height, isLeft: false, topBarHeight: topBarHeight)
+        }
     
     /// Configura una barra lateral individual
-    private func setupSideBar(width: CGFloat, height: CGFloat, isLeft: Bool) {
-        let xPosition = isLeft ?
-        Layout.margins.left + width/2 :
-        size.width - Layout.margins.right - width/2
-        
-        // Crear el contenedor principal
-        let sideBar = SKShapeNode(rectOf: CGSize(width: width, height: height),
-                                  cornerRadius: Layout.cornerRadius)
-        sideBar.fillColor = .white
-        sideBar.strokeColor = .blue
-        sideBar.position = CGPoint(x: xPosition, y: size.height/2)
-        addChild(sideBar)
-        
-        // Calcular dimensiones para los indicadores
-        let indicatorSize = CGSize(width: width * 0.9, height: height * 0.9)
-        
-        if isLeft {
-            // Configurar indicador de estabilidad
-            stabilityIndicatorNode = StabilityIndicatorNode(size: indicatorSize)
-            stabilityIndicatorNode.position = CGPoint(x: 0, y: 0)
-            sideBar.addChild(stabilityIndicatorNode)
-        } else {
-            // Configurar indicador de afinación
-            tuningIndicatorNode = TuningIndicatorNode(size: indicatorSize)
-            tuningIndicatorNode.position = CGPoint(x: 0, y: 0)
-            sideBar.addChild(tuningIndicatorNode)
+    private func setupSideBar(width: CGFloat, height: CGFloat, isLeft: Bool, topBarHeight: CGFloat) {
+            let xPosition = isLeft ?
+                Layout.margins.left + width/2 :
+                size.width - Layout.margins.right - width/2
+            
+            // Ajustar posición vertical para alinear con el área principal
+            let yPosition = size.height/2 - (Layout.verticalSpacing/2)
+            
+            // Crear el contenedor principal
+            let sideBar = SKShapeNode(rectOf: CGSize(width: width, height: height),
+                                     cornerRadius: Layout.cornerRadius)
+            sideBar.fillColor = .white
+            sideBar.strokeColor = .blue
+            sideBar.position = CGPoint(x: xPosition, y: yPosition)
+            addChild(sideBar)
+            
+            // El resto del código del setupSideBar permanece igual...
+            let indicatorSize = CGSize(width: width * 0.9, height: height * 0.9)
+            
+            if isLeft {
+                stabilityIndicatorNode = StabilityIndicatorNode(size: indicatorSize)
+                stabilityIndicatorNode.position = CGPoint(x: 0, y: 0)
+                sideBar.addChild(stabilityIndicatorNode)
+            } else {
+                tuningIndicatorNode = TuningIndicatorNode(size: indicatorSize)
+                tuningIndicatorNode.position = CGPoint(x: 0, y: 0)
+                sideBar.addChild(tuningIndicatorNode)
+            }
+            
+            setupSideBarExtension(width: width, height: height * Layout.sideBarExtensionHeightRatio,
+                                parent: sideBar, isLeft: isLeft)
         }
-        
-        // Configurar extensión inferior
-        setupSideBarExtension(width: width, height: height * Layout.sideBarExtensionHeightRatio,
-                              parent: sideBar, isLeft: isLeft)
-    }
     
     /// Configura la extensión inferior de una barra lateral
 
