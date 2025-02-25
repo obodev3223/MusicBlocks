@@ -65,7 +65,9 @@ class MusicBlocksScene: SKScene {
     var tuningIndicatorNode: TuningIndicatorNode!
     var tuningInfoNode: TuningInfoNode!
     
+    // Nodes
     private var topBarNode: TopBar?
+    private var currentOverlay: GameOverlayNode?
     
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
@@ -350,20 +352,45 @@ class MusicBlocksScene: SKScene {
     }
     
     // MARK: - Helper Methods
-    private func showSuccessOverlay(multiplier: Int) {
-        guard successOverlay.isHidden else { return }
+    private func showSuccessOverlay(multiplier: Int, message: String) {
+        // Eliminar overlay anterior si existe
+        currentOverlay?.removeFromParent()
         
-        successOverlay.isHidden = false
-        successOverlay.setScale(0.5)
+        let overlaySize = CGSize(width: 300, height: 150)
+        let overlay = SuccessOverlayNode(size: overlaySize, multiplier: multiplier, message: message)
+        overlay.position = CGPoint(x: size.width/2, y: size.height/2)
+        addChild(overlay)
+        currentOverlay = overlay
         
-        let appear = SKAction.scale(to: 1.0, duration: 0.3)
-        let wait = SKAction.wait(forDuration: 1.0)
-        let hide = SKAction.run { [weak self] in
-            self?.successOverlay.isHidden = true
+        overlay.show(in: self)
+        
+        // Ocultar después de 2 segundos
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
+            overlay?.hide()
         }
-        
-        successOverlay.run(SKAction.sequence([appear, wait, hide]))
     }
+    
+    // Añade el método para mostrar el overlay de fallo:
+    private func showFailureOverlay() {
+        // Eliminar overlay anterior si existe
+        currentOverlay?.removeFromParent()
+        
+        let overlaySize = CGSize(width: 300, height: 150)
+        let overlay = FailureOverlayNode(size: overlaySize)
+        overlay.position = CGPoint(x: size.width/2, y: size.height/2)
+        addChild(overlay)
+        currentOverlay = overlay
+        
+        overlay.show(in: self)
+        
+        // Ocultar después de 2 segundos
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
+            overlay?.hide()
+        }
+    }
+    
+    
+    
     
     func getDeviationColor(deviation: Double) -> SKColor {
         guard audioController.tunerData.isActive else {
@@ -451,7 +478,22 @@ class MusicBlocksScene: SKScene {
     
     private func handleGameOver() {
         audioController.stop()
-        // Aquí puedes añadir lógica adicional para mostrar la pantalla de game over
+        
+        // Eliminar overlay anterior si existe
+        currentOverlay?.removeFromParent()
+        
+        let overlaySize = CGSize(width: 400, height: 300)
+        let overlay = GameOverOverlayNode(size: overlaySize, score: gameEngine.score) { [weak self] in
+            self?.gameEngine.startNewGame()
+            self?.audioController.start()
+            self?.currentOverlay?.hide()
+        }
+        
+        overlay.position = CGPoint(x: size.width/2, y: size.height/2)
+        addChild(overlay)
+        currentOverlay = overlay
+        
+        overlay.show(in: self)
     }
     
 }
