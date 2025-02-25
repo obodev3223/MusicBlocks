@@ -1,6 +1,6 @@
 //
 //  AudioController.swift
-//  FrikiTuner
+//  MusicBlocks
 //
 //  Created by Jose R. García on 10/2/25.
 //
@@ -25,30 +25,20 @@ import SoundpipeAudioKit
 
 class AudioController: ObservableObject {
     static let sharedInstance = AudioController()
-    
-    @Published var tunerData: TunerEngine.TunerData = .inactive
-    @Published var stabilityDuration: TimeInterval = 0
-    
-    private let tunerEngine = TunerEngine.shared
+       
+       @Published var tunerData: TunerEngine.TunerData = .inactive
+       @Published var stabilityDuration: TimeInterval = 0
+       
+       private let tunerEngine = TunerEngine.shared
     
     let engine = AudioEngine()
     var pitchTap: PitchTap!
     var mic: AudioEngine.InputNode!
     var silence: Fader!
     
-    // Umbrales y configuración
-    private let minimumAmplitude: Float = 0.02
-    private let minimumFrequency: Float = 20.0
-    private let maximumFrequency: Float = 2000.0
-    private let stabilityThreshold: Float = 3.0 // Variación máxima permitida en Hz
-    private let amplitudeSmoothing: Float = 0.9 // Factor de suavizado para la amplitud
-    
-    // Variables de seguimiento
     private var lastStableFrequency: Float = 0
     private var stabilityStartTime: Date?
-    private var smoothedAmplitude: Float = 0
-    private var lastProcessedTime: Date = Date()
-    private let minimumProcessingInterval: TimeInterval = 0.05 // 50ms entre procesamientos
+    private let stabilityThreshold: Float = 3.0 // Variación máxima permitida en Hz
     
     private func updateStability(frequency: Float) {
         if abs(frequency - lastStableFrequency) <= stabilityThreshold {
@@ -63,41 +53,10 @@ class AudioController: ObservableObject {
         }
     }
     
-    private func processPitchData(frequency: Float, amplitude: Float) {
-        // Suavizar la amplitud
-        smoothedAmplitude = (amplitudeSmoothing * smoothedAmplitude) + ((1 - amplitudeSmoothing) * amplitude)
-        
-        // Verificar si ha pasado suficiente tiempo desde el último procesamiento
-        let currentTime = Date()
-        guard currentTime.timeIntervalSince(lastProcessedTime) >= minimumProcessingInterval else {
-            return
-        }
-        lastProcessedTime = currentTime
-        
-        // Verificar condiciones para procesar el pitch
-        if smoothedAmplitude > minimumAmplitude {
-            if frequency >= minimumFrequency && frequency <= maximumFrequency {
-                let tunerData = tunerEngine.processPitch(
-                    frequency: frequency,
-                    amplitude: smoothedAmplitude
-                )
-                DispatchQueue.main.async {
-                    self.tunerData = tunerData
-                }
-                updateStability(frequency: frequency)
-            }
-        } else {
-            DispatchQueue.main.async {
-                self.tunerData = .inactive
-                self.stabilityDuration = 0
-            }
-        }
-    }
-    
     private init() {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord,
-                                                          options: [.defaultToSpeaker, .mixWithOthers])
+                                                            options: [.defaultToSpeaker, .mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
             
             guard let input = engine.input else {
@@ -110,9 +69,21 @@ class AudioController: ObservableObject {
             engine.output = silence
             
             pitchTap = PitchTap(mic) { [weak self] frequency, amplitude in
-                guard let self = self else { return }
-                self.processPitchData(frequency: frequency[0], amplitude: amplitude[0])
-            }
+                        guard let self = self else { return }
+                        if amplitude[0] > 0.02 {
+                            let fundamentalFreq = frequency[0]
+                            if fundamentalFreq >= 20 && fundamentalFreq <= 2000 {
+                                let tunerData = self.tunerEngine.processPitch(
+                                    frequency: fundamentalFreq,
+                                    amplitude: amplitude[0]
+                                )
+                                DispatchQueue.main.async {
+                                    self.tunerData = tunerData
+                                }
+                                self.updateStability(frequency: fundamentalFreq)
+                            }
+                        }
+                    }
             
             try engine.start()
             print("Motor de audio iniciado correctamente")
@@ -131,23 +102,10 @@ class AudioController: ObservableObject {
             print("Error: Input de audio no disponible")
             return
         }
-        // Resetear valores al iniciar
-        smoothedAmplitude = 0
-        stabilityDuration = 0
-        lastProcessedTime = Date()
-        stabilityStartTime = nil
-        lastStableFrequency = 0
-        tunerData = .inactive
-        
         pitchTap.start()
     }
     
     func stop() {
         pitchTap.stop()
-        // Limpiar estados al detener
-        DispatchQueue.main.async {
-            self.tunerData = .inactive
-            self.stabilityDuration = 0
-        }
     }
 }
