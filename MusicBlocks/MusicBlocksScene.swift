@@ -45,18 +45,12 @@ class MusicBlocksScene: SKScene {
     /// Controladores principales
     let audioController = AudioController.sharedInstance
     private let tunerEngine = TunerEngine.shared
+    private let gameEngine = GameEngine()
     
     /// Estado del juego
     var score: Int = 0
-    var targetNote: TunerEngine.Note?
-    var noteMatchTime: TimeInterval = 0
-    var isTransitioning: Bool = false
     private var lastUpdateTime: TimeInterval = 0
 
-    // MARK: - Configuration Constants
-    let requiredMatchTime: TimeInterval = 2.0
-    let transitionDelay: TimeInterval = 2.0
-    let acceptableDeviation: Double = 10.0
 
     // MARK: - UI Elements
     /// Etiquetas principales
@@ -131,6 +125,7 @@ class MusicBlocksScene: SKScene {
         
         setupAndStart()
     }
+    
     
     // Configura la barra superior con la puntuación
     private func setupTopBar(width: CGFloat, height: CGFloat) {
@@ -305,48 +300,69 @@ class MusicBlocksScene: SKScene {
         tuningInfoNode.deviation = tunerData.deviation
         tuningInfoNode.isActive = tunerData.isActive
     }
-    
-    func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
-        guard let targetNote = targetNote,
-              let currentNote = tunerEngine.parseNote(audioController.tunerData.note),
-              audioController.tunerData.isActive else {
-            noteMatchTime = 0
-            return
+        
+    private func updateGameUI() {
+        // Actualizar puntuación
+        topBarNode?.updateScore(gameEngine.score)
+        
+        // Actualizar nota objetivo
+        if let targetNote = gameEngine.targetNote {
+            targetNoteLabel.text = "Nota objetivo: \(targetNote.fullName)"
+        } else {
+            targetNoteLabel.text = "Nota objetivo: -"
         }
         
-        if currentNote == targetNote &&
-            abs(audioController.tunerData.deviation) <= acceptableDeviation {
-            noteMatchTime += deltaTime
+        // Actualizar estado visual
+        switch gameEngine.noteState {
+        case .waiting:
+            currentNoteLabel.fontColor = .black
+            successOverlay.isHidden = true
             
-            if noteMatchTime >= requiredMatchTime && !isTransitioning {
-                score += 1
-                topBarNode?.updateScore(score)
-                isTransitioning = true
-                showSuccessOverlay()
-                
-                let wait = SKAction.wait(forDuration: transitionDelay)
-                let newNoteAction = SKAction.run { [weak self] in
-                    self?.generateNewNote()
-                }
-                run(SKAction.sequence([wait, newNoteAction]))
-            }
-        } else {
-            noteMatchTime = 0
+        case .correct(let deviation):
+            currentNoteLabel.fontColor = getDeviationColor(deviation: deviation)
+            successOverlay.isHidden = true
+            
+        case .wrong:
+            currentNoteLabel.fontColor = .red
+            successOverlay.isHidden = true
+            
+        case .success(let multiplier, _):
+            currentNoteLabel.fontColor = .green
+            showSuccessOverlay(multiplier: multiplier)
+        }
+        
+        // Manejar game over si es necesario
+        if gameEngine.gameState == .gameOver {
+            handleGameOver()
         }
     }
     
+    func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
+        let tunerData = audioController.tunerData
+        gameEngine.checkNote(
+            currentNote: tunerData.note,
+            deviation: tunerData.deviation,
+            isActive: tunerData.isActive
+        )
+        
+        // Actualizar la UI según el estado del juego
+        updateGameUI()
+    }
+    
     // MARK: - Helper Methods
-    func showSuccessOverlay() {
+    private func showSuccessOverlay(multiplier: Int) {
+        guard successOverlay.isHidden else { return }
+        
         successOverlay.isHidden = false
         successOverlay.setScale(0.5)
-        let appear = SKAction.scale(to: 1.0, duration: 0.3)
-        successOverlay.run(appear)
         
+        let appear = SKAction.scale(to: 1.0, duration: 0.3)
         let wait = SKAction.wait(forDuration: 1.0)
-        let hideOverlay = SKAction.run { [weak self] in
+        let hide = SKAction.run { [weak self] in
             self?.successOverlay.isHidden = true
         }
-        successOverlay.run(SKAction.sequence([wait, hideOverlay]))
+        
+        successOverlay.run(SKAction.sequence([appear, wait, hide]))
     }
     
     func getDeviationColor(deviation: Double) -> SKColor {
@@ -364,13 +380,78 @@ class MusicBlocksScene: SKScene {
         }
     }
     
+    // MARK: - Game Setup & Control
+    private func setupAndStart() {
+        // Iniciar el audio
+        audioController.start()
+        
+        // Iniciar nuevo juego
+        gameEngine.startNewGame()
+        
+        // Actualizar la UI inicial
+        updateGameUI()
+    }
+
+    private func updateGameState() {
+        // Actualizar puntuación
+        topBarNode?.updateScore(gameEngine.score)
+        
+        // Actualizar nota objetivo si existe
+        if let targetNote = gameEngine.targetNote {
+            targetNoteLabel.text = "Nota objetivo: \(targetNote.fullName)"
+        } else {
+            targetNoteLabel.text = "Nota objetivo: -"
+        }
+    }
+
     // MARK: - Game Loop
     override func update(_ currentTime: TimeInterval) {
         let deltaTime = lastUpdateTime > 0 ? currentTime - lastUpdateTime : 0
         lastUpdateTime = currentTime
         
+        // Actualizar la UI general (indicadores de estabilidad, etc.)
         updateUI()
+        
+        // Actualizar el estado del juego
         checkNoteAndUpdateScore(deltaTime: deltaTime)
+    }
+
+    private func handleGameState() {
+        switch gameEngine.gameState {
+        case .playing:
+            handlePlayingState()
+        case .gameOver:
+            handleGameOverState()
+        }
+    }
+
+    private func handlePlayingState() {
+        switch gameEngine.noteState {
+        case .waiting:
+            currentNoteLabel.fontColor = .black
+            
+        case .correct(let deviation):
+            currentNoteLabel.fontColor = getDeviationColor(deviation: deviation)
+            
+        case .wrong:
+            currentNoteLabel.fontColor = .red
+            
+        case .success(let multiplier, let message):
+            showSuccessOverlay()
+            // Aquí podrías mostrar el multiplicador y el mensaje si lo deseas
+            print("Success with multiplier: \(multiplier), message: \(message)")
+        }
+    }
+
+    private func handleGameOverState() {
+        // Mostrar pantalla de game over
+        // Por ahora solo detenemos el audio
+        audioController.stop()
+    }
+    
+    private func handleGameOver() {
+        audioController.stop()
+        // Aquí puedes añadir lógica adicional para mostrar la pantalla de game over
     }
     
 }
