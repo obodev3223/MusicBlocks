@@ -6,40 +6,39 @@
 //
 
 import SpriteKit
-import UIKit
 
 class TopBar: SKNode {
-    // MARK: - Properties
-    private var backgroundNode: SKShapeNode
-    private var scoreLabel: SKLabelNode
-    private var score: Int = 0
-    
     // MARK: - Layout Configuration
     private struct Layout {
         static let cornerRadius: CGFloat = 15
-        static let fontName = "Helvetica-Bold"
-        static let scoreFontRatio: CGFloat = 0.4
+        static let glowRadius: Float = 8.0
+        static let backgroundAlpha: CGFloat = 0.95
+        static let shadowOffset = CGPoint(x: 0, y: -2)
+        static let shadowOpacity: Float = 0.2
+        static let padding: CGFloat = 20
+        static let scoreFontSize: CGFloat = 24
+        static let scoreLabelOffset: CGPoint = CGPoint(x: 0, y: -2)
     }
     
+    // MARK: - Properties
+    private let size: CGSize
+    private let scoreLabel: SKLabelNode
+    private var score: Int = 0
+    
     // MARK: - Initialization
-    init(size: CGSize) {
-        // Inicializar nodos
-        backgroundNode = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
-        scoreLabel = SKLabelNode(fontNamed: Layout.fontName)
+    private init(width: CGFloat, height: CGFloat, position: CGPoint) {
+        self.size = CGSize(width: width, height: height)
         
-        // Llamar al inicializador de la superclase
+        // Inicializar etiqueta de puntuación
+        scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        scoreLabel.fontSize = Layout.scoreFontSize
+        scoreLabel.verticalAlignmentMode = .center
+        scoreLabel.horizontalAlignmentMode = .center
+        
         super.init()
         
-        // Establecer el nombre del nodo para poder identificarlo
-        self.name = "topBar"
-        
-        // Configurar el fondo
-        setupBackground(size: size)
-        
-        // Configurar la etiqueta de puntuación
-        setupScoreLabel(containerHeight: size.height)
-        
-        // Actualizar la puntuación inicial
+        self.position = position
+        setupNodes()
         updateScore(0)
     }
     
@@ -47,39 +46,48 @@ class TopBar: SKNode {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // MARK: - Setup Methods
-    private func setupBackground(size: CGSize) {
+    // MARK: - Setup
+    private func setupNodes() {
+        // Crear nodo de sombra
+        let shadowNode = SKEffectNode()
+        let shadowShape = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
+        shadowShape.fillColor = .black
+        shadowShape.strokeColor = .clear
+        shadowShape.alpha = Layout.backgroundAlpha
+        shadowNode.addChild(shadowShape)
+        shadowNode.shouldRasterize = true
+        shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.glowRadius])
+        shadowNode.position = Layout.shadowOffset
+        shadowNode.alpha = CGFloat(Layout.shadowOpacity)
+        
+        // Crear fondo principal
+        let backgroundNode = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
         backgroundNode.fillColor = .white
-        backgroundNode.strokeColor = .blue
-        backgroundNode.lineWidth = 1.0
+        backgroundNode.strokeColor = .clear
+        backgroundNode.alpha = Layout.backgroundAlpha
+        
+        // Añadir nodos en orden
+        addChild(shadowNode)
         addChild(backgroundNode)
-    }
-    
-    private func setupScoreLabel(containerHeight: CGFloat) {
-        scoreLabel.fontSize = containerHeight * Layout.scoreFontRatio
+        
+        // Configurar y añadir etiqueta de puntuación
+        scoreLabel.position = Layout.scoreLabelOffset
         scoreLabel.fontColor = .black
-        scoreLabel.verticalAlignmentMode = .center
-        scoreLabel.horizontalAlignmentMode = .center
-        scoreLabel.position = CGPoint(x: 0, y: 0)
         addChild(scoreLabel)
     }
     
     // MARK: - Public Methods
+    static func create(width: CGFloat, height: CGFloat, position: CGPoint) -> TopBar {
+        return TopBar(width: width, height: height, position: position)
+    }
+    
     func updateScore(_ newScore: Int) {
         score = newScore
         scoreLabel.text = "Puntuación: \(score)"
-    }
-    
-    func getScore() -> Int {
-        return score
-    }
-}
-
-// MARK: - Factory Extension
-extension TopBar {
-    static func create(width: CGFloat, height: CGFloat, position: CGPoint) -> TopBar {
-        let topBar = TopBar(size: CGSize(width: width, height: height))
-        topBar.position = position
-        return topBar
+        
+        // Animar actualización
+        let scaleUp = SKAction.scale(to: 1.1, duration: 0.1)
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
+        scoreLabel.run(SKAction.sequence([scaleUp, scaleDown]))
     }
 }

@@ -1,5 +1,5 @@
 //
-//  TuningInfoNode.swift
+//  TuningCounterNode.swift
 //  MusicBlocks
 //
 //  Created by Jose R. García on 25/2/25.
@@ -7,7 +7,7 @@
 
 import SpriteKit
 
-class TuningInfoNode: SKNode {
+class TuningCounterNode: SKNode {
     // MARK: - Layout Configuration
     private struct Layout {
         static let primaryFontRatio: CGFloat = 0.15
