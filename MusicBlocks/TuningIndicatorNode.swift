@@ -2,10 +2,17 @@
 //  TuningIndicatorNode.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 13/2/25.
+//  Created by Jose R. García on 25/2/25.
 //
 
 import SpriteKit
+
+// Extensión para limitar valores numéricos
+extension Comparable {
+    func clamped(to range: ClosedRange<Self>) -> Self {
+        return min(max(self, range.lowerBound), range.upperBound)
+    }
+}
 
 class TuningIndicatorNode: SKNode {
     // MARK: - Layout Configuration
@@ -13,20 +20,21 @@ class TuningIndicatorNode: SKNode {
         static let barWidthRatio: CGFloat = 0.8
         static let markingWidthRatio: CGFloat = 0.6
         static let indicatorSizeRatio: CGFloat = 0.15
-        static let glowRadius: Float = 10.0
-        static let glowAlpha: CGFloat = 0.3
-        static let inactiveAlpha: CGFloat = 0.1
-        static let animationDuration: TimeInterval = 0.1
-        static let indicatorPadding: CGFloat = 0.1
+        static let glowRadius: Float = 15.0
+        static let backgroundAlpha: CGFloat = 0.15
+        static let markingsAlpha: CGFloat = 0.3
+        static let glowAlpha: CGFloat = 0.8
+        static let inactiveAlpha: CGFloat = 0.2
+        static let animationDuration: TimeInterval = 0.2
     }
     
     // MARK: - Properties
     private let containerSize: CGSize
     private let backgroundBar: SKShapeNode
-    private let indicatorNode: SKShapeNode
     private let markings: [SKShapeNode]
-    private let glowNode: SKEffectNode
-    private let blurNode: SKShapeNode
+    private let indicatorContainer: SKNode
+    private let indicatorGlow: SKEffectNode
+    private let indicatorCore: SKShapeNode
     
     var deviation: Double = 0 {
         didSet {
@@ -44,27 +52,25 @@ class TuningIndicatorNode: SKNode {
     init(size: CGSize) {
         self.containerSize = size
         
-        // Calcular dimensiones basadas en el contenedor
+        // Calcular dimensiones
         let barWidth = size.width * Layout.barWidthRatio
         let barHeight = size.height
         
         // Inicializar nodos
-        glowNode = SKEffectNode()
         backgroundBar = SKShapeNode(rectOf: CGSize(width: barWidth, height: barHeight))
-        blurNode = SKShapeNode(rectOf: CGSize(width: barWidth + 10, height: barHeight + 10))
-        indicatorNode = SKShapeNode(circleOfRadius: size.width * Layout.indicatorSizeRatio)
+        indicatorContainer = SKNode()
+        indicatorGlow = SKEffectNode()
+        indicatorCore = SKShapeNode(circleOfRadius: size.width * Layout.indicatorSizeRatio)
         
-        // Inicializar marcas de centésimas
+        // Inicializar marcas
         var marks: [SKShapeNode] = []
         let markValues = [-25, -10, 0, 10, 25]
         
         for cents in markValues {
             let mark = SKShapeNode(rectOf: CGSize(
                 width: cents == 0 ? barWidth * 0.8 : barWidth * Layout.markingWidthRatio,
-                height: 2
+                height: 1
             ))
-            mark.fillColor = .gray
-            mark.strokeColor = .clear
             marks.append(mark)
         }
         markings = marks
@@ -80,73 +86,58 @@ class TuningIndicatorNode: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Configurar efecto glow
-        blurNode.fillColor = .white
-        blurNode.strokeColor = .clear
-        glowNode.addChild(blurNode)
-        glowNode.shouldRasterize = true
-        glowNode.shouldEnableEffects = true
-        addChild(glowNode)
-        
         // Configurar barra de fondo
         backgroundBar.fillColor = .white
-        backgroundBar.strokeColor = .gray
-        backgroundBar.alpha = 0.3
+        backgroundBar.strokeColor = .clear
+        backgroundBar.alpha = Layout.backgroundAlpha
         addChild(backgroundBar)
         
-        // Configurar marcas de centésimas
+        // Configurar marcas
         for (index, mark) in markings.enumerated() {
             let progress = CGFloat(index) / CGFloat(markings.count - 1)
             let yPosition = -containerSize.height/2 + containerSize.height * progress
             mark.position = CGPoint(x: 0, y: yPosition)
+            mark.fillColor = .white
+            mark.strokeColor = .clear
+            mark.alpha = Layout.markingsAlpha
             addChild(mark)
         }
         
         // Configurar indicador
-        indicatorNode.fillColor = .green
-        indicatorNode.strokeColor = .clear
-        addChild(indicatorNode)
+        addChild(indicatorContainer)
+        indicatorContainer.addChild(indicatorGlow)
+        
+        // Configurar glow
+        indicatorGlow.shouldRasterize = true
+        indicatorGlow.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.glowRadius])
+        
+        // Configurar núcleo del indicador
+        indicatorCore.fillColor = .white
+        indicatorCore.strokeColor = .clear
+        indicatorGlow.addChild(indicatorCore)
         
         updateIndicator()
     }
     
     // MARK: - Updates
     private func updateIndicator() {
-           // Calcular posición vertical basada en la desviación con límites
-           let normalizedDeviation = CGFloat((deviation + 25) / 50).clamped(to: 0...1)
-           
-           // Calcular el rango efectivo de movimiento considerando el tamaño del indicador
-           let indicatorRadius = containerSize.width * Layout.indicatorSizeRatio
-           let effectiveHeight = containerSize.height - (indicatorRadius * 2)
-           let minY = -containerSize.height/2 + indicatorRadius
-           let maxY = containerSize.height/2 - indicatorRadius
-           
-           // Calcular la posición final con límites
-           let yPosition = minY + (effectiveHeight * normalizedDeviation)
-           
-           // Animar el movimiento del indicador
-           let moveAction = SKAction.move(to: CGPoint(x: 0, y: yPosition),
-                                        duration: Layout.animationDuration)
-           moveAction.timingMode = .easeOut
-           indicatorNode.run(moveAction)
-           
-           // Actualizar colores y efectos
-           let color = getDeviationColor()
-           indicatorNode.fillColor = color
-           
-           // Configurar el efecto glow
-           glowNode.filter = CIFilter(name: "CIGaussianBlur",
-                                    parameters: ["inputRadius": Layout.glowRadius])
-           glowNode.alpha = isActive ? Layout.glowAlpha : Layout.inactiveAlpha
-           
-           // Actualizar el color del glow
-           blurNode.fillColor = color
-       }
-
-
-    
-    // MARK: - Helper Methods
-    
+        // Calcular posición
+        let normalizedDeviation = CGFloat((deviation + 25) / 50).clamped(to: 0...1)
+        let indicatorRadius = containerSize.width * Layout.indicatorSizeRatio
+        let effectiveHeight = containerSize.height - (indicatorRadius * 2)
+        let minY = -containerSize.height/2 + indicatorRadius
+        let yPosition = minY + (effectiveHeight * normalizedDeviation)
+        
+        // Animar movimiento
+        let moveAction = SKAction.move(to: CGPoint(x: 0, y: yPosition), duration: Layout.animationDuration)
+        moveAction.timingMode = SKActionTimingMode.easeOut
+        indicatorContainer.run(moveAction)
+        
+        // Actualizar color y glow
+        let color = getDeviationColor()
+        indicatorCore.fillColor = color
+        indicatorGlow.alpha = isActive ? Layout.glowAlpha : Layout.inactiveAlpha
+    }
     
     private func getDeviationColor() -> SKColor {
         guard isActive else {
@@ -161,12 +152,5 @@ class TuningIndicatorNode: SKNode {
         } else {
             return .red
         }
-    }
-}
-
-// Extensión para limitar valores numéricos
-extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
-        return min(max(self, range.lowerBound), range.upperBound)
     }
 }

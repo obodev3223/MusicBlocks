@@ -1,8 +1,8 @@
 //
-//  GameSceneScene.swift
+//  MusicBlocksScene.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 11/2/25.
+//  Created by Jose R. García on 25/2/25.
 //
 
 import SpriteKit
@@ -34,12 +34,18 @@ class MusicBlocksScene: SKScene {
         static let mainAreaWidthRatio: CGFloat = 0.66    // 66% del ancho
         static let sideBarHeightRatio: CGFloat = 0.444   // Nuevo: 74% * 0.6 = ~44.4% (40% más corto)
         static let sideBarExtensionHeightRatio: CGFloat = 0.15
-            
-            // Tamaños relativos de fuente
-            static let scoreFontRatio: CGFloat = 0.5         // 50% de la altura de su contenedor
-            static let currentNoteFontRatio: CGFloat = 0.3   // 30% de la altura del área principal
-            static let targetNoteFontRatio: CGFloat = 0.5    // 50% de la altura de su contenedor
-        }
+        
+        // Tamaños relativos de fuente
+        static let scoreFontRatio: CGFloat = 0.5         // 50% de la altura de su contenedor
+        static let currentNoteFontRatio: CGFloat = 0.3   // 30% de la altura del área principal
+        static let targetNoteFontRatio: CGFloat = 0.5    // 50% de la altura de su contenedor
+        
+        // Nuevas constantes para el diseño 3D
+        static let shadowRadius: CGFloat = 4.0
+        static let shadowOpacity: Float = 0.2
+        static let shadowOffset = CGSize(width: 0, height: -2)
+        static let containerAlpha: CGFloat = 0.95
+    }
     
     // MARK: - Properties
     /// Controladores principales
@@ -50,15 +56,16 @@ class MusicBlocksScene: SKScene {
     /// Estado del juego
     var score: Int = 0
     private var lastUpdateTime: TimeInterval = 0
-
-
+    private let acceptableDeviation: Double = 10.0
+    
+    
     // MARK: - UI Elements
     /// Etiquetas principales
     var scoreLabel: SKLabelNode!
     var currentNoteLabel: SKLabelNode!
     var targetNoteLabel: SKLabelNode!
     var successOverlay: SKNode!
-
+    
     /// Indicadores y contadores
     var stabilityIndicatorNode: StabilityIndicatorNode!
     var stabilityCounterNode: StabilityCounterNode!
@@ -92,7 +99,7 @@ class MusicBlocksScene: SKScene {
     }
     
     private func setupScene() {
-        backgroundColor = .lightGray
+        backgroundColor = .white
         
         let safeWidth = size.width - Layout.margins.left - Layout.margins.right
         let safeHeight = size.height - Layout.margins.top - Layout.margins.bottom
@@ -112,18 +119,18 @@ class MusicBlocksScene: SKScene {
         
         // Configurar área principal con ajuste de posición
         setupMainArea(width: mainAreaWidth,
-                     height: mainAreaHeight,
-                     topBarHeight: topBarHeight)
+                      height: mainAreaHeight,
+                      topBarHeight: topBarHeight)
         
         // Configurar barras laterales (40% más cortas)
         let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
         setupSideBars(width: sideBarWidth,
-                     height: sideBarHeight,
-                     topBarHeight: topBarHeight)
+                      height: sideBarHeight,
+                      topBarHeight: topBarHeight)
         
         // Configurar overlay de éxito
         setupSuccessOverlay(size: CGSize(width: mainAreaWidth * 0.5,
-                                       height: safeHeight * 0.25))
+                                         height: safeHeight * 0.25))
         
         setupAndStart()
     }
@@ -137,6 +144,21 @@ class MusicBlocksScene: SKScene {
             y: size.height - safeAreaTop - height / 2
         )
         
+        let topBar = SKShapeNode(rectOf: CGSize(width: width, height: height),
+                                cornerRadius: Layout.cornerRadius)
+        topBar.fillColor = .white
+        topBar.strokeColor = .clear
+        topBar.alpha = Layout.containerAlpha
+        
+        // Añadir sombra
+        topBar.shadowRadius = Layout.shadowRadius
+        topBar.shadowOpacity = Layout.shadowOpacity
+        topBar.shadowOffset = Layout.shadowOffset
+        topBar.shadowColor = .gray
+        
+        topBar.position = position
+        addChild(topBar)
+        
         topBarNode = TopBar.create(width: width, height: height, position: position)
         if let topBar = topBarNode {
             addChild(topBar)
@@ -148,8 +170,15 @@ class MusicBlocksScene: SKScene {
         let mainArea = SKShapeNode(rectOf: CGSize(width: width, height: height),
                                   cornerRadius: Layout.cornerRadius)
         mainArea.fillColor = .white
-        mainArea.strokeColor = .blue
-        // Ajustar posición para dejar espacio después de la barra superior
+        mainArea.strokeColor = .clear
+        mainArea.alpha = Layout.containerAlpha
+        
+        // Añadir sombra
+        mainArea.shadowRadius = Layout.shadowRadius
+        mainArea.shadowOpacity = Layout.shadowOpacity
+        mainArea.shadowOffset = Layout.shadowOffset
+        mainArea.shadowColor = .gray
+        
         mainArea.position = CGPoint(
             x: size.width/2,
             y: size.height/2 - (Layout.verticalSpacing/2)
@@ -168,11 +197,19 @@ class MusicBlocksScene: SKScene {
     /// Configura la barra inferior con la nota objetivo
     private func setupBottomBar(width: CGFloat, height: CGFloat) {
         let bottomBar = SKShapeNode(rectOf: CGSize(width: width, height: height),
-                                    cornerRadius: Layout.cornerRadius)
+                                   cornerRadius: Layout.cornerRadius)
         bottomBar.fillColor = .white
-        bottomBar.strokeColor = .blue
+        bottomBar.strokeColor = .clear
+        bottomBar.alpha = Layout.containerAlpha
+        
+        // Añadir sombra
+        bottomBar.shadowRadius = Layout.shadowRadius
+        bottomBar.shadowOpacity = Layout.shadowOpacity
+        bottomBar.shadowOffset = Layout.shadowOffset
+        bottomBar.shadowColor = .gray
+        
         bottomBar.position = CGPoint(x: size.width/2,
-                                     y: Layout.margins.bottom + height/2)
+                                    y: Layout.margins.bottom + height/2)
         addChild(bottomBar)
         
         targetNoteLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
@@ -185,55 +222,68 @@ class MusicBlocksScene: SKScene {
     
     /// Configura las barras laterales con indicadores
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-            // Barra izquierda
-            setupSideBar(width: width, height: height, isLeft: true, topBarHeight: topBarHeight)
-            // Barra derecha
-            setupSideBar(width: width, height: height, isLeft: false, topBarHeight: topBarHeight)
-        }
+        // Barra izquierda
+        setupSideBar(width: width, height: height, isLeft: true, topBarHeight: topBarHeight)
+        // Barra derecha
+        setupSideBar(width: width, height: height, isLeft: false, topBarHeight: topBarHeight)
+    }
     
-    /// Configura una barra lateral individual
     private func setupSideBar(width: CGFloat, height: CGFloat, isLeft: Bool, topBarHeight: CGFloat) {
-            let xPosition = isLeft ?
-                Layout.margins.left + width/2 :
-                size.width - Layout.margins.right - width/2
-            
-            // Ajustar posición vertical para alinear con el área principal
-            let yPosition = size.height/2 - (Layout.verticalSpacing/2)
-            
-            // Crear el contenedor principal
-            let sideBar = SKShapeNode(rectOf: CGSize(width: width, height: height),
-                                     cornerRadius: Layout.cornerRadius)
-            sideBar.fillColor = .white
-            sideBar.strokeColor = .blue
-            sideBar.position = CGPoint(x: xPosition, y: yPosition)
-            addChild(sideBar)
-            
-            // El resto del código del setupSideBar permanece igual...
-            let indicatorSize = CGSize(width: width * 0.9, height: height * 0.9)
-            
-            if isLeft {
-                stabilityIndicatorNode = StabilityIndicatorNode(size: indicatorSize)
-                stabilityIndicatorNode.position = CGPoint(x: 0, y: 0)
-                sideBar.addChild(stabilityIndicatorNode)
-            } else {
-                tuningIndicatorNode = TuningIndicatorNode(size: indicatorSize)
-                tuningIndicatorNode.position = CGPoint(x: 0, y: 0)
-                sideBar.addChild(tuningIndicatorNode)
-            }
-            
-            setupSideBarExtension(width: width, height: height * Layout.sideBarExtensionHeightRatio,
-                                parent: sideBar, isLeft: isLeft)
+        let xPosition = isLeft ?
+            Layout.margins.left + width/2 :
+            size.width - Layout.margins.right - width/2
+        
+        let yPosition = size.height/2 - (Layout.verticalSpacing/2)
+        
+        let sideBar = SKShapeNode(rectOf: CGSize(width: width, height: height),
+                                 cornerRadius: Layout.cornerRadius)
+        sideBar.fillColor = .white
+        sideBar.strokeColor = .clear
+        sideBar.alpha = Layout.containerAlpha
+        
+        // Añadir sombra
+        sideBar.shadowRadius = Layout.shadowRadius
+        sideBar.shadowOpacity = Layout.shadowOpacity
+        sideBar.shadowOffset = Layout.shadowOffset
+        sideBar.shadowColor = .gray
+        
+        sideBar.position = CGPoint(x: xPosition, y: yPosition)
+        addChild(sideBar)
+        
+        // El resto del código del setupSideBar permanece igual...
+        let indicatorSize = CGSize(width: width * 0.9, height: height * 0.9)
+        
+        if isLeft {
+            stabilityIndicatorNode = StabilityIndicatorNode(size: indicatorSize)
+            stabilityIndicatorNode.position = CGPoint(x: 0, y: 0)
+            sideBar.addChild(stabilityIndicatorNode)
+        } else {
+            tuningIndicatorNode = TuningIndicatorNode(size: indicatorSize)
+            tuningIndicatorNode.position = CGPoint(x: 0, y: 0)
+            sideBar.addChild(tuningIndicatorNode)
         }
+        
+        setupSideBarExtension(width: width, height: height * Layout.sideBarExtensionHeightRatio,
+                              parent: sideBar, isLeft: isLeft)
+    }
     
     /// Configura la extensión inferior de una barra lateral
-
+    
     private func setupSideBarExtension(width: CGFloat, height: CGFloat, parent: SKShapeNode, isLeft: Bool) {
         let extensionNode = SKShapeNode(rectOf: CGSize(width: width, height: height),
-                                        cornerRadius: Layout.cornerRadius)
+                                       cornerRadius: Layout.cornerRadius)
         extensionNode.fillColor = .white
-        extensionNode.strokeColor = .blue
+        extensionNode.strokeColor = .clear
+        extensionNode.alpha = Layout.containerAlpha
+        
+        // Añadir sombra
+        extensionNode.shadowRadius = Layout.shadowRadius
+        extensionNode.shadowOpacity = Layout.shadowOpacity
+        extensionNode.shadowOffset = Layout.shadowOffset
+        extensionNode.shadowColor = .gray
+        
         extensionNode.position = CGPoint(x: 0,
-                                         y: -parent.frame.height/2 - height/2)
+                                       y: -parent.frame.height/2 - height/2)
         parent.addChild(extensionNode)
         
         // Calcular dimensiones para los contadores
@@ -302,7 +352,7 @@ class MusicBlocksScene: SKScene {
         tuningInfoNode.deviation = tunerData.deviation
         tuningInfoNode.isActive = tunerData.isActive
     }
-        
+    
     private func updateGameUI() {
         // Actualizar puntuación
         topBarNode?.updateScore(gameEngine.score)
@@ -326,11 +376,11 @@ class MusicBlocksScene: SKScene {
             
         case .wrong:
             currentNoteLabel.fontColor = .red
-            successOverlay.isHidden = true
+            showFailureOverlay()
             
-        case .success(let multiplier, _):
+        case .success(let multiplier, let message):
             currentNoteLabel.fontColor = .green
-            showSuccessOverlay(multiplier: multiplier)
+            showSuccessOverlay(multiplier: multiplier, message: message)
         }
         
         // Manejar game over si es necesario
@@ -390,8 +440,6 @@ class MusicBlocksScene: SKScene {
     }
     
     
-    
-    
     func getDeviationColor(deviation: Double) -> SKColor {
         guard audioController.tunerData.isActive else {
             return .gray
@@ -418,7 +466,7 @@ class MusicBlocksScene: SKScene {
         // Actualizar la UI inicial
         updateGameUI()
     }
-
+    
     private func updateGameState() {
         // Actualizar puntuación
         topBarNode?.updateScore(gameEngine.score)
@@ -430,7 +478,7 @@ class MusicBlocksScene: SKScene {
             targetNoteLabel.text = "Nota objetivo: -"
         }
     }
-
+    
     // MARK: - Game Loop
     override func update(_ currentTime: TimeInterval) {
         let deltaTime = lastUpdateTime > 0 ? currentTime - lastUpdateTime : 0
@@ -442,7 +490,7 @@ class MusicBlocksScene: SKScene {
         // Actualizar el estado del juego
         checkNoteAndUpdateScore(deltaTime: deltaTime)
     }
-
+    
     private func handleGameState() {
         switch gameEngine.gameState {
         case .playing:
@@ -451,7 +499,7 @@ class MusicBlocksScene: SKScene {
             handleGameOverState()
         }
     }
-
+    
     private func handlePlayingState() {
         switch gameEngine.noteState {
         case .waiting:
@@ -464,12 +512,10 @@ class MusicBlocksScene: SKScene {
             currentNoteLabel.fontColor = .red
             
         case .success(let multiplier, let message):
-            showSuccessOverlay()
-            // Aquí podrías mostrar el multiplicador y el mensaje si lo deseas
-            print("Success with multiplier: \(multiplier), message: \(message)")
+            showSuccessOverlay(multiplier: multiplier, message: message)
         }
     }
-
+    
     private func handleGameOverState() {
         // Mostrar pantalla de game over
         // Por ahora solo detenemos el audio

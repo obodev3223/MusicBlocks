@@ -2,7 +2,7 @@
 //  StabilityCounterNode.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 13/2/25.
+//  Created by Jose R. García on 25/2/25.
 //
 
 import SpriteKit
@@ -12,14 +12,18 @@ class StabilityCounterNode: SKNode {
     private struct Layout {
         static let primaryFontRatio: CGFloat = 0.15
         static let secondaryFontRatio: CGFloat = 0.10
-        static let verticalSpacingRatio: CGFloat = 0.05
+        static let cornerRadius: CGFloat = 8
+        static let backgroundAlpha: CGFloat = 0.15
         static let animationDuration: TimeInterval = 0.2
+        static let glowRadius: Float = 8.0
     }
     
     // MARK: - Properties
     private let containerSize: CGSize
+    private let container: SKShapeNode
     private let timeLabel: SKLabelNode
     private let unitLabel: SKLabelNode
+    private let glowNode: SKEffectNode
     
     var duration: TimeInterval = 0 {
         didSet {
@@ -31,13 +35,16 @@ class StabilityCounterNode: SKNode {
     init(size: CGSize) {
         self.containerSize = size
         
-        // Inicializar etiqueta de tiempo
+        // Inicializar contenedor
+        container = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
+        glowNode = SKEffectNode()
+        
+        // Inicializar etiquetas
         timeLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         timeLabel.fontSize = size.height * Layout.primaryFontRatio
         timeLabel.verticalAlignmentMode = .center
         timeLabel.fontColor = .black
         
-        // Inicializar etiqueta de unidad
         unitLabel = SKLabelNode(fontNamed: "Helvetica")
         unitLabel.fontSize = size.height * Layout.secondaryFontRatio
         unitLabel.verticalAlignmentMode = .center
@@ -56,47 +63,49 @@ class StabilityCounterNode: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Añadir etiquetas al nodo
-        addChild(timeLabel)
-        addChild(unitLabel)
+        // Configurar contenedor
+        container.fillColor = .white
+        container.strokeColor = .clear
+        container.alpha = Layout.backgroundAlpha
+        addChild(container)
         
-        // Posicionar etiquetas verticalmente
-        let spacing = containerSize.height * Layout.verticalSpacingRatio
-        timeLabel.position = CGPoint(x: 0, y: spacing)
-        unitLabel.position = CGPoint(x: 0, y: -spacing)
+        // Configurar glow
+        glowNode.filter = CIFilter(name: "CIGaussianBlur",
+                                 parameters: ["inputRadius": Layout.glowRadius])
+        glowNode.shouldRasterize = true
+        addChild(glowNode)
+        
+        // Posicionar etiquetas
+        timeLabel.position = CGPoint(x: -20, y: 0)
+        unitLabel.position = CGPoint(x: 20, y: 0)
+        
+        // Añadir etiquetas
+        container.addChild(timeLabel)
+        container.addChild(unitLabel)
     }
     
     // MARK: - Updates
     private func updateDisplay() {
-        // Formatear el tiempo con un decimal
         timeLabel.text = String(format: "%.1f", duration)
         
-        // Animar la actualización
+        // Actualizar glow según la duración
+        let normalizedDuration = CGFloat(min(duration, 10.0) / 10.0)
+        glowNode.alpha = normalizedDuration * 0.5
+        
         animateUpdate()
     }
     
     private func animateUpdate() {
-        // Crear secuencia de animación
-        let scaleUp = SKAction.scale(to: 1.1, duration: Layout.animationDuration / 2)
+        let scaleUp = SKAction.scale(to: 1.05, duration: Layout.animationDuration / 2)
         let scaleDown = SKAction.scale(to: 1.0, duration: Layout.animationDuration / 2)
         let sequence = SKAction.sequence([scaleUp, scaleDown])
         
-        // Aplicar animación solo a la etiqueta de tiempo
         timeLabel.run(sequence)
     }
     
     // MARK: - Public Methods
-    func setFontSizes(timeSize: CGFloat, unitSize: CGFloat) {
-        timeLabel.fontSize = timeSize
-        unitLabel.fontSize = unitSize
-    }
-    
-    func setColors(timeColor: SKColor, unitColor: SKColor) {
-        timeLabel.fontColor = timeColor
-        unitLabel.fontColor = unitColor
-    }
-    
     func reset() {
         duration = 0
+        glowNode.alpha = 0
     }
 }

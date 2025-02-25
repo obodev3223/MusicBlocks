@@ -2,7 +2,7 @@
 //  StabilityIndicatorNode.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 13/2/25.
+//  Created by Jose R. García on 25/2/25.
 //
 
 import SpriteKit
@@ -12,16 +12,20 @@ class StabilityIndicatorNode: SKNode {
     private struct Layout {
         static let barWidthRatio: CGFloat = 0.8
         static let markingWidthRatio: CGFloat = 0.6
-        static let progressWidthRatio: CGFloat = 0.6
-        static let markingHeightRatio: CGFloat = 0.005 // 0.5% de la altura
+        static let glowRadius: Float = 15.0
+        static let backgroundAlpha: CGFloat = 0.15
+        static let markingsAlpha: CGFloat = 0.3
+        static let glowAlpha: CGFloat = 0.8
         static let cornerRadius: CGFloat = 4
+        static let animationDuration: TimeInterval = 0.2
     }
     
     // MARK: - Properties
     private let containerSize: CGSize
     private let backgroundBar: SKShapeNode
-    private let progressBar: SKShapeNode
     private let markings: [SKShapeNode]
+    private let glowContainer: SKEffectNode
+    private let glowBar: SKShapeNode
     private var maxDuration: TimeInterval = 10.0
     
     var duration: TimeInterval = 0 {
@@ -34,33 +38,25 @@ class StabilityIndicatorNode: SKNode {
     init(size: CGSize) {
         self.containerSize = size
         
-        // Calcular dimensiones basadas en el contenedor
+        // Calcular dimensiones
         let barWidth = size.width * Layout.barWidthRatio
         let barHeight = size.height
         
-        // Inicializar barra de fondo
+        // Inicializar nodos
         backgroundBar = SKShapeNode(rectOf: CGSize(width: barWidth, height: barHeight),
-                                    cornerRadius: Layout.cornerRadius)
-        backgroundBar.fillColor = .white
-        backgroundBar.strokeColor = .gray
-        backgroundBar.alpha = 0.3
+                                  cornerRadius: Layout.cornerRadius)
+        glowContainer = SKEffectNode()
+        glowBar = SKShapeNode()
         
-        // Inicializar barra de progreso
-        progressBar = SKShapeNode()
-        progressBar.fillColor = .blue
-        progressBar.strokeColor = .clear
-        
-        // Inicializar marcas de tiempo
+        // Inicializar marcas
         var marks: [SKShapeNode] = []
-        let timeMarks = [0, 5, 10] // Segundos
+        let timeMarks = [0, 5, 10]
         
         for _ in timeMarks {
             let mark = SKShapeNode(rectOf: CGSize(
                 width: barWidth * Layout.markingWidthRatio,
-                height: size.height * Layout.markingHeightRatio
+                height: 1
             ))
-            mark.fillColor = .gray
-            mark.strokeColor = .clear
             marks.append(mark)
         }
         markings = marks
@@ -76,20 +72,30 @@ class StabilityIndicatorNode: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Añadir barra de fondo
+        // Configurar barra de fondo
+        backgroundBar.fillColor = .white
+        backgroundBar.strokeColor = .clear
+        backgroundBar.alpha = Layout.backgroundAlpha
         addChild(backgroundBar)
         
-        // Añadir barra de progreso
-        addChild(progressBar)
-        
-        // Configurar y añadir marcas de tiempo
+        // Configurar marcas
         for (index, mark) in markings.enumerated() {
-            let yPosition = CGFloat(index) * (containerSize.height / CGFloat(markings.count - 1))
-            mark.position = CGPoint(x: 0, y: -containerSize.height/2 + yPosition)
+            let progress = CGFloat(index) / CGFloat(markings.count - 1)
+            let yPosition = -containerSize.height/2 + containerSize.height * progress
+            mark.position = CGPoint(x: 0, y: yPosition)
+            mark.fillColor = .white
+            mark.strokeColor = .clear
+            mark.alpha = Layout.markingsAlpha
             addChild(mark)
         }
         
-        // Inicializar progreso
+        // Configurar glow
+        addChild(glowContainer)
+        glowContainer.addChild(glowBar)
+        glowContainer.shouldRasterize = true
+        glowContainer.filter = CIFilter(name: "CIGaussianBlur",
+                                      parameters: ["inputRadius": Layout.glowRadius])
+        
         updateProgress()
     }
     
@@ -98,34 +104,37 @@ class StabilityIndicatorNode: SKNode {
         let normalizedProgress = CGFloat(min(duration, maxDuration) / maxDuration)
         let progressHeight = containerSize.height * normalizedProgress
         
-        // Crear el path para la barra de progreso
-        let progressWidth = containerSize.width * Layout.progressWidthRatio
+        let progressWidth = containerSize.width * Layout.barWidthRatio
         let rect = CGRect(x: -progressWidth/2,
-                          y: -containerSize.height/2, // Origen en la parte inferior
-                          width: progressWidth,
-                          height: progressHeight)
+                         y: -containerSize.height/2,
+                         width: progressWidth,
+                         height: progressHeight)
         
-        // Crear path con esquinas redondeadas
         let path = CGMutablePath()
         let cornerRadius = Layout.cornerRadius
         
         if progressHeight > cornerRadius * 2 {
-            // Añadir esquinas redondeadas solo si hay suficiente altura
             path.addRoundedRect(in: rect,
-                                cornerWidth: cornerRadius,
-                                cornerHeight: cornerRadius)
+                              cornerWidth: cornerRadius,
+                              cornerHeight: cornerRadius)
         } else {
-            // Si es muy pequeña, usar un rectángulo simple
             path.addRect(rect)
         }
         
-        progressBar.path = path
+        // Animar cambio de path
+        let action = SKAction.run { [weak self] in
+            self?.glowBar.path = path
+            self?.glowBar.fillColor = self?.getProgressColor() ?? .blue
+        }
+        glowBar.run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.1),
+            action
+        ]))
         
-        // Actualizar color según duración
-        progressBar.fillColor = getProgressColor()
+        // Actualizar alpha del glow
+        glowContainer.alpha = normalizedProgress * Layout.glowAlpha
     }
     
-    // MARK: - Helper Methods
     private func getProgressColor() -> SKColor {
         let progress = duration / maxDuration
         
