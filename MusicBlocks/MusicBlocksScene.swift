@@ -101,6 +101,7 @@ class MusicBlocksScene: SKScene {
     private var topBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
     var detectedNoteCounterNode: DetectedNoteCounterNode!
+    private var floatingTargetNote: FloatingTargetNoteNode!
     
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
@@ -133,7 +134,7 @@ class MusicBlocksScene: SKScene {
         // Calcular alturas
         let topBarHeight = safeHeight * Layout.topBarHeightRatio
         let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
-        let bottomBarHeight = safeHeight * Layout.bottomBarHeightRatio
+
         
         // Calcular anchos
         let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
@@ -141,12 +142,15 @@ class MusicBlocksScene: SKScene {
         
         // Configurar barras superior e inferior
         setupTopBar(width: safeWidth, height: topBarHeight)
-        setupBottomBar(width: safeWidth, height: bottomBarHeight)
+
         
         // Configurar área principal con ajuste de posición
         setupMainArea(width: mainAreaWidth,
                       height: mainAreaHeight,
                       topBarHeight: topBarHeight)
+        
+        //Configurar la nota aleatoria flotante
+        setupFloatingTargetNote(width: size.width)
         
         // Configurar barras laterales (40% más cortas)
         let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
@@ -185,43 +189,111 @@ class MusicBlocksScene: SKScene {
     
     
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-        let (containerNode, mainShape) = createContainerWithShadow(
+        let containerNode = createContainerWithShadow(
             size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius
-        )
-        containerNode.position = CGPoint(
-            x: size.width/2,
-            y: size.height/2 - (Layout.verticalSpacing/2)
+            cornerRadius: Layout.cornerRadius,
+            position: CGPoint(
+                x: size.width/2,
+                y: size.height/2 - (Layout.verticalSpacing/2)
+            ),
+            zPosition: 1
         )
         addChild(containerNode)
     }
     
-    /// Configura la barra inferior con la nota objetivo
-    private func setupBottomBar(width: CGFloat, height: CGFloat) {
-        let (containerNode, mainShape) = createContainerWithShadow(
-            size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius
-        )
-        containerNode.position = CGPoint(
-            x: size.width/2,
-            y: Layout.margins.bottom + height/2
-        )
-        addChild(containerNode)
+
+    
+    private func setupFloatingTargetNote(width: CGFloat) {
+        floatingTargetNote = FloatingTargetNoteNode(width: width)
         
-        targetNoteLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        targetNoteLabel.fontSize = height * 0.4
-        targetNoteLabel.fontColor = .black
-        targetNoteLabel.text = "Nota objetivo: -"
-        targetNoteLabel.position = CGPoint(x: 0, y: -height * 0.2)
-        mainShape.addChild(targetNoteLabel)
+        // Posicionar el panel flotante encima del área principal
+        let yPosition = size.height/2 + Layout.verticalSpacing * 2
+        floatingTargetNote.position = CGPoint(
+            x: size.width/2,
+            y: yPosition
+        )
+        
+        addChild(floatingTargetNote)
     }
     
     /// Configura las barras laterales con indicadores
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-        // Barra izquierda
-        setupSideBar(width: width, height: height, isLeft: true, topBarHeight: topBarHeight)
-        // Barra derecha
-        setupSideBar(width: width, height: height, isLeft: false, topBarHeight: topBarHeight)
+        // Barra izquierda - Estabilidad
+        let leftBarPosition = CGPoint(
+            x: Layout.margins.left + width/2,
+            y: size.height/2 - (Layout.verticalSpacing/2)
+        )
+        
+        let leftBar = createContainerWithShadow(
+            size: CGSize(width: width, height: height),
+            cornerRadius: Layout.cornerRadius,
+            position: leftBarPosition,
+            zPosition: 1
+        )
+        addChild(leftBar)
+        
+        // Indicadores de estabilidad (izquierda)
+        stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.3))
+        stabilityIndicatorNode.position = CGPoint(x: leftBarPosition.x, y: leftBarPosition.y + height * 0.2)
+        stabilityIndicatorNode.zPosition = 10
+        addChild(stabilityIndicatorNode)
+        
+        stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 0.8, height: height * 0.3))
+        stabilityCounterNode.position = CGPoint(x: leftBarPosition.x, y: leftBarPosition.y - height * 0.2)
+        stabilityCounterNode.zPosition = 10
+        addChild(stabilityCounterNode)
+        
+        // Barra derecha - Afinación
+        let rightBarPosition = CGPoint(
+            x: size.width - Layout.margins.right - width/2,
+            y: size.height/2 - (Layout.verticalSpacing/2)
+        )
+        
+        let rightBar = createContainerWithShadow(
+            size: CGSize(width: width, height: height),
+            cornerRadius: Layout.cornerRadius,
+            position: rightBarPosition,
+            zPosition: 1
+        )
+        addChild(rightBar)
+        
+        // Indicadores de afinación (derecha)
+        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.3))
+        tuningIndicatorNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y + height * 0.2)
+        tuningIndicatorNode.zPosition = 10
+        addChild(tuningIndicatorNode)
+        
+        tuningCounterNode = TuningCounterNode(size: CGSize(width: width * 0.8, height: height * 0.3))
+        tuningCounterNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.2)
+        tuningCounterNode.zPosition = 10
+        addChild(tuningCounterNode)
+    }
+
+    // Función auxiliar para crear contenedores con sombra
+    private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
+        let container = SKNode()
+        container.position = position
+        container.zPosition = zPosition
+        
+        // Efecto de sombra
+        let effectNode = SKEffectNode()
+        effectNode.filter = CIFilter(
+            name: "CIGaussianBlur",
+            parameters: ["inputRadius": 3.0]
+        )
+        effectNode.shouldRasterize = true
+        effectNode.shouldEnableEffects = true
+        effectNode.zPosition = -1
+        container.addChild(effectNode)
+        
+        // Forma del contenedor
+        let shape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
+        shape.fillColor = .white
+        shape.strokeColor = .clear
+        shape.alpha = Layout.containerAlpha
+        effectNode.addChild(shape)
+        
+        return container
     }
     
     private func setupSideBar(width: CGFloat, height: CGFloat, isLeft: Bool, topBarHeight: CGFloat) {
@@ -346,11 +418,17 @@ class MusicBlocksScene: SKScene {
         // Actualizar puntuación
         topBarNode?.updateScore(gameEngine.score)
         
-        // Actualizar nota objetivo
-        if let targetNote = gameEngine.targetNote {
-            targetNoteLabel.text = "Nota objetivo: \(targetNote.fullName)"
-        } else {
-            targetNoteLabel.text = "Nota objetivo: -"
+        // Actualizar nota objetivo en el panel flotante
+        floatingTargetNote.targetNote = gameEngine.targetNote
+        
+        // Animar el panel según el estado
+        switch gameEngine.noteState {
+        case .waiting, .correct:
+            floatingTargetNote.animate(scale: 1.0, opacity: 1.0)
+        case .wrong:
+            floatingTargetNote.animate(scale: 0.95, opacity: 0.7)
+        case .success:
+            floatingTargetNote.animate(scale: 1.1, opacity: 1.0)
         }
         
         // Actualizar estado visual
