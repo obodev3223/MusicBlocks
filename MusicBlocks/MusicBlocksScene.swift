@@ -71,6 +71,8 @@ class MusicBlocksScene: SKScene {
     var tuningIndicatorNode: TuningIndicatorNode!
     var tuningInfoNode: TuningInfoNode!
     
+    private var topBarNode: TopBar?
+    
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
         super.didMove(to: view)
@@ -133,23 +135,17 @@ class MusicBlocksScene: SKScene {
     // Configura la barra superior con la puntuación
     private func setupTopBar(width: CGFloat, height: CGFloat) {
         let safeAreaTop = view?.safeAreaInsets.top ?? 0
-        let topBar = SKShapeNode(rectOf: CGSize(width: width, height: height),
-                                     cornerRadius: Layout.cornerRadius)
-            topBar.fillColor = .white
-            topBar.strokeColor = .blue
-            topBar.position = CGPoint(
-                x: size.width / 2,
-                y: size.height - safeAreaTop - height / 2
-            )
-            addChild(topBar)
+        let position = CGPoint(
+            x: size.width / 2,
+            y: size.height - safeAreaTop - height / 2
+        )
         
-        scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        scoreLabel.fontSize = height * 0.4 // Tamaño relativo al alto de la barra
-        scoreLabel.fontColor = .black
-        scoreLabel.text = "Puntuación: \(score)"
-        scoreLabel.position = CGPoint(x: 0, y: -height * 0.2)
-        topBar.addChild(scoreLabel)
+        topBarNode = TopBar.create(width: width, height: height, position: position)
+        if let topBar = topBarNode {
+            addChild(topBar)
+        }
     }
+    
     
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
         let mainArea = SKShapeNode(rectOf: CGSize(width: width, height: height),
@@ -289,18 +285,6 @@ class MusicBlocksScene: SKScene {
         addChild(successOverlay)
     }
     
-    // MARK: - Game Logic
-    func setupAndStart() {
-        audioController.start()
-        generateNewNote()
-    }
-    
-    func generateNewNote() {
-        targetNote = tunerEngine.generateRandomNote()
-        targetNoteLabel.text = "Nota objetivo: \(targetNote?.fullName ?? "-")"
-        noteMatchTime = 0
-        isTransitioning = false
-    }
     
     // MARK: - Update Methods
     private func updateUI() {
@@ -336,7 +320,7 @@ class MusicBlocksScene: SKScene {
             
             if noteMatchTime >= requiredMatchTime && !isTransitioning {
                 score += 1
-                scoreLabel.text = "Puntuación: \(score)"
+                topBarNode?.updateScore(score)
                 isTransitioning = true
                 showSuccessOverlay()
                 

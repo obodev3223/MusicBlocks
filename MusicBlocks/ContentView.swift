@@ -19,32 +19,32 @@ struct ContentView: View {
                 
                 // Logo
                 VStack(spacing: 15) {
-                    Image(systemName: "tuningfork")
+                    Image(systemName: "music.quarternote.3")
                         .font(.system(size: 80))
-                        .foregroundColor(.purple)
+                        .foregroundColor(.red)
                     
-                    Text("FrikiTuner")
+                    Text("MusicBlocks")
                         .font(.system(size: 40, weight: .bold))
-                        .foregroundColor(.purple)
+                        .foregroundColor(.red)
                 }
                 .padding(.bottom, 60)
                 
                 // Botones de navegación
                 VStack(spacing: 20) {
-                    NavigationLink(destination: MusicBlocksScene()) {
-                        HStack {
-                            Image(systemName: "music.note")
-                            Text("Practicar")
-                                .font(.headline)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.purple)
-                        )
-                        .foregroundColor(.white)
-                    }
+                                    NavigationLink(destination: MusicBlocksSceneView()) {
+                                        HStack {
+                                            Image(systemName: "music.note")
+                                            Text("Practicar")
+                                                .font(.headline)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding()
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .fill(Color.red)
+                                        )
+                                        .foregroundColor(.white)
+                                    }
                     
                     NavigationLink(destination: ProfileView()) {
                         HStack {
@@ -56,7 +56,7 @@ struct ContentView: View {
                         .padding()
                         .background(
                             RoundedRectangle(cornerRadius: 15)
-                                .fill(Color.purple.opacity(0.8))
+                                .fill(Color.red.opacity(0.8))
                         )
                         .foregroundColor(.white)
                     }
@@ -67,7 +67,7 @@ struct ContentView: View {
                 
                 Text("v1.0")
                     .font(.caption)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.red)
                     .padding(.bottom, 20)
             }
             .background(Color.white.ignoresSafeArea())
