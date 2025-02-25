@@ -53,6 +53,8 @@ class MusicBlocksScene: SKScene {
         
         // Espacio entre elementos
         static let verticalSpacing: CGFloat = 20 // Nuevo: espacio vertical entre elementos
+        // Fondo aleatorio
+        private var backgroundPattern: BackgroundPatternNode!
         
         // Proporciones de las áreas principales
         static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
@@ -127,6 +129,9 @@ class MusicBlocksScene: SKScene {
     
     private func setupScene() {
         backgroundColor = .white
+        backgroundPattern = BackgroundPatternNode(size: size)
+    backgroundPattern.zPosition = -10 // Asegura que esté detrás de todo
+    addChild(backgroundPattern)
         
         let safeWidth = size.width - Layout.margins.left - Layout.margins.right
         let safeHeight = size.height - Layout.margins.top - Layout.margins.bottom
