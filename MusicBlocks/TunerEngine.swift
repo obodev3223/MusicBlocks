@@ -1,6 +1,6 @@
 //
 //  TunerEngine.swift
-//  MusicBlocks
+//  FrikiTuner
 //
 //  Created by Jose R. García on 13/2/25.
 //
