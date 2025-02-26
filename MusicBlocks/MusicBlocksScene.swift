@@ -100,7 +100,6 @@ class MusicBlocksScene: SKScene {
     var stabilityIndicatorNode: StabilityIndicatorNode!
     var stabilityCounterNode: StabilityCounterNode!
     var tuningIndicatorNode: TuningIndicatorNode!
-    private var tuningCounterNode: TuningCounterNode!
     private var topBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
     var detectedNoteCounterNode: DetectedNoteCounterNode!
@@ -247,14 +246,8 @@ class MusicBlocksScene: SKScene {
         addChild(stabilityCounterNode)
         
         // Barra derecha - Afinación
-        // Asegurar que la posición no exceda el límite derecho de la pantalla
-        let safeRightPosition = min(
-            size.width - Layout.margins.right - width/2,
-            size.width - (DetectedNoteCounterNode.Layout.defaultSize.width / 2) - Layout.margins.right
-        )
-        
         let rightBarPosition = CGPoint(
-            x: safeRightPosition,
+            x: size.width - Layout.margins.right - width/2,
             y: size.height/2 - (Layout.verticalSpacing/2)
         )
         
@@ -266,31 +259,18 @@ class MusicBlocksScene: SKScene {
         )
         addChild(rightBar)
         
-        // Indicadores de afinación (derecha)
-        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.3))
-        tuningIndicatorNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y + height * 0.2)
+        // Indicador de afinación (derecha)
+        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.4))
+        tuningIndicatorNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y + height * 0.1)
         tuningIndicatorNode.zPosition = 10
         addChild(tuningIndicatorNode)
         
-        tuningCounterNode = TuningCounterNode(size: CGSize(width: width * 0.8, height: height * 0.3))
-        tuningCounterNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.2)
-        tuningCounterNode.zPosition = 10
-        addChild(tuningCounterNode)
-        
-        // Configurar DetectedNoteCounterNode con tamaño fijo
-        // Asegurarnos de que esté dentro de los límites de la pantalla
-        // Importante: usar una verificación más segura que no dependa del parent
-        if detectedNoteCounterNode == nil {
-            // Garantizar que esté dentro de los límites de la pantalla
-            let safeX = min(
-                rightBarPosition.x,
-                size.width - (DetectedNoteCounterNode.Layout.defaultSize.width / 2) - 10 // 10px de margen adicional
-            )
-            
-            let noteCounterPosition = CGPoint(x: safeX, y: rightBarPosition.y - height * 0.6)
-            detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(at: noteCounterPosition)
-            addChild(detectedNoteCounterNode)
-        }
+        // DetectedNoteCounterNode debajo del indicador de afinación
+        detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(
+            at: CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.2),
+            zPosition: 10
+        )
+        addChild(detectedNoteCounterNode)
     }
     
     // Función auxiliar para crear contenedores con sombra
@@ -318,73 +298,6 @@ class MusicBlocksScene: SKScene {
         effectNode.addChild(shape)
         
         return container
-    }
-    
-    private func setupSideBar(width: CGFloat, height: CGFloat, isLeft: Bool, topBarHeight: CGFloat) {
-        let xPosition = isLeft ?
-        Layout.margins.left + width/2 :
-        size.width - Layout.margins.right - width/2
-        
-        let yPosition = size.height/2 - (Layout.verticalSpacing/2)
-        
-        let (containerNode, mainShape) = createContainerWithShadow(
-            size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius
-        )
-        containerNode.position = CGPoint(x: xPosition, y: yPosition)
-        addChild(containerNode)
-        
-        let indicatorSize = CGSize(width: width * 0.9, height: height * 0.9)
-        
-        if isLeft {
-            stabilityIndicatorNode = StabilityIndicatorNode(size: indicatorSize)
-            stabilityIndicatorNode.position = CGPoint(x: 0, y: 0)
-            mainShape.addChild(stabilityIndicatorNode)
-        } else {
-            tuningIndicatorNode = TuningIndicatorNode(size: indicatorSize)
-            tuningIndicatorNode.position = CGPoint(x: 0, y: 0)
-            mainShape.addChild(tuningIndicatorNode)
-        }
-        
-        setupSideBarExtension(width: width, height: height * Layout.sideBarExtensionHeightRatio,
-                              parent: mainShape, isLeft: isLeft)
-    }
-    
-    /// Configura la extensión inferior de una barra lateral
-    private func setupSideBarExtension(width: CGFloat, height: CGFloat, parent: SKShapeNode, isLeft: Bool) {
-        // Aumentar la altura para acomodar el DetectedNoteCounter
-        let totalHeight = height * 1.5 // Ajustamos la altura total para acomodar el nuevo elemento
-        
-        let (containerNode, mainShape) = createContainerWithShadow(
-            size: CGSize(width: width, height: totalHeight),
-            cornerRadius: Layout.cornerRadius
-        )
-        containerNode.position = CGPoint(
-            x: 0,
-            y: -parent.frame.height/2 - totalHeight/2
-        )
-        parent.addChild(containerNode)
-        
-        if !isLeft {
-            // Configurar DetectedNoteCounterNode
-            let noteCounterHeight = totalHeight * 0.3
-            let noteCounterSize = CGSize(width: width * 0.9, height: noteCounterHeight)
-            detectedNoteCounterNode = DetectedNoteCounterNode(size: noteCounterSize)
-            detectedNoteCounterNode.position = CGPoint(x: 0, y: totalHeight * 0.1)
-            mainShape.addChild(detectedNoteCounterNode)
-            
-            // Configurar TuningCounterNode
-            let tuningCounterSize = CGSize(width: width * 0.9, height: totalHeight * 0.6)
-            tuningCounterNode = TuningCounterNode(size: tuningCounterSize)
-            tuningCounterNode.position = CGPoint(x: 0, y: -totalHeight * 0.2)
-            mainShape.addChild(tuningCounterNode)
-        } else {
-            // Configurar contador de estabilidad
-            let counterSize = CGSize(width: width * 0.9, height: totalHeight * 0.8)
-            stabilityCounterNode = StabilityCounterNode(size: counterSize)
-            stabilityCounterNode.position = CGPoint(x: 0, y: 0)
-            mainShape.addChild(stabilityCounterNode)
-        }
     }
     
     /// Configura el overlay de éxito
@@ -423,7 +336,6 @@ class MusicBlocksScene: SKScene {
         let tunerData = audioController.tunerData
                 
         // Actualizar el contador de notas detectadas
-        // CAMBIO: Usamos optional chaining en lugar de verificación nil explícita
         detectedNoteCounterNode?.currentNote = tunerData.note
         detectedNoteCounterNode?.isActive = tunerData.isActive
         
@@ -433,10 +345,6 @@ class MusicBlocksScene: SKScene {
         
         tuningIndicatorNode.deviation = tunerData.deviation
         tuningIndicatorNode.isActive = tunerData.isActive
-        
-        tuningCounterNode.frequency = tunerData.frequency
-        tuningCounterNode.deviation = tunerData.deviation
-        tuningCounterNode.isActive = tunerData.isActive
     }
     
     private func updateGameUI() {
