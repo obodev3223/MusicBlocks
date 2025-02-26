@@ -12,6 +12,9 @@ import SwiftUI
 class MusicBlocksScene: SKScene {
     @Environment(\.screenSize) var screenSize
     
+    // Add the backgroundPattern property at the class level
+    private var backgroundPattern: BackgroundPatternNode!
+    
     private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat) -> (container: SKNode, shape: SKShapeNode) {
         // Crear el nodo contenedor
         let containerNode = SKNode()
@@ -53,8 +56,6 @@ class MusicBlocksScene: SKScene {
         
         // Espacio entre elementos
         static let verticalSpacing: CGFloat = 20 // Nuevo: espacio vertical entre elementos
-        // Fondo aleatorio
-        private var backgroundPattern: BackgroundPatternNode!
         
         // Proporciones de las áreas principales
         static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
@@ -130,8 +131,11 @@ class MusicBlocksScene: SKScene {
     private func setupScene() {
         backgroundColor = .white
         backgroundPattern = BackgroundPatternNode(size: size)
-    backgroundPattern.zPosition = -10 // Asegura que esté detrás de todo
-    addChild(backgroundPattern)
+        backgroundPattern.zPosition = -10 // Asegura que esté detrás de todo
+        addChild(backgroundPattern)
+        
+        // Initialize the DetectedNoteCounterNode early to avoid nil reference
+        detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: 100, height: 40))
         
         let safeWidth = size.width - Layout.margins.left - Layout.margins.right
         let safeHeight = size.height - Layout.margins.top - Layout.margins.bottom
@@ -139,7 +143,7 @@ class MusicBlocksScene: SKScene {
         // Calcular alturas
         let topBarHeight = safeHeight * Layout.topBarHeightRatio
         let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
-
+        
         
         // Calcular anchos
         let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
@@ -147,7 +151,7 @@ class MusicBlocksScene: SKScene {
         
         // Configurar barras superior e inferior
         setupTopBar(width: safeWidth, height: topBarHeight)
-
+        
         
         // Configurar área principal con ajuste de posición
         setupMainArea(width: mainAreaWidth,
@@ -206,7 +210,7 @@ class MusicBlocksScene: SKScene {
         addChild(containerNode)
     }
     
-
+    
     
     private func setupFloatingTargetNote(width: CGFloat) {
         floatingTargetNote = FloatingTargetNoteNode(width: width)
@@ -268,12 +272,17 @@ class MusicBlocksScene: SKScene {
         tuningIndicatorNode.zPosition = 10
         addChild(tuningIndicatorNode)
         
-        tuningCounterNode = TuningCounterNode(size: CGSize(width: width * 0.8, height: height * 0.3))
-        tuningCounterNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.2)
-        tuningCounterNode.zPosition = 10
-        addChild(tuningCounterNode)
+        // Setup detectedNoteCounterNode properly
+                if detectedNoteCounterNode.parent == nil {
+                    let noteCounterHeight = height * 0.3
+                    let noteCounterSize = CGSize(width: width * 0.9, height: noteCounterHeight)
+                    detectedNoteCounterNode.size = noteCounterSize
+                    detectedNoteCounterNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.6)
+                    detectedNoteCounterNode.zPosition = 10
+                    addChild(detectedNoteCounterNode)
+                }
     }
-
+    
     // Función auxiliar para crear contenedores con sombra
     private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
         let container = SKNode()
@@ -303,8 +312,8 @@ class MusicBlocksScene: SKScene {
     
     private func setupSideBar(width: CGFloat, height: CGFloat, isLeft: Bool, topBarHeight: CGFloat) {
         let xPosition = isLeft ?
-            Layout.margins.left + width/2 :
-            size.width - Layout.margins.right - width/2
+        Layout.margins.left + width/2 :
+        size.width - Layout.margins.right - width/2
         
         let yPosition = size.height/2 - (Layout.verticalSpacing/2)
         
@@ -328,7 +337,7 @@ class MusicBlocksScene: SKScene {
         }
         
         setupSideBarExtension(width: width, height: height * Layout.sideBarExtensionHeightRatio,
-                             parent: mainShape, isLeft: isLeft)
+                              parent: mainShape, isLeft: isLeft)
     }
     
     /// Configura la extensión inferior de una barra lateral
@@ -401,23 +410,26 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Update Methods
     private func updateUI() {
-        let tunerData = audioController.tunerData
-                
-        // Actualizar el contador de notas detectadas
-        detectedNoteCounterNode.currentNote = tunerData.note
-        detectedNoteCounterNode.isActive = tunerData.isActive
-        
-        // Actualizar indicadores laterales
-        stabilityIndicatorNode.duration = audioController.stabilityDuration
-        stabilityCounterNode.duration = audioController.stabilityDuration
-        
-        tuningIndicatorNode.deviation = tunerData.deviation
-        tuningIndicatorNode.isActive = tunerData.isActive
-        
-        tuningCounterNode.frequency = tunerData.frequency
-        tuningCounterNode.deviation = tunerData.deviation
-        tuningCounterNode.isActive = tunerData.isActive
-    }
+            let tunerData = audioController.tunerData
+                    
+            // Actualizar el contador de notas detectadas
+            // Check if detectedNoteCounterNode is initialized before accessing its properties
+            if detectedNoteCounterNode != nil {
+                detectedNoteCounterNode.currentNote = tunerData.note
+                detectedNoteCounterNode.isActive = tunerData.isActive
+            }
+            
+            // Actualizar indicadores laterales
+            stabilityIndicatorNode.duration = audioController.stabilityDuration
+            stabilityCounterNode.duration = audioController.stabilityDuration
+            
+            tuningIndicatorNode.deviation = tunerData.deviation
+            tuningIndicatorNode.isActive = tunerData.isActive
+            
+            tuningCounterNode.frequency = tunerData.frequency
+            tuningCounterNode.deviation = tunerData.deviation
+            tuningCounterNode.isActive = tunerData.isActive
+        }
     
     private func updateGameUI() {
         // Actualizar puntuación
@@ -565,7 +577,7 @@ class MusicBlocksScene: SKScene {
         }
         // El estado .playing ya se maneja en updateGameUI
     }
-        
+    
     private func handleGameOverState() {
         // Mostrar pantalla de game over
         // Por ahora solo detenemos el audio
