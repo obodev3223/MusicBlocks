@@ -134,9 +134,6 @@ class MusicBlocksScene: SKScene {
         backgroundPattern.zPosition = -10 // Asegura que esté detrás de todo
         addChild(backgroundPattern)
         
-        // Initialize the DetectedNoteCounterNode early to avoid nil reference
-        detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: 100, height: 40))
-        
         let safeWidth = size.width - Layout.margins.left - Layout.margins.right
         let safeHeight = size.height - Layout.margins.top - Layout.margins.bottom
         
@@ -195,8 +192,7 @@ class MusicBlocksScene: SKScene {
             addChild(topBar)
         }
     }
-    
-    
+        
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
         let containerNode = createContainerWithShadow(
             size: CGSize(width: width, height: height),
@@ -209,8 +205,6 @@ class MusicBlocksScene: SKScene {
         )
         addChild(containerNode)
     }
-    
-    
     
     private func setupFloatingTargetNote(width: CGFloat) {
         floatingTargetNote = FloatingTargetNoteNode(width: width)
@@ -253,8 +247,14 @@ class MusicBlocksScene: SKScene {
         addChild(stabilityCounterNode)
         
         // Barra derecha - Afinación
+        // Asegurar que la posición no exceda el límite derecho de la pantalla
+        let safeRightPosition = min(
+            size.width - Layout.margins.right - width/2,
+            size.width - (DetectedNoteCounterNode.Layout.defaultSize.width / 2) - Layout.margins.right
+        )
+        
         let rightBarPosition = CGPoint(
-            x: size.width - Layout.margins.right - width/2,
+            x: safeRightPosition,
             y: size.height/2 - (Layout.verticalSpacing/2)
         )
         
@@ -272,15 +272,25 @@ class MusicBlocksScene: SKScene {
         tuningIndicatorNode.zPosition = 10
         addChild(tuningIndicatorNode)
         
-        // Setup detectedNoteCounterNode properly
-                if detectedNoteCounterNode.parent == nil {
-                    let noteCounterHeight = height * 0.3
-                    let noteCounterSize = CGSize(width: width * 0.9, height: noteCounterHeight)
-                    detectedNoteCounterNode.size = noteCounterSize
-                    detectedNoteCounterNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.6)
-                    detectedNoteCounterNode.zPosition = 10
-                    addChild(detectedNoteCounterNode)
-                }
+        tuningCounterNode = TuningCounterNode(size: CGSize(width: width * 0.8, height: height * 0.3))
+        tuningCounterNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.2)
+        tuningCounterNode.zPosition = 10
+        addChild(tuningCounterNode)
+        
+        // Configurar DetectedNoteCounterNode con tamaño fijo
+        // Asegurarnos de que esté dentro de los límites de la pantalla
+        // Importante: usar una verificación más segura que no dependa del parent
+        if detectedNoteCounterNode == nil {
+            // Garantizar que esté dentro de los límites de la pantalla
+            let safeX = min(
+                rightBarPosition.x,
+                size.width - (DetectedNoteCounterNode.Layout.defaultSize.width / 2) - 10 // 10px de margen adicional
+            )
+            
+            let noteCounterPosition = CGPoint(x: safeX, y: rightBarPosition.y - height * 0.6)
+            detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(at: noteCounterPosition)
+            addChild(detectedNoteCounterNode)
+        }
     }
     
     // Función auxiliar para crear contenedores con sombra
@@ -410,26 +420,24 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Update Methods
     private func updateUI() {
-            let tunerData = audioController.tunerData
-                    
-            // Actualizar el contador de notas detectadas
-            // Check if detectedNoteCounterNode is initialized before accessing its properties
-            if detectedNoteCounterNode != nil {
-                detectedNoteCounterNode.currentNote = tunerData.note
-                detectedNoteCounterNode.isActive = tunerData.isActive
-            }
-            
-            // Actualizar indicadores laterales
-            stabilityIndicatorNode.duration = audioController.stabilityDuration
-            stabilityCounterNode.duration = audioController.stabilityDuration
-            
-            tuningIndicatorNode.deviation = tunerData.deviation
-            tuningIndicatorNode.isActive = tunerData.isActive
-            
-            tuningCounterNode.frequency = tunerData.frequency
-            tuningCounterNode.deviation = tunerData.deviation
-            tuningCounterNode.isActive = tunerData.isActive
-        }
+        let tunerData = audioController.tunerData
+                
+        // Actualizar el contador de notas detectadas
+        // CAMBIO: Usamos optional chaining en lugar de verificación nil explícita
+        detectedNoteCounterNode?.currentNote = tunerData.note
+        detectedNoteCounterNode?.isActive = tunerData.isActive
+        
+        // Actualizar indicadores laterales
+        stabilityIndicatorNode.duration = audioController.stabilityDuration
+        stabilityCounterNode.duration = audioController.stabilityDuration
+        
+        tuningIndicatorNode.deviation = tunerData.deviation
+        tuningIndicatorNode.isActive = tunerData.isActive
+        
+        tuningCounterNode.frequency = tunerData.frequency
+        tuningCounterNode.deviation = tunerData.deviation
+        tuningCounterNode.isActive = tunerData.isActive
+    }
     
     private func updateGameUI() {
         // Actualizar puntuación
@@ -537,6 +545,17 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Game Setup & Control
     private func setupAndStart() {
+        // Asegurarnos que todos los elementos de UI estén configurados antes de actualizar
+        if detectedNoteCounterNode == nil {
+            // Si por alguna razón no se ha inicializado, lo hacemos aquí
+            let safePosition = CGPoint(
+                x: min(size.width * 0.9, size.width - DetectedNoteCounterNode.Layout.defaultSize.width),
+                y: size.height * 0.3
+            )
+            detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(at: safePosition)
+            addChild(detectedNoteCounterNode)
+        }
+        
         // Iniciar el audio
         audioController.start()
         

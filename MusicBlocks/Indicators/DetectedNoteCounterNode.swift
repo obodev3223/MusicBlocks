@@ -5,11 +5,21 @@
 //  Created by Jose R. García on 25/2/25.
 //
 
+//
+//  DetectedNoteCounterNode.swift
+//  MusicBlocks
+//
+//  Created by Jose R. García on 25/2/25.
+//
+
 import SpriteKit
 
 class DetectedNoteCounterNode: SKNode {
     // MARK: - Layout Configuration
-    private struct Layout {
+    struct Layout {
+        // Tamaño fijo para el nodo (ahora público para que pueda accederse desde MusicBlocksScene)
+        static let defaultSize = CGSize(width: 100, height: 40)
+        
         static let cornerRadius: CGFloat = 8
         static let glowRadius: Float = 8.0
         static let backgroundAlpha: CGFloat = 0.15
@@ -21,7 +31,6 @@ class DetectedNoteCounterNode: SKNode {
     }
     
     // MARK: - Properties
-    private let containerSize: CGSize
     private let container: SKShapeNode
     private let glowContainer: SKEffectNode
     private let noteLabel: SKLabelNode
@@ -39,9 +48,7 @@ class DetectedNoteCounterNode: SKNode {
     }
     
     // MARK: - Initialization
-    init(size: CGSize) {
-        self.containerSize = size
-        
+    init(size: CGSize = Layout.defaultSize) {
         // Inicializar contenedor
         container = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
         glowContainer = SKEffectNode()
@@ -106,5 +113,15 @@ class DetectedNoteCounterNode: SKNode {
         let sequence = SKAction.sequence([scaleUp, scaleDown])
         
         noteLabel.run(sequence)
+    }
+    
+    // MARK: - Factory Methods
+    
+    // Método de fábrica que encapsula la creación para MusicBlocksScene
+    static func createForRightSideBar(at position: CGPoint, zPosition: CGFloat = 10) -> DetectedNoteCounterNode {
+        let node = DetectedNoteCounterNode()
+        node.position = position
+        node.zPosition = zPosition
+        return node
     }
 }
