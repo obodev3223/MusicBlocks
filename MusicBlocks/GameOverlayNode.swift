@@ -197,10 +197,16 @@ class GameOverOverlayNode: GameOverlayNode {
 
 // MARK: - Previews
 #if DEBUG
-extension GameOverlayNode {
-    static func createPreviewScene() -> SKScene {
-        SKScene.createPreviewScene(size: CGSize(width: 400, height: 600)) { scene in
-            // Success Overlay
+import SwiftUI
+
+struct GameOverlayPreview: PreviewProvider {
+    static var previews: some View {
+        SpriteView(scene: {
+            // Crear la escena directamente
+            let scene = SKScene(size: CGSize(width: 400, height: 600))
+            scene.backgroundColor = .white
+            
+            // Agregar el Success Overlay
             let successNode = SuccessOverlayNode(
                 size: CGSize(width: 300, height: 200),
                 multiplier: 2,
@@ -209,14 +215,14 @@ extension GameOverlayNode {
             successNode.position = CGPoint(x: 200, y: 450)
             scene.addChild(successNode)
             
-            // Failure Overlay
+            // Agregar el Failure Overlay
             let failureNode = FailureOverlayNode(
                 size: CGSize(width: 300, height: 200)
             )
             failureNode.position = CGPoint(x: 200, y: 300)
             scene.addChild(failureNode)
             
-            // Game Over Overlay
+            // Agregar el Game Over Overlay
             let gameOverNode = GameOverOverlayNode(
                 size: CGSize(width: 300, height: 200),
                 score: 1500,
@@ -224,7 +230,11 @@ extension GameOverlayNode {
             )
             gameOverNode.position = CGPoint(x: 200, y: 150)
             scene.addChild(gameOverNode)
-        }
+            
+            return scene
+        }())
+        .frame(width: 400, height: 600)
+        .previewLayout(.fixed(width: 400, height: 600))
     }
 }
 #endif

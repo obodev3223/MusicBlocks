@@ -15,7 +15,6 @@ class StabilityCounterNode: SKNode {
         static let cornerRadius: CGFloat = 8
         static let backgroundAlpha: CGFloat = 0.15
         static let animationDuration: TimeInterval = 0.2
-        static let glowRadius: Float = 8.0
     }
     
     // MARK: - Properties
@@ -23,7 +22,6 @@ class StabilityCounterNode: SKNode {
     private let container: SKShapeNode
     private let timeLabel: SKLabelNode
     private let unitLabel: SKLabelNode
-    private let glowNode: SKEffectNode
     
     var duration: TimeInterval = 0 {
         didSet {
@@ -35,9 +33,8 @@ class StabilityCounterNode: SKNode {
     init(size: CGSize) {
         self.containerSize = size
         
-        // Inicializar contenedor
+        // Inicializar contenedor sin glow
         container = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
-        glowNode = SKEffectNode()
         
         // Inicializar etiquetas
         timeLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
@@ -58,7 +55,7 @@ class StabilityCounterNode: SKNode {
     }
     
     required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError("init(coder:) has not sido implementado")
     }
     
     // MARK: - Setup
@@ -69,17 +66,11 @@ class StabilityCounterNode: SKNode {
         container.alpha = Layout.backgroundAlpha
         addChild(container)
         
-        // Configurar glow
-        glowNode.filter = CIFilter(name: "CIGaussianBlur",
-                                 parameters: ["inputRadius": Layout.glowRadius])
-        glowNode.shouldRasterize = true
-        addChild(glowNode)
-        
         // Posicionar etiquetas
         timeLabel.position = CGPoint(x: -20, y: 0)
         unitLabel.position = CGPoint(x: 20, y: 0)
         
-        // Añadir etiquetas
+        // Añadir etiquetas al contenedor
         container.addChild(timeLabel)
         container.addChild(unitLabel)
     }
@@ -87,11 +78,6 @@ class StabilityCounterNode: SKNode {
     // MARK: - Updates
     private func updateDisplay() {
         timeLabel.text = String(format: "%.1f", duration)
-        
-        // Actualizar glow según la duración
-        let normalizedDuration = CGFloat(min(duration, 10.0) / 10.0)
-        glowNode.alpha = normalizedDuration * 0.5
-        
         animateUpdate()
     }
     
@@ -99,22 +85,26 @@ class StabilityCounterNode: SKNode {
         let scaleUp = SKAction.scale(to: 1.05, duration: Layout.animationDuration / 2)
         let scaleDown = SKAction.scale(to: 1.0, duration: Layout.animationDuration / 2)
         let sequence = SKAction.sequence([scaleUp, scaleDown])
-        
         timeLabel.run(sequence)
     }
     
     // MARK: - Public Methods
     func reset() {
         duration = 0
-        glowNode.alpha = 0
     }
 }
 
-// MARK: Previews
+// MARK: - Previews
 #if DEBUG
-extension StabilityCounterNode {
-    static func createPreviewScene() -> SKScene {
-        SKScene.createPreviewScene(size: CGSize(width: 300, height: 200)) { scene in
+import SwiftUI
+
+struct StabilityCounterPreview: PreviewProvider {
+    static var previews: some View {
+        SpriteView(scene: {
+            // Crear la escena directamente
+            let scene = SKScene(size: CGSize(width: 300, height: 200))
+            scene.backgroundColor = .clear
+            
             // Nodo con valor medio
             let mediumNode = StabilityCounterNode(size: CGSize(width: 120, height: 60))
             mediumNode.position = CGPoint(x: 150, y: 120)
@@ -126,17 +116,12 @@ extension StabilityCounterNode {
             maxNode.position = CGPoint(x: 150, y: 60)
             maxNode.duration = 10.0
             scene.addChild(maxNode)
-        }
-    }
-}
-
-struct StabilityCounterPreview: PreviewProvider {
-    static var previews: some View {
-        SpriteViewPreview {
-            StabilityCounterNode.createPreviewScene()
-        }
+            
+            return scene
+        }())
         .frame(width: 300, height: 200)
         .previewLayout(.fixed(width: 300, height: 200))
     }
 }
 #endif
+

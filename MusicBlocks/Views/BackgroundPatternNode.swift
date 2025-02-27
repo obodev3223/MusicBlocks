@@ -1,10 +1,19 @@
+//
+//  BackgroundPatternNode.swift
+//  MusicBlocks
+//
+//  Created by Jose R. García on 27/2/25.
+//
+
 import SpriteKit
 
 class BackgroundPatternNode: SKNode {
     // MARK: - Properties
-    private let colors: [UIColor]
+    let pastelColors: [UIColor]
+    private let contrastColor: UIColor
     private let opacity: CGFloat
-    
+    private let colors: [UIColor] = []
+
     // Configuración de elementos
     private let numberOfWaves = 8
     private let numberOfLines = 12
@@ -13,7 +22,7 @@ class BackgroundPatternNode: SKNode {
     private let numberOfNotes = 10
     
     // Rangos para símbolos musicales
-    private let notesSizeRange: ClosedRange<CGFloat> = 20...60
+    private let notesSizeRange: ClosedRange<CGFloat> = 20...50
     private let notesRotationRange: ClosedRange<CGFloat> = -45...45
     
     private let musicImages = [
@@ -24,20 +33,43 @@ class BackgroundPatternNode: SKNode {
         "MusicalSymbol_21", "MusicalSymbol_22", "MusicalSymbol_23"
     ]
     
-    // MARK: - Initialization
+    // MARK: - Inicialización
     init(size: CGSize) {
-        self.colors = Self.generatePastelColors()
+        // Se generan dos colores pastel para el degradado
+        self.pastelColors = Self.generatePastelColors()
+        // Se calcula un color de contraste (por ejemplo, complementario del primero)
+        self.contrastColor = Self.contrastingColor(for: pastelColors.first ?? .white)
         self.opacity = CGFloat.random(in: 0.1...0.2)
         super.init()
         
+        // Se agrega el fondo degradado
+        addGradientBackground(size: size, colors: pastelColors)
+        
+        // Se agregan las capas de formas y símbolos en color de contraste
         setupLayers(size: size)
     }
     
     required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError("init(coder:) has not been implementado")
     }
     
-    // MARK: - Setup Methods
+    // MARK: - Métodos de Configuración
+    private func addGradientBackground(size: CGSize, colors: [UIColor]) {
+        let texture = gradientTexture(size: size, colors: colors)
+        let backgroundNode = SKSpriteNode(texture: texture)
+        
+        // Forzamos anclaje en la esquina inferior izquierda
+        backgroundNode.anchorPoint = CGPoint(x: 0, y: 0)
+        
+        // Así, position (0,0) en el padre coincide con la esquina inferior izqda.
+        backgroundNode.position = .zero
+        
+        backgroundNode.size = size
+        backgroundNode.zPosition = -1
+        addChild(backgroundNode)
+    }
+
+    
     private func setupLayers(size: CGSize) {
         addWavesLayer(size: size)
         addLinesLayer(size: size)
@@ -46,7 +78,7 @@ class BackgroundPatternNode: SKNode {
         addNotesLayer(size: size)
     }
     
-    // MARK: - Layer Creation Methods
+    // MARK: - Creación de Capas
     private func addWavesLayer(size: CGSize) {
         let path = CGMutablePath()
         
@@ -61,7 +93,7 @@ class BackgroundPatternNode: SKNode {
         }
         
         let shapeNode = SKShapeNode(path: path)
-        shapeNode.strokeColor = colors[0]
+        shapeNode.strokeColor = contrastColor
         shapeNode.lineWidth = 1.5
         shapeNode.alpha = opacity * 0.7
         addChild(shapeNode)
@@ -84,7 +116,7 @@ class BackgroundPatternNode: SKNode {
         }
         
         let shapeNode = SKShapeNode(path: path)
-        shapeNode.strokeColor = colors[1]
+        shapeNode.strokeColor = contrastColor
         shapeNode.lineWidth = 1.0
         shapeNode.alpha = opacity * 0.6
         addChild(shapeNode)
@@ -93,12 +125,12 @@ class BackgroundPatternNode: SKNode {
     private func addCirclesLayer(size: CGSize) {
         for _ in 0..<numberOfCircles {
             let diameter = CGFloat.random(in: 40...180)
-            let circle = SKShapeNode(circleOfRadius: diameter/2)
+            let circle = SKShapeNode(circleOfRadius: diameter / 2)
             circle.position = CGPoint(
                 x: .random(in: 0...size.width),
                 y: .random(in: 0...size.height)
             )
-            circle.strokeColor = colors[0]
+            circle.strokeColor = contrastColor
             circle.lineWidth = 1.5
             circle.alpha = opacity * 0.5
             addChild(circle)
@@ -120,7 +152,7 @@ class BackgroundPatternNode: SKNode {
         }
         
         let shapeNode = SKShapeNode(path: path)
-        shapeNode.strokeColor = colors[1]
+        shapeNode.strokeColor = contrastColor
         shapeNode.lineWidth = 1.0
         shapeNode.alpha = opacity * 0.4
         addChild(shapeNode)
@@ -141,14 +173,15 @@ class BackgroundPatternNode: SKNode {
             )
             noteNode.zRotation = CGFloat.random(in: notesRotationRange) * .pi / 180
             noteNode.alpha = opacity * 0.8
-            noteNode.color = colors[0]
+            noteNode.color = contrastColor
             noteNode.colorBlendFactor = 1.0
             
             addChild(noteNode)
         }
     }
     
-    // MARK: - Helper Methods
+    // MARK: - Métodos Auxiliares
+    
     private static func generatePastelColors() -> [UIColor] {
         let baseHues = [
             CGFloat.random(in: 0...1),
@@ -164,4 +197,80 @@ class BackgroundPatternNode: SKNode {
             )
         }
     }
+    
+    private static func contrastingColor(for color: UIColor) -> UIColor {
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        if color.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) {
+            // Se calcula el color complementario
+            let complementaryHue = (hue + 0.5).truncatingRemainder(dividingBy: 1.0)
+            return UIColor(
+                hue: complementaryHue,
+                saturation: max(saturation, 0.7),
+                brightness: max(brightness - 0.5, 0.3),
+                alpha: 1.0
+            )
+        }
+        return .black
+    }
+    
+    private func gradientTexture(size: CGSize, colors: [UIColor]) -> SKTexture {
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.frame = CGRect(origin: .zero, size: size)
+        gradientLayer.colors = colors.map { $0.cgColor }
+        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+        
+        UIGraphicsBeginImageContext(gradientLayer.frame.size)
+        guard let context = UIGraphicsGetCurrentContext() else {
+            return SKTexture()
+        }
+        gradientLayer.render(in: context)
+        let image = UIGraphicsGetImageFromCurrentImageContext() ?? UIImage()
+        UIGraphicsEndImageContext()
+        return SKTexture(image: image)
+    }
 }
+
+#if DEBUG
+import SwiftUI
+import SpriteKit
+
+struct BackgroundPatternNodePreview: UIViewRepresentable {
+    let sceneSize: CGSize
+    func makeUIView(context: Context) -> SKView {
+        // Se crea una SKView con el tamaño de la preview
+        let skView = SKView(frame: CGRect(origin: .zero, size: sceneSize))
+        
+        // Se configura la escena para que se redimensione automáticamente
+        let scene = SKScene(size: sceneSize)
+        scene.scaleMode = .resizeFill
+        scene.backgroundColor = .white
+        
+        // Se crea y posiciona el BackgroundPatternNode
+        let patternNode = BackgroundPatternNode(size: sceneSize)
+        patternNode.position = CGPoint(x: sceneSize.width / 2, y: sceneSize.height / 2)
+        scene.addChild(patternNode)
+        
+        skView.presentScene(scene)
+        return skView
+    }
+    
+    func updateUIView(_ uiView: SKView, context: Context) {
+        // Se actualiza el tamaño de la escena para ocupar todo el espacio de la SKView
+        if let scene = uiView.scene {
+            scene.size = uiView.bounds.size
+        }
+    }
+}
+
+struct BackgroundPatternNode_Previews: PreviewProvider {
+    static var previews: some View {
+        GeometryReader { geometry in
+            BackgroundPatternNodePreview(sceneSize: geometry.size)
+        }
+        .ignoresSafeArea()
+        .previewDevice("iPhone 16 Pro")
+    }
+}
+
+#endif

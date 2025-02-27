@@ -16,11 +16,8 @@ class FloatingTargetNoteNode: SKNode {
         static let titleFontSize: CGFloat = 18
         static let noteFontSize: CGFloat = 48
         static let verticalSpacing: CGFloat = 5
-        static let shadowRadius: Float = 3.0
-        static let shadowOpacity: Float = 0.2
         static let containerAlpha: CGFloat = 1.0  // Aseguramos opacidad completa
         static let contentZPosition: CGFloat = 10  // Para asegurar que el contenido esté por encima
-        static let shadowOffset = CGSize(width: 0, height: 2)
         static let backgroundAlpha: CGFloat = 1.0
         static let strokeAlpha: CGFloat = 0.2
     }
@@ -29,7 +26,6 @@ class FloatingTargetNoteNode: SKNode {
     private let containerWidth: CGFloat
     private let containerNode: SKShapeNode
     
-    private let effectNode: SKEffectNode
     private let titleLabel: SKLabelNode
     private let noteLabel: SKLabelNode
     
@@ -51,10 +47,8 @@ class FloatingTargetNoteNode: SKNode {
             width: containerWidth + Layout.horizontalPadding * 2,
             height: Layout.noteFontSize + Layout.titleFontSize + Layout.verticalSpacing + Layout.verticalPadding * 2
         )
-        
-        // Inicializar nodos
         containerNode = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
-        effectNode = SKEffectNode()
+        
         titleLabel = SKLabelNode(fontNamed: "Helvetica")
         noteLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         
@@ -70,25 +64,17 @@ class FloatingTargetNoteNode: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Asegurarnos que el nodo principal esté por encima
+        // Aseguramos que el nodo principal esté por encima
         zPosition = Layout.contentZPosition
-        
-        // Configurar efecto de sombra con menos desenfoque
-        effectNode.filter = CIFilter(
-            name: "CIGaussianBlur",
-            parameters: ["inputRadius": Layout.shadowRadius]
-        )
-        effectNode.shouldRasterize = true
-        effectNode.shouldEnableEffects = true
-        effectNode.zPosition = -1  // Poner la sombra detrás
-        addChild(effectNode)
         
         // Configurar contenedor con opacidad completa
         containerNode.fillColor = .white
         containerNode.strokeColor = UIColor.gray.withAlphaComponent(Layout.strokeAlpha)
         containerNode.lineWidth = 1
         containerNode.alpha = Layout.containerAlpha
-        effectNode.addChild(containerNode)
+        
+        // Agregar el contenedor directamente al nodo principal (sin sombra)
+        addChild(containerNode)
         
         // Configurar título
         titleLabel.fontSize = Layout.titleFontSize
@@ -107,7 +93,7 @@ class FloatingTargetNoteNode: SKNode {
             y: -Layout.titleFontSize/2
         )
         
-        // Añadir nodos
+        // Añadir nodos al contenedor
         containerNode.addChild(titleLabel)
         containerNode.addChild(noteLabel)
     }
@@ -126,24 +112,34 @@ class FloatingTargetNoteNode: SKNode {
     }
 }
 
-// MARK: Previews
 
 #if DEBUG
+import SwiftUI
+
 extension FloatingTargetNoteNode {
     static func createPreviewScene() -> SKScene {
-        SKScene.createPreviewScene(size: CGSize(width: 400, height: 200)) { scene in
-            // Nodo con nota
-            let activeNode = FloatingTargetNoteNode(width: 300)
-            activeNode.targetNote = TunerEngine.Note(name: "A", octave: 4, alteration: .none) // Añadido alteration
-            activeNode.position = CGPoint(x: 200, y: 120)
-            scene.addChild(activeNode)
-            
-            // Nodo sin nota
-            let inactiveNode = FloatingTargetNoteNode(width: 300)
-            inactiveNode.animate(scale: 0.95, opacity: 0.7)
-            inactiveNode.position = CGPoint(x: 200, y: 50)
-            scene.addChild(inactiveNode)
-        }
+        // Crear una escena con el tamaño deseado
+        let scene = SKScene(size: CGSize(width: 300, height: 200))
+        scene.backgroundColor = .white
+        
+        // Crear una instancia del nodo de nota flotante
+        let floatingNoteNode = FloatingTargetNoteNode(width: 300)
+        // Opcional: Si tienes un ejemplo o dummy de TunerEngine.Note, asignarlo aquí.
+        // floatingNoteNode.targetNote = TunerEngine.Note(ejemplo: "A4")
+        
+        // Centrar el nodo en la escena
+        floatingNoteNode.position = CGPoint(x: scene.size.width / 2, y: scene.size.height / 2)
+        scene.addChild(floatingNoteNode)
+        
+        return scene
+    }
+}
+
+struct FloatingTargetNotePreview: PreviewProvider {
+    static var previews: some View {
+        SpriteView(scene: FloatingTargetNoteNode.createPreviewScene())
+            .frame(width: 300, height: 200)
+            .previewLayout(.fixed(width: 300, height: 200))
     }
 }
 #endif

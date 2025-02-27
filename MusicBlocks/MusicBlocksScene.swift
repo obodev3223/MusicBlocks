@@ -48,9 +48,9 @@ class MusicBlocksScene: SKScene {
         /// Márgenes de seguridad para el contenido
         static let margins = UIEdgeInsets(
             top: 8,
-            left: 10,
+            left: 20,
             bottom: UIScreen.main.bounds.height * 0.05, // Dinámico según la pantalla
-            right: 10
+            right: 20
         )
         static let cornerRadius: CGFloat = 15
         
@@ -58,13 +58,12 @@ class MusicBlocksScene: SKScene {
         static let verticalSpacing: CGFloat = 20 // Nuevo: espacio vertical entre elementos
         
         // Proporciones de las áreas principales
-        static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
-        static let mainAreaHeightRatio: CGFloat = 0.74    // 74% de altura
-        static let bottomBarHeightRatio: CGFloat = 0.08   // 8% de altura
-        static let sideBarWidthRatio: CGFloat = 0.08     // 15% del ancho
-        static let mainAreaWidthRatio: CGFloat = 0.66    // 66% del ancho
-        static let sideBarHeightRatio: CGFloat = 0.444   // Nuevo: 74% * 0.6 = ~44.4% (40% más corto)
-        static let sideBarExtensionHeightRatio: CGFloat = 0.15
+        static let topBarHeightRatio: CGFloat = 0.06     // 8% de altura
+        static let mainAreaHeightRatio: CGFloat = 0.78    // 74% de altura
+        static let sideBarWidthRatio: CGFloat = 0.07     // 15% del ancho
+        static let mainAreaWidthRatio: CGFloat = 0.75    // 66% del ancho
+        static let sideBarHeightRatio: CGFloat = 0.4   // Altura de las barras
+
         
         // Tamaños relativos de fuente
         static let scoreFontRatio: CGFloat = 0.5         // 50% de la altura de su contenedor
@@ -128,7 +127,7 @@ class MusicBlocksScene: SKScene {
     }
     
     private func setupScene() {
-        backgroundColor = .white
+
         backgroundPattern = BackgroundPatternNode(size: size)
         backgroundPattern.zPosition = -10 // Asegura que esté detrás de todo
         addChild(backgroundPattern)
@@ -169,7 +168,6 @@ class MusicBlocksScene: SKScene {
         
         setupAndStart()
     }
-    
     
     // Configura la barra superior con la puntuación
     private func setupTopBar(width: CGFloat, height: CGFloat) {
@@ -226,6 +224,7 @@ class MusicBlocksScene: SKScene {
             y: size.height/2 - (Layout.verticalSpacing/2)
         )
         
+        // Se crea el contenedor de la barra lateral izquierda
         let leftBar = createContainerWithShadow(
             size: CGSize(width: width, height: height),
             cornerRadius: Layout.cornerRadius,
@@ -234,16 +233,17 @@ class MusicBlocksScene: SKScene {
         )
         addChild(leftBar)
         
-        // Indicadores de estabilidad (izquierda)
+        // Indicadores de estabilidad (izquierda) como hijos del contenedor
         stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.3))
-        stabilityIndicatorNode.position = CGPoint(x: leftBarPosition.x, y: leftBarPosition.y + height * 0.2)
+        // Posición relativa al centro del contenedor
+        stabilityIndicatorNode.position = CGPoint(x: 0, y: height * 0.25)
         stabilityIndicatorNode.zPosition = 10
-        addChild(stabilityIndicatorNode)
+        leftBar.addChild(stabilityIndicatorNode)
         
         stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 0.8, height: height * 0.3))
-        stabilityCounterNode.position = CGPoint(x: leftBarPosition.x, y: leftBarPosition.y - height * 0.2)
+        stabilityCounterNode.position = CGPoint(x: 0, y: -height * 0.25)
         stabilityCounterNode.zPosition = 10
-        addChild(stabilityCounterNode)
+        leftBar.addChild(stabilityCounterNode)
         
         // Barra derecha - Afinación
         let rightBarPosition = CGPoint(
@@ -251,6 +251,7 @@ class MusicBlocksScene: SKScene {
             y: size.height/2 - (Layout.verticalSpacing/2)
         )
         
+        // Se crea el contenedor de la barra lateral derecha
         let rightBar = createContainerWithShadow(
             size: CGSize(width: width, height: height),
             cornerRadius: Layout.cornerRadius,
@@ -259,46 +260,53 @@ class MusicBlocksScene: SKScene {
         )
         addChild(rightBar)
         
-        // Indicador de afinación (derecha)
+        // Indicador de afinación (derecha) como hijo del contenedor
         tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.4))
-        tuningIndicatorNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y + height * 0.1)
+        tuningIndicatorNode.position = CGPoint(x: 0, y: height * 0.25)
         tuningIndicatorNode.zPosition = 10
-        addChild(tuningIndicatorNode)
+        rightBar.addChild(tuningIndicatorNode)
         
-        // DetectedNoteCounterNode debajo del indicador de afinación
+        // DetectedNoteCounterNode debajo del indicador de afinación como hijo del contenedor
         detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(
-            at: CGPoint(x: rightBarPosition.x, y: rightBarPosition.y - height * 0.2),
+            at: CGPoint(x: 0, y: -height * 0.25),
             zPosition: 10
         )
-        addChild(detectedNoteCounterNode)
+        rightBar.addChild(detectedNoteCounterNode)
     }
+
     
     // Función auxiliar para crear contenedores con sombra
-    private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
-        let container = SKNode()
-        container.position = position
-        container.zPosition = zPosition
-        
-        // Efecto de sombra
-        let effectNode = SKEffectNode()
-        effectNode.filter = CIFilter(
-            name: "CIGaussianBlur",
-            parameters: ["inputRadius": 3.0]
-        )
-        effectNode.shouldRasterize = true
-        effectNode.shouldEnableEffects = true
-        effectNode.zPosition = -1
-        container.addChild(effectNode)
-        
-        // Forma del contenedor
-        let shape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-        shape.fillColor = .white
-        shape.strokeColor = .clear
-        shape.alpha = Layout.containerAlpha
-        effectNode.addChild(shape)
-        
-        return container
-    }
+private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
+    let container = SKNode()
+    container.position = position
+    container.zPosition = zPosition
+    
+    // Nodo para la sombra con efecto de desenfoque
+    let shadowNode = SKEffectNode()
+    shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
+    shadowNode.shouldRasterize = true
+    shadowNode.shouldEnableEffects = true
+    shadowNode.position = Layout.shadowOffset
+    container.addChild(shadowNode)
+    
+    // Forma que representa la sombra
+    let shadowShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
+    shadowShape.fillColor = .black
+    shadowShape.strokeColor = .clear
+    shadowShape.alpha = CGFloat(Layout.shadowOpacity)
+    shadowNode.addChild(shadowShape)
+    
+    // Nodo principal sin filtro
+    let mainShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
+    mainShape.fillColor = .white
+    mainShape.strokeColor = .clear
+    mainShape.alpha = Layout.containerAlpha
+    mainShape.zPosition = 1 // Se asegura que quede por encima de la sombra
+    container.addChild(mainShape)
+    
+    return container
+}
+
     
     /// Configura el overlay de éxito
     private func setupSuccessOverlay(size: CGSize) {
@@ -581,4 +589,14 @@ struct MusicBlocksSceneView: View {
     }
 }
 
+#if DEBUG
+import SwiftUI
+
+struct MusicBlocksScene_Previews: PreviewProvider {
+    static var previews: some View {
+        MusicBlocksSceneView()
+            .previewDevice("iPhone 16") // Puedes cambiar el dispositivo para ver diferentes tamaños
+    }
+}
+#endif
 
