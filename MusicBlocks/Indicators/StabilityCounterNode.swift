@@ -109,3 +109,41 @@ class StabilityCounterNode: SKNode {
         glowNode.alpha = 0
     }
 }
+
+#if DEBUG
+import SwiftUI
+
+struct StabilityCounterPreview: PreviewProvider {
+    static var previews: some View {
+        // Contenedor para visualizar el nodo
+        ZStack {
+            Color.gray.opacity(0.3) // Fondo para mejor visualización
+            
+            StabilityCounterPreviewView()
+        }
+        .frame(width: 300, height: 200)
+        .previewLayout(.fixed(width: 300, height: 200))
+    }
+}
+
+// Vista auxiliar para manejar la preview
+private struct StabilityCounterPreviewView: UIViewRepresentable {
+    func makeUIView(context: Context) -> SKView {
+        let view = SKView(frame: .zero)
+        let scene = SKScene(size: CGSize(width: 300, height: 200))
+        scene.backgroundColor = .clear
+        
+        // Crear y configurar el nodo de prueba
+        let counterNode = StabilityCounterNode(size: CGSize(width: 120, height: 60))
+        counterNode.position = CGPoint(x: 150, y: 100)
+        counterNode.duration = 5.5 // Valor de prueba
+        
+        scene.addChild(counterNode)
+        view.presentScene(scene)
+        
+        return view
+    }
+    
+    func updateUIView(_ uiView: SKView, context: Context) {}
+}
+#endif

@@ -158,3 +158,65 @@ class StabilityIndicatorNode: SKNode {
         updateProgress()
     }
 }
+
+#if DEBUG
+import SwiftUI
+
+struct StabilityIndicatorPreview: PreviewProvider {
+    static var previews: some View {
+        // Contenedor para visualizar el nodo
+        ZStack {
+            Color.gray.opacity(0.3) // Fondo para mejor visualización
+            
+            StabilityIndicatorPreviewView()
+        }
+        .frame(width: 300, height: 200)
+        .previewLayout(.fixed(width: 300, height: 200))
+    }
+}
+
+// Vista auxiliar para manejar la preview
+private struct StabilityIndicatorPreviewView: UIViewRepresentable {
+    func makeUIView(context: Context) -> SKView {
+        let view = SKView(frame: .zero)
+        let scene = SKScene(size: CGSize(width: 300, height: 200))
+        scene.backgroundColor = .clear
+        
+        // Crear y configurar el nodo de prueba
+        let indicatorNode = StabilityIndicatorNode(size: CGSize(width: 40, height: 120))
+        indicatorNode.position = CGPoint(x: 150, y: 100)
+        indicatorNode.duration = 7.5 // Valor de prueba
+        
+        scene.addChild(indicatorNode)
+        view.presentScene(scene)
+        
+        return view
+    }
+    
+    func updateUIView(_ uiView: SKView, context: Context) {}
+}
+
+// Extensión para demostrar diferentes estados
+extension StabilityIndicatorPreviewView {
+    static func createPreviewScene() -> SKScene {
+        let scene = SKScene(size: CGSize(width: 300, height: 200))
+        scene.backgroundColor = .clear
+        
+        // Mostrar diferentes estados
+        let states: [(duration: TimeInterval, position: CGPoint)] = [
+            (0.0, CGPoint(x: 75, y: 100)),    // Vacío
+            (5.0, CGPoint(x: 150, y: 100)),   // Medio
+            (10.0, CGPoint(x: 225, y: 100))   // Lleno
+        ]
+        
+        for state in states {
+            let node = StabilityIndicatorNode(size: CGSize(width: 40, height: 120))
+            node.position = state.position
+            node.duration = state.duration
+            scene.addChild(node)
+        }
+        
+        return scene
+    }
+}
+#endif

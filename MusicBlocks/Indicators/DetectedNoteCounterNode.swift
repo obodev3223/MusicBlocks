@@ -125,3 +125,44 @@ class DetectedNoteCounterNode: SKNode {
         return node
     }
 }
+
+// Al final de DetectedNoteCounterNode.swift
+
+#if DEBUG
+import SwiftUI
+
+// MARK: - Previews
+extension DetectedNoteCounterNode {
+    static func createPreviewScene() -> SKScene {
+        let scene = SKScene(size: CGSize(width: 300, height: 150))
+        scene.backgroundColor = .clear
+        
+        // Nodo activo
+        let activeNode = DetectedNoteCounterNode()
+        activeNode.currentNote = "A4"
+        activeNode.isActive = true
+        activeNode.position = CGPoint(x: 150, y: 100)
+        scene.addChild(activeNode)
+        
+        // Nodo inactivo
+        let inactiveNode = DetectedNoteCounterNode()
+        inactiveNode.currentNote = "-"
+        inactiveNode.isActive = false
+        inactiveNode.position = CGPoint(x: 150, y: 50)
+        scene.addChild(inactiveNode)
+        
+        return scene
+    }
+}
+
+struct DetectedNoteCounterPreview: PreviewProvider {
+    static var previews: some View {
+        SpriteViewPreview {
+            DetectedNoteCounterNode.createPreviewScene()
+        }
+        .frame(width: 300, height: 150)
+        .previewLayout(.fixed(width: 300, height: 150))
+    }
+}
+
+#endif

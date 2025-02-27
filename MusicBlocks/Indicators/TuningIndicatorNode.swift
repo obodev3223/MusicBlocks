@@ -154,3 +154,43 @@ class TuningIndicatorNode: SKNode {
         }
     }
 }
+
+// Al final de TuningIndicatorNode.swift
+
+#if DEBUG
+import SwiftUI
+
+// MARK: - Previews
+extension TuningIndicatorNode {
+    static func createPreviewScene() -> SKScene {
+        let scene = SKScene(size: CGSize(width: 300, height: 200))
+        scene.backgroundColor = .clear
+        
+        let states: [(deviation: Double, isActive: Bool, position: CGPoint)] = [
+            (0, true, CGPoint(x: 75, y: 100)),     // Perfecta afinación
+            (12, true, CGPoint(x: 150, y: 100)),   // Desviación leve
+            (-20, true, CGPoint(x: 225, y: 100)),  // Desviación grande
+        ]
+        
+        for state in states {
+            let node = TuningIndicatorNode(size: CGSize(width: 40, height: 120))
+            node.position = state.position
+            node.deviation = state.deviation
+            node.isActive = state.isActive
+            scene.addChild(node)
+        }
+        
+        return scene
+    }
+}
+
+struct TuningIndicatorPreview: PreviewProvider {
+    static var previews: some View {
+        SpriteViewPreview {
+            TuningIndicatorNode.createPreviewScene()
+        }
+        .frame(width: 300, height: 200)
+        .previewLayout(.fixed(width: 300, height: 200))
+    }
+}
+#endif

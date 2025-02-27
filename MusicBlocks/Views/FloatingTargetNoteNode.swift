@@ -125,3 +125,41 @@ class FloatingTargetNoteNode: SKNode {
         run(SKAction.group([scaleAction, fadeAction]))
     }
 }
+
+// Al final de FloatingTargetNoteNode.swift
+
+#if DEBUG
+import SwiftUI
+
+// MARK: - Previews
+extension FloatingTargetNoteNode {
+    static func createPreviewScene() -> SKScene {
+        let scene = SKScene(size: CGSize(width: 400, height: 200))
+        scene.backgroundColor = .clear
+        
+        // Nodo con nota
+        let activeNode = FloatingTargetNoteNode(width: 300)
+        activeNode.targetNote = TunerEngine.Note(name: "A", octave: 4)
+        activeNode.position = CGPoint(x: 200, y: 120)
+        scene.addChild(activeNode)
+        
+        // Nodo sin nota
+        let inactiveNode = FloatingTargetNoteNode(width: 300)
+        inactiveNode.animate(scale: 0.95, opacity: 0.7)
+        inactiveNode.position = CGPoint(x: 200, y: 50)
+        scene.addChild(inactiveNode)
+        
+        return scene
+    }
+}
+
+struct FloatingTargetNotePreview: PreviewProvider {
+    static var previews: some View {
+        SpriteViewPreview {
+            FloatingTargetNoteNode.createPreviewScene()
+        }
+        .frame(width: 400, height: 200)
+        .previewLayout(.fixed(width: 400, height: 200))
+    }
+}
+#endif
