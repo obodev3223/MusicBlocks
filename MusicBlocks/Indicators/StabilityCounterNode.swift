@@ -110,40 +110,33 @@ class StabilityCounterNode: SKNode {
     }
 }
 
+// MARK: Previews
 #if DEBUG
-import SwiftUI
+extension StabilityCounterNode {
+    static func createPreviewScene() -> SKScene {
+        SKScene.createPreviewScene(size: CGSize(width: 300, height: 200)) { scene in
+            // Nodo con valor medio
+            let mediumNode = StabilityCounterNode(size: CGSize(width: 120, height: 60))
+            mediumNode.position = CGPoint(x: 150, y: 120)
+            mediumNode.duration = 5.5
+            scene.addChild(mediumNode)
+            
+            // Nodo con valor máximo
+            let maxNode = StabilityCounterNode(size: CGSize(width: 120, height: 60))
+            maxNode.position = CGPoint(x: 150, y: 60)
+            maxNode.duration = 10.0
+            scene.addChild(maxNode)
+        }
+    }
+}
 
 struct StabilityCounterPreview: PreviewProvider {
     static var previews: some View {
-        // Contenedor para visualizar el nodo
-        ZStack {
-            Color.gray.opacity(0.3) // Fondo para mejor visualización
-            
-            StabilityCounterPreviewView()
+        SpriteViewPreview {
+            StabilityCounterNode.createPreviewScene()
         }
         .frame(width: 300, height: 200)
         .previewLayout(.fixed(width: 300, height: 200))
     }
-}
-
-// Vista auxiliar para manejar la preview
-private struct StabilityCounterPreviewView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let view = SKView(frame: .zero)
-        let scene = SKScene(size: CGSize(width: 300, height: 200))
-        scene.backgroundColor = .clear
-        
-        // Crear y configurar el nodo de prueba
-        let counterNode = StabilityCounterNode(size: CGSize(width: 120, height: 60))
-        counterNode.position = CGPoint(x: 150, y: 100)
-        counterNode.duration = 5.5 // Valor de prueba
-        
-        scene.addChild(counterNode)
-        view.presentScene(scene)
-        
-        return view
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) {}
 }
 #endif

@@ -159,45 +159,13 @@ class StabilityIndicatorNode: SKNode {
     }
 }
 
+// En StabilityIndicatorNode.swift, reemplazar la sección de preview por:
+
 #if DEBUG
 import SwiftUI
 
-struct StabilityIndicatorPreview: PreviewProvider {
-    static var previews: some View {
-        // Contenedor para visualizar el nodo
-        ZStack {
-            Color.gray.opacity(0.3) // Fondo para mejor visualización
-            
-            StabilityIndicatorPreviewView()
-        }
-        .frame(width: 300, height: 200)
-        .previewLayout(.fixed(width: 300, height: 200))
-    }
-}
-
-// Vista auxiliar para manejar la preview
-private struct StabilityIndicatorPreviewView: UIViewRepresentable {
-    func makeUIView(context: Context) -> SKView {
-        let view = SKView(frame: .zero)
-        let scene = SKScene(size: CGSize(width: 300, height: 200))
-        scene.backgroundColor = .clear
-        
-        // Crear y configurar el nodo de prueba
-        let indicatorNode = StabilityIndicatorNode(size: CGSize(width: 40, height: 120))
-        indicatorNode.position = CGPoint(x: 150, y: 100)
-        indicatorNode.duration = 7.5 // Valor de prueba
-        
-        scene.addChild(indicatorNode)
-        view.presentScene(scene)
-        
-        return view
-    }
-    
-    func updateUIView(_ uiView: SKView, context: Context) {}
-}
-
-// Extensión para demostrar diferentes estados
-extension StabilityIndicatorPreviewView {
+// MARK: - Previews
+extension StabilityIndicatorNode {
     static func createPreviewScene() -> SKScene {
         let scene = SKScene(size: CGSize(width: 300, height: 200))
         scene.backgroundColor = .clear
@@ -217,6 +185,16 @@ extension StabilityIndicatorPreviewView {
         }
         
         return scene
+    }
+}
+
+struct StabilityIndicatorPreview: PreviewProvider {
+    static var previews: some View {
+        SpriteViewPreview {
+            StabilityIndicatorNode.createPreviewScene()
+        }
+        .frame(width: 300, height: 200)
+        .previewLayout(.fixed(width: 300, height: 200))
     }
 }
 #endif

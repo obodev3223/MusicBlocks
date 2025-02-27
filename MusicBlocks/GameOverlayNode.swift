@@ -195,52 +195,35 @@ class GameOverOverlayNode: GameOverlayNode {
     }
 }
 
-// Al final de GameOverlayNode.swift
-
-#if DEBUG
-import SwiftUI
-
 // MARK: - Previews
+#if DEBUG
 extension GameOverlayNode {
-    static func createPreviewScene(with node: SKNode) -> SKScene {
-        let scene = SKScene(size: CGSize(width: 400, height: 300))
-        scene.backgroundColor = .clear
-        node.position = CGPoint(x: 200, y: 150)
-        scene.addChild(node)
-        return scene
-    }
-}
-
-struct GameOverlayPreviews: PreviewProvider {
-    static var previews: some View {
-        Group {
+    static func createPreviewScene() -> SKScene {
+        SKScene.createPreviewScene(size: CGSize(width: 400, height: 600)) { scene in
             // Success Overlay
-            SpriteViewPreview {
-                createPreviewScene(with: SuccessOverlayNode(
-                    size: CGSize(width: 300, height: 200),
-                    multiplier: 2,
-                    message: "¡Perfecto!"
-                ))
-            }
-            .previewDisplayName("Success Overlay")
+            let successNode = SuccessOverlayNode(
+                size: CGSize(width: 300, height: 200),
+                multiplier: 2,
+                message: "¡Perfecto!"
+            )
+            successNode.position = CGPoint(x: 200, y: 450)
+            scene.addChild(successNode)
             
             // Failure Overlay
-            SpriteViewPreview {
-                createPreviewScene(with: FailureOverlayNode(
-                    size: CGSize(width: 300, height: 200)
-                ))
-            }
-            .previewDisplayName("Failure Overlay")
+            let failureNode = FailureOverlayNode(
+                size: CGSize(width: 300, height: 200)
+            )
+            failureNode.position = CGPoint(x: 200, y: 300)
+            scene.addChild(failureNode)
             
             // Game Over Overlay
-            SpriteViewPreview {
-                createPreviewScene(with: GameOverOverlayNode(
-                    size: CGSize(width: 300, height: 200),
-                    score: 1500,
-                    restartAction: {}
-                ))
-            }
-            .previewDisplayName("Game Over Overlay")
+            let gameOverNode = GameOverOverlayNode(
+                size: CGSize(width: 300, height: 200),
+                score: 1500,
+                restartAction: {}
+            )
+            gameOverNode.position = CGPoint(x: 200, y: 150)
+            scene.addChild(gameOverNode)
         }
     }
 }
