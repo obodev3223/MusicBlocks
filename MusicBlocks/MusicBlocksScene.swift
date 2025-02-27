@@ -233,22 +233,27 @@ class MusicBlocksScene: SKScene {
         )
         addChild(leftBar)
         
-        // Importante: Modificar el tamaño de los indicadores para que se ajusten al contenedor
-        // Aquí usamos un alto más alto y un ancho proporcional para que se vean bien
-        let indicatorWidth = width * 0.6  // Reducido para mejor visualización
-        let indicatorHeight = height * 0.35  // Aumentado ligeramente para mejor visualización
+        // Calculamos dimensiones que permitan una buena visualización
+        let indicatorWidth = width * 0.75 // Ocupar más espacio horizontal
+        let indicatorHeight = height * 0.35
         
-        // Indicadores de estabilidad (izquierda) como hijos del contenedor
+        // Indicador de estabilidad (barra vertical) - Se reduce un poco para que no ocupe toda la altura
         stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: indicatorWidth, height: indicatorHeight))
-        // Posición relativa al centro del contenedor
-        stabilityIndicatorNode.position = CGPoint(x: 0, y: height * 0.25)
+        // Lo posicionamos más alto dentro de su contenedor
+        stabilityIndicatorNode.position = CGPoint(x: 0, y: height * 0.15)
         stabilityIndicatorNode.zPosition = 10
-        leftBar.addChild(stabilityIndicatorNode)
+        addChild(stabilityIndicatorNode)
+        stabilityIndicatorNode.position = CGPoint(x: leftBarPosition.x, y: leftBarPosition.y + height * 0.15)
         
-        stabilityCounterNode = StabilityCounterNode(size: CGSize(width: indicatorWidth, height: indicatorHeight))
-        stabilityCounterNode.position = CGPoint(x: 0, y: -height * 0.25)
+        // Calculamos la posición para el contador, debajo de la barra lateral
+        let counterSize = CGSize(width: width * 1.2, height: height * 0.3)
+        let counterYPosition = leftBarPosition.y - height * 0.6 // Coloca debajo de la barra con espacio
+        
+        // Añadimos el contador de estabilidad debajo de la barra
+        stabilityCounterNode = StabilityCounterNode(size: counterSize)
+        stabilityCounterNode.position = CGPoint(x: leftBarPosition.x, y: counterYPosition)
         stabilityCounterNode.zPosition = 10
-        leftBar.addChild(stabilityCounterNode)
+        addChild(stabilityCounterNode)
         
         // Barra derecha - Afinación
         let rightBarPosition = CGPoint(
@@ -265,18 +270,18 @@ class MusicBlocksScene: SKScene {
         )
         addChild(rightBar)
         
-        // Indicador de afinación (derecha) como hijo del contenedor
-        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: indicatorWidth, height: height * 0.45))
-        tuningIndicatorNode.position = CGPoint(x: 0, y: height * 0.25)
+        // Indicador de afinación (derecha)
+        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: indicatorWidth, height: height * 0.9))
+        // Centramos el indicador en el contenedor
+        tuningIndicatorNode.position = CGPoint(x: rightBarPosition.x, y: rightBarPosition.y)
         tuningIndicatorNode.zPosition = 10
-        rightBar.addChild(tuningIndicatorNode)
+        addChild(tuningIndicatorNode)
         
-        // Crear el DetectedNoteCounterNode con un tamaño adecuado (más pequeño)
-        let counterSize = CGSize(width: indicatorWidth, height: indicatorHeight * 0.8)
+        // Añadimos el DetectedNoteCounter debajo de la barra derecha
         detectedNoteCounterNode = DetectedNoteCounterNode(size: counterSize)
-        detectedNoteCounterNode.position = CGPoint(x: 0, y: -height * 0.25)
+        detectedNoteCounterNode.position = CGPoint(x: rightBarPosition.x, y: counterYPosition)
         detectedNoteCounterNode.zPosition = 10
-        rightBar.addChild(detectedNoteCounterNode)
+        addChild(detectedNoteCounterNode)
     }
 
     // Función auxiliar para crear contenedores con sombra

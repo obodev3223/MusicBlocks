@@ -5,13 +5,6 @@
 //  Created by Jose R. García on 25/2/25.
 //
 
-//
-//  DetectedNoteCounterNode.swift
-//  MusicBlocks
-//
-//  Created by Jose R. García on 25/2/25.
-//
-
 import SpriteKit
 
 class DetectedNoteCounterNode: SKNode {
@@ -19,15 +12,20 @@ class DetectedNoteCounterNode: SKNode {
     struct Layout {
         static let defaultSize = CGSize(width: 100, height: 40)
         static let cornerRadius: CGFloat = 8
-        static let backgroundAlpha: CGFloat = 0.15
-        static let inactiveAlpha: CGFloat = 0.2
+        static let backgroundAlpha: CGFloat = 0.95
+        static let inactiveAlpha: CGFloat = 0.6
         static let animationDuration: TimeInterval = 0.2
         static let fontSize: CGFloat = 24
         static let padding: CGFloat = 10
+        static let shadowRadius: CGFloat = 4.0
+        static let shadowOpacity: Float = 0.2
+        static let shadowOffset = CGPoint(x: 0, y: -1)
     }
     
     // MARK: - Properties
+    private let containerSize: CGSize
     private let container: SKShapeNode
+    private let shadowNode: SKEffectNode
     private let noteLabel: SKLabelNode
     
     var currentNote: String = "-" {
@@ -44,13 +42,26 @@ class DetectedNoteCounterNode: SKNode {
     
     // MARK: - Initialization
     init(size: CGSize = Layout.defaultSize) {
-        // Inicializar contenedor sin glow
+        self.containerSize = size
+        
+        // Crear nodo de sombra
+        shadowNode = SKEffectNode()
+        let shadowShape = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
+        shadowShape.fillColor = .black
+        shadowShape.strokeColor = .clear
+        shadowShape.alpha = CGFloat(Layout.shadowOpacity)
+        shadowNode.addChild(shadowShape)
+        shadowNode.shouldRasterize = true
+        shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
+        shadowNode.position = Layout.shadowOffset
+        
+        // Inicializar contenedor principal
         container = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
         
-        // Inicializar etiqueta
+        // Inicializar etiqueta con tamaños proporcionados
         noteLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        // Ajustar el tamaño de fuente según el tamaño proporcionado
-        noteLabel.fontSize = min(size.height * 0.6, Layout.fontSize)
+        // Ajustar tamaño de fuente dinámicamente
+        noteLabel.fontSize = min(size.height * 0.4, Layout.fontSize)
         noteLabel.verticalAlignmentMode = .center
         
         super.init()
@@ -65,15 +76,18 @@ class DetectedNoteCounterNode: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Configurar contenedor
+        // Añadir sombra primero
+        addChild(shadowNode)
+        
+        // Configurar contenedor principal
         container.fillColor = .white
         container.strokeColor = .clear
         container.alpha = Layout.backgroundAlpha
         addChild(container)
         
-        // Configurar etiqueta
+        // Configurar etiqueta y añadirla al nodo principal
         noteLabel.position = CGPoint(x: 0, y: 0)
-        container.addChild(noteLabel)
+        addChild(noteLabel)
     }
     
     // MARK: - Updates
@@ -87,7 +101,7 @@ class DetectedNoteCounterNode: SKNode {
             container.alpha = Layout.backgroundAlpha
         } else {
             noteLabel.fontColor = .gray
-            container.alpha = Layout.backgroundAlpha * 0.5
+            container.alpha = Layout.inactiveAlpha
         }
         
         // Animar cambio
@@ -102,34 +116,29 @@ class DetectedNoteCounterNode: SKNode {
     }
     
     // MARK: - Factory Methods
-    static func createForRightSideBar(at position: CGPoint, zPosition: CGFloat = 10) -> DetectedNoteCounterNode {
-        let node = DetectedNoteCounterNode()
+    static func createForRightSideBar(at position: CGPoint, size: CGSize = Layout.defaultSize, zPosition: CGFloat = 10) -> DetectedNoteCounterNode {
+        let node = DetectedNoteCounterNode(size: size)
         node.position = position
         node.zPosition = zPosition
         return node
     }
 }
 
-
-
+// MARK: - Previews
 #if DEBUG
 import SwiftUI
 
-// MARK: - Previews
 extension DetectedNoteCounterNode {
     static func createPreviewScene() -> SKScene {
-        // Crear una nueva escena con tamaño fijo
         let scene = SKScene(size: CGSize(width: 300, height: 150))
         scene.backgroundColor = .clear
         
-        // Crear y configurar el nodo activo
         let activeNode = DetectedNoteCounterNode()
         activeNode.currentNote = "A4"
         activeNode.isActive = true
         activeNode.position = CGPoint(x: 150, y: 100)
         scene.addChild(activeNode)
         
-        // Crear y configurar el nodo inactivo
         let inactiveNode = DetectedNoteCounterNode()
         inactiveNode.currentNote = "-"
         inactiveNode.isActive = false
@@ -149,5 +158,4 @@ struct DetectedNoteCounterPreview: PreviewProvider {
         .frame(width: 300, height: 150)
     }
 }
-
 #endif
