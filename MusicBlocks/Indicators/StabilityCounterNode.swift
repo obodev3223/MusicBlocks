@@ -103,7 +103,7 @@ struct StabilityCounterPreview: PreviewProvider {
         SpriteView(scene: {
             // Crear la escena directamente
             let scene = SKScene(size: CGSize(width: 300, height: 200))
-            scene.backgroundColor = .clear
+            scene.backgroundColor = .white  
             
             // Nodo con valor medio
             let mediumNode = StabilityCounterNode(size: CGSize(width: 120, height: 60))

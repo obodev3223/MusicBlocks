@@ -49,7 +49,8 @@ class DetectedNoteCounterNode: SKNode {
         
         // Inicializar etiqueta
         noteLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        noteLabel.fontSize = Layout.fontSize
+        // Ajustar el tamaño de fuente según el tamaño proporcionado
+        noteLabel.fontSize = min(size.height * 0.6, Layout.fontSize)
         noteLabel.verticalAlignmentMode = .center
         
         super.init()

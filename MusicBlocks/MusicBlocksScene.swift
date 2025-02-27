@@ -47,7 +47,7 @@ class MusicBlocksScene: SKScene {
     private struct Layout {
         /// Márgenes de seguridad para el contenido
         static let margins = UIEdgeInsets(
-            top: 8,
+            top: 6,
             left: 20,
             bottom: UIScreen.main.bounds.height * 0.05, // Dinámico según la pantalla
             right: 20
@@ -59,7 +59,7 @@ class MusicBlocksScene: SKScene {
         
         // Proporciones de las áreas principales
         static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
-        static let mainAreaHeightRatio: CGFloat = 0.76    // 74% de altura
+        static let mainAreaHeightRatio: CGFloat = 0.74    // 74% de altura
         static let sideBarWidthRatio: CGFloat = 0.07     // 15% del ancho
         static let mainAreaWidthRatio: CGFloat = 0.75    // 66% del ancho
         static let sideBarHeightRatio: CGFloat = 0.4   // Altura de las barras
@@ -234,8 +234,9 @@ class MusicBlocksScene: SKScene {
         addChild(leftBar)
         
         // Importante: Modificar el tamaño de los indicadores para que se ajusten al contenedor
-        let indicatorWidth = width * 0.8
-        let indicatorHeight = height * 0.3
+        // Aquí usamos un alto más alto y un ancho proporcional para que se vean bien
+        let indicatorWidth = width * 0.6  // Reducido para mejor visualización
+        let indicatorHeight = height * 0.35  // Aumentado ligeramente para mejor visualización
         
         // Indicadores de estabilidad (izquierda) como hijos del contenedor
         stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: indicatorWidth, height: indicatorHeight))
@@ -265,13 +266,14 @@ class MusicBlocksScene: SKScene {
         addChild(rightBar)
         
         // Indicador de afinación (derecha) como hijo del contenedor
-        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: indicatorWidth, height: height * 0.4))
+        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: indicatorWidth, height: height * 0.45))
         tuningIndicatorNode.position = CGPoint(x: 0, y: height * 0.25)
         tuningIndicatorNode.zPosition = 10
         rightBar.addChild(tuningIndicatorNode)
         
-        // DetectedNoteCounterNode debajo del indicador de afinación como hijo del contenedor
-        detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: indicatorWidth, height: indicatorHeight))
+        // Crear el DetectedNoteCounterNode con un tamaño adecuado (más pequeño)
+        let counterSize = CGSize(width: indicatorWidth, height: indicatorHeight * 0.8)
+        detectedNoteCounterNode = DetectedNoteCounterNode(size: counterSize)
         detectedNoteCounterNode.position = CGPoint(x: 0, y: -height * 0.25)
         detectedNoteCounterNode.zPosition = 10
         rightBar.addChild(detectedNoteCounterNode)

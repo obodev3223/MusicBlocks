@@ -112,8 +112,14 @@ class TuningIndicatorNode: SKNode {
         
         // Configurar indicador central
         addChild(indicatorContainer)
-        indicatorContainer.addChild(indicatorCore)
+        
+        // Creamos la forma para el indicador (círculo)
+        let barWidth = containerSize.width * Layout.barWidthRatio
+        let indicatorRadius = barWidth * Layout.indicatorSizeRatio
+        indicatorCore.path = CGPath(ellipseIn: CGRect(x: -indicatorRadius, y: -indicatorRadius,
+                                                    width: indicatorRadius*2, height: indicatorRadius*2), transform: nil)
         indicatorCore.strokeColor = .clear
+        indicatorContainer.addChild(indicatorCore)
         
         updateIndicator()
     }
@@ -156,6 +162,12 @@ class TuningIndicatorNode: SKNode {
         let effectiveHeight = containerSize.height - (indicatorRadius * 2)
         let minY = -containerSize.height / 2 + indicatorRadius
         let yPosition = minY + (effectiveHeight * normalizedDeviation)
+        
+        // Asegúrate de que el indicador tenga una forma definida
+        if indicatorCore.path == nil {
+            indicatorCore.path = CGPath(ellipseIn: CGRect(x: -indicatorRadius, y: -indicatorRadius,
+                                                       width: indicatorRadius*2, height: indicatorRadius*2), transform: nil)
+        }
         
         let moveAction = SKAction.move(to: CGPoint(x: 0, y: yPosition), duration: Layout.animationDuration)
         moveAction.timingMode = .easeOut
