@@ -58,8 +58,8 @@ class MusicBlocksScene: SKScene {
         static let verticalSpacing: CGFloat = 20 // Nuevo: espacio vertical entre elementos
         
         // Proporciones de las áreas principales
-        static let topBarHeightRatio: CGFloat = 0.06     // 8% de altura
-        static let mainAreaHeightRatio: CGFloat = 0.78    // 74% de altura
+        static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
+        static let mainAreaHeightRatio: CGFloat = 0.76    // 74% de altura
         static let sideBarWidthRatio: CGFloat = 0.07     // 15% del ancho
         static let mainAreaWidthRatio: CGFloat = 0.75    // 66% del ancho
         static let sideBarHeightRatio: CGFloat = 0.4   // Altura de las barras
@@ -71,8 +71,8 @@ class MusicBlocksScene: SKScene {
         static let targetNoteFontRatio: CGFloat = 0.5    // 50% de la altura de su contenedor
         
         // Nuevas constantes para el diseño 3D
-        static let shadowRadius: CGFloat = 4.0
-        static let shadowOpacity: Float = 0.2
+        static let shadowRadius: CGFloat = 8.0
+        static let shadowOpacity: Float = 0.8
         static let shadowOffset = CGPoint(x: 0, y: -2)
         static let containerAlpha: CGFloat = 0.95
     }
@@ -233,14 +233,18 @@ class MusicBlocksScene: SKScene {
         )
         addChild(leftBar)
         
+        // Importante: Modificar el tamaño de los indicadores para que se ajusten al contenedor
+        let indicatorWidth = width * 0.8
+        let indicatorHeight = height * 0.3
+        
         // Indicadores de estabilidad (izquierda) como hijos del contenedor
-        stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.3))
+        stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: indicatorWidth, height: indicatorHeight))
         // Posición relativa al centro del contenedor
         stabilityIndicatorNode.position = CGPoint(x: 0, y: height * 0.25)
         stabilityIndicatorNode.zPosition = 10
         leftBar.addChild(stabilityIndicatorNode)
         
-        stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 0.8, height: height * 0.3))
+        stabilityCounterNode = StabilityCounterNode(size: CGSize(width: indicatorWidth, height: indicatorHeight))
         stabilityCounterNode.position = CGPoint(x: 0, y: -height * 0.25)
         stabilityCounterNode.zPosition = 10
         leftBar.addChild(stabilityCounterNode)
@@ -261,20 +265,18 @@ class MusicBlocksScene: SKScene {
         addChild(rightBar)
         
         // Indicador de afinación (derecha) como hijo del contenedor
-        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.8, height: height * 0.4))
+        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: indicatorWidth, height: height * 0.4))
         tuningIndicatorNode.position = CGPoint(x: 0, y: height * 0.25)
         tuningIndicatorNode.zPosition = 10
         rightBar.addChild(tuningIndicatorNode)
         
         // DetectedNoteCounterNode debajo del indicador de afinación como hijo del contenedor
-        detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(
-            at: CGPoint(x: 0, y: -height * 0.25),
-            zPosition: 10
-        )
+        detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: indicatorWidth, height: indicatorHeight))
+        detectedNoteCounterNode.position = CGPoint(x: 0, y: -height * 0.25)
+        detectedNoteCounterNode.zPosition = 10
         rightBar.addChild(detectedNoteCounterNode)
     }
 
-    
     // Función auxiliar para crear contenedores con sombra
 private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
     let container = SKNode()
