@@ -362,8 +362,9 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     }
     
     private func updateGameUI() {
-        // Actualizar puntuación
+        // Actualizar puntuación y vidas en la TopBar
         topBarNode?.updateScore(gameEngine.score)
+        topBarNode?.updateLives(gameEngine.lives)  // Añadir esta línea para actualizar las vidas
         
         // Actualizar nota objetivo en el panel flotante
         floatingTargetNote.targetNote = gameEngine.targetNote
@@ -418,7 +419,10 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         
         let overlaySize = CGSize(width: 300, height: 150)
         let overlay = SuccessOverlayNode(size: overlaySize, multiplier: multiplier, message: message)
-        overlay.position = CGPoint(x: size.width/2, y: size.height/2)
+        
+        // Calcular posición en el 20% inferior de la pantalla
+        let yPosition = size.height * 0.2
+        overlay.position = CGPoint(x: size.width/2, y: yPosition)
         addChild(overlay)
         currentOverlay = overlay
         
@@ -448,7 +452,6 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
             overlay?.hide()
         }
     }
-    
     
     func getDeviationColor(deviation: Double) -> SKColor {
         guard audioController.tunerData.isActive else {

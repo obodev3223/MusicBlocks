@@ -16,7 +16,7 @@ class GameEngine: ObservableObject {
     @Published var noteState: NoteState = .waiting
     
     // MARK: - Public Properties
-    let maxLives: Int = 3
+    let maxLives: Int = 2
     
     // MARK: - Private Properties
     private let tunerEngine: TunerEngine
