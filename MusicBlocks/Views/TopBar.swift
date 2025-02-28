@@ -91,3 +91,54 @@ class TopBar: SKNode {
         scoreLabel.run(SKAction.sequence([scaleUp, scaleDown]))
     }
 }
+
+
+// MARK: - Previews
+#if DEBUG
+import SwiftUI
+
+extension TopBar {
+    static func createPreviewScene() -> SKScene {
+        // Crear una escena de ejemplo con diferentes estados de TopBar
+        let scene = SKScene(size: CGSize(width: 400, height: 300))
+        scene.backgroundColor = .lightGray
+        
+        // Crear un TopBar con puntuación 0
+        let defaultTopBar = TopBar.create(
+            width: 350,
+            height: 60,
+            position: CGPoint(x: 200, y: 250)
+        )
+        scene.addChild(defaultTopBar)
+        
+        // Crear un TopBar con puntuación alta
+        let highScoreTopBar = TopBar.create(
+            width: 350,
+            height: 60,
+            position: CGPoint(x: 200, y: 150)
+        )
+        highScoreTopBar.updateScore(1250)
+        scene.addChild(highScoreTopBar)
+        
+        // Crear un TopBar con puntuación muy alta
+        let veryHighScoreTopBar = TopBar.create(
+            width: 350,
+            height: 60,
+            position: CGPoint(x: 200, y: 50)
+        )
+        veryHighScoreTopBar.updateScore(9999)
+        scene.addChild(veryHighScoreTopBar)
+        
+        return scene
+    }
+}
+
+struct TopBarPreview: PreviewProvider {
+    static var previews: some View {
+        SpriteView(scene: TopBar.createPreviewScene())
+            .frame(width: 400, height: 300)
+            .previewLayout(.fixed(width: 400, height: 300))
+    }
+}
+#endif
+
