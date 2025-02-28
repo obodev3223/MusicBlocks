@@ -89,30 +89,38 @@ class StabilityIndicatorNode: SKNode {
         let barWidth = containerSize.width * Layout.barWidthRatio
         let barHeight = containerSize.height
         
-        // Actualizar el fondo de la barra
+        // Log para depuración (puedes eliminarlo después)
+        print("StabilityIndicatorNode - Tamaño del contenedor: \(containerSize)")
+        
+        // Actualizar el fondo de la barra - asegurándonos que ocupe todo el espacio disponible
         let bgRect = CGRect(x: -barWidth/2, y: -barHeight/2, width: barWidth, height: barHeight)
         backgroundBar.path = CGPath(roundedRect: bgRect, cornerWidth: Layout.cornerRadius, cornerHeight: Layout.cornerRadius, transform: nil)
         
-        // Actualizar la posición y tamaño de cada marca
+        // Actualizar la posición y tamaño de cada marca - espaciadas uniformemente
         for (index, mark) in markings.enumerated() {
             let progress = CGFloat(index) / CGFloat(markings.count - 1)
-            let yPosition = -containerSize.height / 2 + containerSize.height * progress
+            let yPosition = -containerSize.height * 0.5 + containerSize.height * progress
             mark.position = CGPoint(x: 0, y: yPosition)
+            
+            // Ancho de marca consistente
             let markWidth = barWidth * Layout.markingWidthRatio
-            let markRect = CGRect(x: -markWidth/2, y: -0.5, width: markWidth, height: 1)
+            let markHeight: CGFloat = 2.0  // Altura fija para que sea visible
+            let markRect = CGRect(x: -markWidth/2, y: -markHeight/2, width: markWidth, height: markHeight)
             mark.path = CGPath(rect: markRect, transform: nil)
         }
         
         updateProgress()
     }
-    
+
     // MARK: - Updates
     private func updateProgress() {
         let normalizedProgress = CGFloat(min(duration, maxDuration) / maxDuration)
         let progressHeight = containerSize.height * normalizedProgress
         let progressWidth = containerSize.width * Layout.barWidthRatio
+        
+        // La posición del rectángulo debe partir desde abajo
         let rect = CGRect(x: -progressWidth / 2,
-                          y: -containerSize.height / 2,
+                          y: -containerSize.height / 2,  // Siempre partimos desde abajo
                           width: progressWidth,
                           height: progressHeight)
         
@@ -123,16 +131,9 @@ class StabilityIndicatorNode: SKNode {
             path.addRect(rect)
         }
         
-        // Actualizar el glowBar sin animación de desenfoque
-        let action = SKAction.run { [weak self] in
-            self?.glowBar.path = path
-            self?.glowBar.fillColor = self?.getProgressColor() ?? .blue
-        }
-        glowBar.run(SKAction.sequence([
-            SKAction.wait(forDuration: 0.1),
-            action
-        ]))
-        
+        // Actualización inmediata para mejor rendimiento
+        glowBar.path = path
+        glowBar.fillColor = getProgressColor()
         glowBar.alpha = normalizedProgress * Layout.glowAlpha
     }
     

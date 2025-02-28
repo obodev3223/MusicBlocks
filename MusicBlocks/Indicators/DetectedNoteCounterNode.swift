@@ -15,7 +15,7 @@ class DetectedNoteCounterNode: SKNode {
         static let backgroundAlpha: CGFloat = 0.95
         static let inactiveAlpha: CGFloat = 0.6
         static let animationDuration: TimeInterval = 0.2
-        static let fontSize: CGFloat = 24
+        static let fontSize: CGFloat = 18  // Fuente más pequeña
         static let padding: CGFloat = 10
         static let shadowRadius: CGFloat = 4.0
         static let shadowOpacity: Float = 0.2
@@ -58,11 +58,11 @@ class DetectedNoteCounterNode: SKNode {
         // Inicializar contenedor principal
         container = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
         
-        // Inicializar etiqueta con tamaños proporcionados
+        // Etiqueta para el valor de la nota (centrada)
         noteLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        // Ajustar tamaño de fuente dinámicamente
-        noteLabel.fontSize = min(size.height * 0.4, Layout.fontSize)
+        noteLabel.fontSize = min(size.height * 0.5, Layout.fontSize)
         noteLabel.verticalAlignmentMode = .center
+        noteLabel.horizontalAlignmentMode = .center
         
         super.init()
         
@@ -85,8 +85,10 @@ class DetectedNoteCounterNode: SKNode {
         container.alpha = Layout.backgroundAlpha
         addChild(container)
         
-        // Configurar etiqueta y añadirla al nodo principal
+        // Posicionar etiqueta en el centro
         noteLabel.position = CGPoint(x: 0, y: 0)
+        
+        // Añadir etiqueta directamente al nodo, no al contenedor
         addChild(noteLabel)
     }
     
@@ -134,7 +136,7 @@ extension DetectedNoteCounterNode {
         scene.backgroundColor = .clear
         
         let activeNode = DetectedNoteCounterNode()
-        activeNode.currentNote = "A4"
+        activeNode.currentNote = "La4"
         activeNode.isActive = true
         activeNode.position = CGPoint(x: 150, y: 100)
         scene.addChild(activeNode)

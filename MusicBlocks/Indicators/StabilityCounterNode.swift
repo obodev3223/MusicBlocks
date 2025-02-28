@@ -10,8 +10,8 @@ import SpriteKit
 class StabilityCounterNode: SKNode {
     // MARK: - Layout Configuration
     private struct Layout {
-        static let primaryFontRatio: CGFloat = 0.25  // Aumentado para mejor visibilidad
-        static let secondaryFontRatio: CGFloat = 0.18
+        static let primaryFontRatio: CGFloat = 0.4  // Tamaño de fuente relativo a la altura del nodo
+        static let secondaryFontRatio: CGFloat = 0.3
         static let cornerRadius: CGFloat = 8
         static let backgroundAlpha: CGFloat = 0.95
         static let animationDuration: TimeInterval = 0.2
@@ -51,15 +51,17 @@ class StabilityCounterNode: SKNode {
         // Inicializar contenedor principal
         container = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
         
-        // Inicializar etiquetas con tamaños proporcionados
+        // Inicializar etiquetas con tamaños pequeños
         timeLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         timeLabel.fontSize = size.height * Layout.primaryFontRatio
         timeLabel.verticalAlignmentMode = .center
+        timeLabel.horizontalAlignmentMode = .right
         timeLabel.fontColor = .black
         
         unitLabel = SKLabelNode(fontNamed: "Helvetica")
         unitLabel.fontSize = size.height * Layout.secondaryFontRatio
         unitLabel.verticalAlignmentMode = .center
+        unitLabel.horizontalAlignmentMode = .left
         unitLabel.fontColor = .gray
         unitLabel.text = "seg"
         
@@ -84,11 +86,11 @@ class StabilityCounterNode: SKNode {
         container.alpha = Layout.backgroundAlpha
         addChild(container)
         
-        // Posicionar etiquetas
-        timeLabel.position = CGPoint(x: -containerSize.width * 0.2, y: 0)  // Ajuste más dinámico
-        unitLabel.position = CGPoint(x: containerSize.width * 0.2, y: 0)   // Ajuste más dinámico
+        // Posicionar etiquetas horizontalmente para mejor uso del espacio
+        timeLabel.position = CGPoint(x: -containerSize.width * 0.05, y: 0)
+        unitLabel.position = CGPoint(x: containerSize.width * 0.05, y: 0)
         
-        // Añadir etiquetas al nodo principal
+        // Añadir etiquetas al nodo principal (no al contenedor)
         addChild(timeLabel)
         addChild(unitLabel)
     }
