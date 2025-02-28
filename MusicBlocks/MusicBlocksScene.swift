@@ -227,7 +227,6 @@ class MusicBlocksScene: SKScene {
         // Posición del área principal para cálculos de espacio
         let mainAreaY = size.height/2 - (Layout.verticalSpacing/2)
         let mainAreaHeight = size.height * Layout.mainAreaHeightRatio
-        let mainAreaBottom = mainAreaY - mainAreaHeight/2
         
         // Se crea el contenedor de la barra lateral izquierda
         let leftBar = createContainerWithShadow(
@@ -240,12 +239,13 @@ class MusicBlocksScene: SKScene {
         
         // Indicador de estabilidad (barra vertical)
         stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
-        stabilityIndicatorNode.position = leftBarPosition
+        stabilityIndicatorNode.position = CGPoint.zero // Centrado en el contenedor
         stabilityIndicatorNode.zPosition = 10
         leftBar.addChild(stabilityIndicatorNode)
         
-        // Espacio después de la barra lateral donde posicionar el contador
-        let counterYPosition = mainAreaBottom - 30 // Espacio por debajo del área principal
+        // Distancia de los contadores con el final de las barras
+        let leftBarBottom = leftBarPosition.y - height/2
+        let counterYPosition = leftBarBottom - 30
         
         // Contador de estabilidad - horizontal y más ancho
         stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 2.0, height: 30))
@@ -274,7 +274,7 @@ class MusicBlocksScene: SKScene {
         tuningIndicatorNode.zPosition = 10
         rightBar.addChild(tuningIndicatorNode)
         
-        // Contador de notas detectadas - horizontal y más ancho
+        // CORREGIDO: Posicionar el contador usando la misma distancia desde la barra derecha
         detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: width * 2.0, height: 30))
         detectedNoteCounterNode.position = CGPoint(x: rightBarPosition.x, y: counterYPosition)
         detectedNoteCounterNode.zPosition = 10

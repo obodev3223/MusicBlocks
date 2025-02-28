@@ -89,9 +89,6 @@ class StabilityIndicatorNode: SKNode {
         let barWidth = containerSize.width * Layout.barWidthRatio
         let barHeight = containerSize.height
         
-        // Log para depuración (puedes eliminarlo después)
-        print("StabilityIndicatorNode - Tamaño del contenedor: \(containerSize)")
-        
         // Actualizar el fondo de la barra - asegurándonos que ocupe todo el espacio disponible
         let bgRect = CGRect(x: -barWidth/2, y: -barHeight/2, width: barWidth, height: barHeight)
         backgroundBar.path = CGPath(roundedRect: bgRect, cornerWidth: Layout.cornerRadius, cornerHeight: Layout.cornerRadius, transform: nil)
@@ -100,6 +97,8 @@ class StabilityIndicatorNode: SKNode {
         for (index, mark) in markings.enumerated() {
             let progress = CGFloat(index) / CGFloat(markings.count - 1)
             let yPosition = -containerSize.height * 0.5 + containerSize.height * progress
+            
+            // CORREGIDO: Ajustar posición para alinearse mejor con la barra
             mark.position = CGPoint(x: 0, y: yPosition)
             
             // Ancho de marca consistente
