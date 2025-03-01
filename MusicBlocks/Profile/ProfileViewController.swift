@@ -21,7 +21,7 @@ class ProfileViewController: UIViewController {
     
     // MARK: - Setup
     private func setupNavigationBar() {
-        title = "Mi Perfil"
+        title = "Perfil"
         navigationController?.navigationBar.prefersLargeTitles = false
         view.backgroundColor = .systemBackground
     }
