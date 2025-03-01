@@ -11,6 +11,7 @@ import SpriteKit
 
 struct ContentView: View {
     @StateObject private var audioController = AudioController.sharedInstance
+    @State private var gameVersion: String = "--" // Valor por defecto
     
     var body: some View {
         NavigationView {
@@ -19,22 +20,21 @@ struct ContentView: View {
                 
                 // Logo
                 VStack(spacing: 15) {
-                    Image(systemName: "music.quarternote.3")
-                        .font(.system(size: 80))
-                        .foregroundColor(.red)
+                    Image("logoMusicBlocks")
+                        .resizable() // Permite que la imagen sea redimensionable
+                        .scaledToFit() // Mantiene la proporción de la imagen
+                        .frame(width: 320, height: 320) // Establece el tamaño deseado
                     
-                    Text("MusicBlocks")
-                        .font(.system(size: 40, weight: .bold))
-                        .foregroundColor(.red)
+                    
                 }
-                .padding(.bottom, 60)
+                .padding(.bottom, 20)
                 
                 // Botones de navegación
                 VStack(spacing: 20) {
                                     NavigationLink(destination: MusicBlocksSceneView()) {
                                         HStack {
-                                            Image(systemName: "music.note")
-                                            Text("Practicar")
+                                            Image(systemName: "gamecontroller")
+                                            Text("Jugar")
                                                 .font(.headline)
                                         }
                                         .frame(maxWidth: .infinity)
@@ -46,7 +46,18 @@ struct ContentView: View {
                                         .foregroundColor(.white)
                                     }
                     
-                    NavigationLink(destination: ProfileView()) {
+                    // Reemplazamos el NavigationLink con un botón personalizado
+                    Button(action: {
+                        // Presentar el ProfileViewController
+                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                           let window = windowScene.windows.first,
+                           let rootViewController = window.rootViewController {
+                            let profileVC = ProfileViewController()
+                            let navController = UINavigationController(rootViewController: profileVC)
+                            navController.modalPresentationStyle = .fullScreen
+                            rootViewController.present(navController, animated: true)
+                        }
+                    }) {
                         HStack {
                             Image(systemName: "person.fill")
                             Text("Mi Perfil")
@@ -65,10 +76,10 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                Text("v1.0")
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .padding(.bottom, 20)
+                Text(gameVersion)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                    .padding(.bottom, 20)
             }
             .background(Color.white.ignoresSafeArea())
             .navigationTitle("")
@@ -76,6 +87,7 @@ struct ContentView: View {
         }
         .onAppear {
             setupAudio()
+            loadGameVersion()
         }
         .onDisappear {
             audioController.stop()
@@ -88,6 +100,14 @@ struct ContentView: View {
                 DispatchQueue.main.async {
                     audioController.start()
                 }
+            }
+        }
+    }
+    private func loadGameVersion() {
+        if let gameConfig = GameLevelProcessor.loadGameLevelsFromFile() {
+            // Añadimos "v" al inicio de la versión
+            DispatchQueue.main.async {
+                self.gameVersion = "v\(gameConfig.gameVersion)"
             }
         }
     }
