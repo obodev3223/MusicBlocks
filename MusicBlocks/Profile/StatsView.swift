@@ -1,3 +1,10 @@
+//
+//  StatsView.swift
+//  MusicBlocks
+//
+//  Created by Jose R. García on 1/3/25.
+//
+
 import UIKit
 
 class StatsView: UIView {
@@ -10,18 +17,25 @@ class StatsView: UIView {
     }()
     
     private let resetButton: UIButton = {
-        let button = UIButton()
-        let image = UIImage(systemName: "trash")
-        button.setImage(image, for: .normal)
-        button.setTitle("Borrar datos", for: .normal)
-        button.setTitleColor(.systemRed, for: .normal)
-        button.tintColor = .systemRed
+        var configuration = UIButton.Configuration.plain()
+        
+        // Configurar el contenido
+        configuration.image = UIImage(systemName: "trash")
+        configuration.title = "Borrar datos"
+        configuration.imagePadding = 5 // Espaciado entre imagen y texto
+        
+        // Configurar el estilo
+        configuration.baseForegroundColor = .systemRed
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)
+        
+        // Crear el botón con la configuración
+        let button = UIButton(configuration: configuration)
+        
+        // Configurar el borde
         button.layer.borderColor = UIColor.systemRed.cgColor
         button.layer.borderWidth = 1
         button.layer.cornerRadius = 8
-        button.contentEdgeInsets = UIEdgeInsets(top: 5, left: 10, bottom: 5, right: 10)
-        button.titleLabel?.font = .systemFont(ofSize: 12)
-        button.imageEdgeInsets = UIEdgeInsets(right: 5)
+        
         return button
     }()
     

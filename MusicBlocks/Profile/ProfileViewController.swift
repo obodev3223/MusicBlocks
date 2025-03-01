@@ -1,3 +1,10 @@
+//
+//  ProfileViewController.swift
+//  MusicBlocks
+//
+//  Created by Jose R. García on 1/3/25.
+//
+
 import UIKit
 import SpriteKit
 
@@ -10,14 +17,19 @@ class ProfileViewController: UIViewController {
     private var profileHeaderView: ProfileHeaderView!
     private var statsSection: ExpandableSectionView!
     private var achievementsSection: ExpandableSectionView!
+    private let headerView = ProfileHeaderView()
+    private let statsView = StatsView()
+    private let achievementsView = AchievementsView()
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
-        super.viewDidLoad()
-        setupNavigationBar()
-        setupViews()
-        loadProfile()
-    }
+           super.viewDidLoad()
+           setupViews()
+           
+           // Cargar el perfil guardado al iniciar
+           let profile = UserProfile.load()
+           configure(with: profile)
+       }
     
     // MARK: - Setup
     private func setupNavigationBar() {
@@ -152,3 +164,73 @@ extension ProfileViewController: ExpandableSectionViewDelegate {
         }
     }
 }
+
+#if DEBUG
+import SwiftUI
+
+extension ProfileViewController {
+    private struct Preview: UIViewControllerRepresentable {
+        func makeUIViewController(context: Context) -> ProfileViewController {
+            let viewController = ProfileViewController()
+            
+            // Los datos ya se cargarán automáticamente en viewDidLoad
+            // a través de UserProfile.load() y MedalManager.shared
+            
+            return viewController
+        }
+        
+        func updateUIViewController(_ uiViewController: ProfileViewController, context: Context) {}
+    }
+    
+    @available(iOS 13.0, *)
+    struct ProfileViewController_Preview: PreviewProvider {
+        static var previews: some View {
+            Group {
+                // Asegurarse de que hay datos de prueba en UserDefaults
+                prepare()
+                
+                // Preview en Light Mode
+                Preview()
+                    .edgesIgnoringSafeArea(.all)
+                    .preferredColorScheme(.light)
+                
+                // Preview en Dark Mode
+                Preview()
+                    .edgesIgnoringSafeArea(.all)
+                    .preferredColorScheme(.dark)
+            }
+        }
+        
+        static func prepare() {
+            // Crear perfil de prueba
+            let profile = UserProfile(
+                username: UserProfile.defaultUsername,
+                avatarName: "avatar1",
+                statistics: Statistics(
+                    totalScore: 1500,
+                    currentLevel: 5,
+                    playTime: 3600,
+                    notesHit: 250,
+                    currentStreak: 10,
+                    bestStreak: 15,
+                    perfectLevelsCount: 3,
+                    totalGamesPlayed: 20,
+                    averageAccuracy: 0.83
+                ),
+                achievements: Achievements(
+                    unlockedMedals: [
+                        MedalType.notesHit.rawValue: [true, false, false],
+                        MedalType.playTime.rawValue: [true, false, false],
+                        MedalType.streaks.rawValue: [true, true, false],
+                        MedalType.perfectTuning.rawValue: [true, false, false]
+                    ],
+                    lastUpdateDate: Date()
+                )
+            )
+            
+            // Guardar el perfil de prueba en UserDefaults
+            profile.save()
+        }
+    }
+}
+#endif

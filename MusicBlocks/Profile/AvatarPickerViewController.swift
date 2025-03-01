@@ -1,3 +1,10 @@
+//
+//  AvatarPickerViewController.swift
+//  MusicBlocks
+//
+//  Created by Jose R. García on 1/3/25.
+//
+
 import UIKit
 
 protocol AvatarPickerViewControllerDelegate: AnyObject {
@@ -106,7 +113,7 @@ class AvatarCell: UICollectionViewCell {
     
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = .caption
+        label.font = .systemFont(ofSize: 12) // Cambiado de .caption a .systemFont
         label.textColor = .secondaryLabel
         label.textAlignment = .center
         return label

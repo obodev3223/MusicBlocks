@@ -1,3 +1,10 @@
+//
+//  ProfileHeaderView.swift
+//  MusicBlocks
+//
+//  Created by Jose R. García on 1/3/25.
+//
+
 import UIKit
 
 protocol ProfileHeaderViewDelegate: AnyObject {
@@ -107,7 +114,7 @@ class ProfileHeaderView: UIView {
     @objc private func handleAvatarTap() {
         delegate?.profileHeaderViewDidTapAvatar(self)
     }
-    
+
     @objc private func handleUsernameTap() {
         let alert = UIAlertController(
             title: "Editar nombre",
@@ -131,6 +138,11 @@ class ProfileHeaderView: UIView {
             self.delegate?.profileHeaderView(self, didUpdateUsername: newUsername)
         })
         
-        UIApplication.shared.windows.first?.rootViewController?.present(alert, animated: true)
+        // Obtener la ventana principal usando la nueva API
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootViewController = window.rootViewController {
+            rootViewController.present(alert, animated: true)
+        }
     }
 }

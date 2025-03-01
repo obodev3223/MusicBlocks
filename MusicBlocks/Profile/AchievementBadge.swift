@@ -1,11 +1,11 @@
 //
 //  AchievementBadge.swift
-//  FrikiTuner
+//  MusicBlocks
 //
 //  Created by Jose R. García on 28/2/25.
 //
 
-import SwiftUI
+import UIKit
 
 // MARK: - Medal Models
 struct MedalCategory {
@@ -44,19 +44,6 @@ extension MedalType: CaseIterable {
             return "🔥"
         case .perfectTuning:
             return "⭐️"
-        }
-    }
-    
-    var color: Color {
-        switch self {
-        case .notesHit:
-            return .blue
-        case .playTime:
-            return .red
-        case .streaks:
-            return .yellow
-        case .perfectTuning:
-            return .purple
         }
     }
     
@@ -103,157 +90,11 @@ struct MedalInfo {
     }
 }
 
-// MARK: - Achievement Badge View
-struct AchievementBadge: View {
-    let title: String
-    let icon: String
-    let isUnlocked: Bool
-    let color: Color
-    
-    var body: some View {
-        VStack {
-            ZStack {
-                Circle()
-                    .fill(isUnlocked ? color : Color.gray.opacity(0.3))
-                    .frame(width: 60, height: 60)
-                
-                if isUnlocked {
-                    Image(systemName: icon)
-                        .font(.system(size: 30))
-                        .foregroundColor(.white)
-                } else {
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.white)
-                }
-            }
-            
-            Text(title)
-                .font(.caption)
-                .multilineTextAlignment(.center)
-                .foregroundColor(isUnlocked ? .primary : .secondary)
-        }
-        .opacity(isUnlocked ? 1.0 : 0.7)
-    }
-}
-
-// MARK: - Medal Badge View
-
-struct MedalBadge: View {
-    let medalInfo: MedalInfo
-    let color: Color
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            ZStack {
-                Image(medalInfo.image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 60, height: 60)
-                    .opacity(medalInfo.isUnlocked ? 1.0 : 0.3)
-                
-                if !medalInfo.isUnlocked {
-                    Circle()
-                        .fill(Color.black.opacity(0.3))
-                        .frame(width: 60, height: 60)
-                    
-                    Image(systemName: "lock.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.white)
-                }
-            }
-            .overlay(
-                Circle()
-                    .stroke(
-                        medalInfo.isUnlocked ? color : Color.gray,
-                        lineWidth: 2
-                    )
-                    .opacity(medalInfo.isUnlocked ? 0.8 : 0.3)
-            )
-            
-            VStack(spacing: 4) {
-                Text(medalInfo.name)
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(medalInfo.isUnlocked ? .primary : .secondary)
-                
-                Text(medalInfo.requirement)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .frame(width: 120)
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.gray.opacity(0.1))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(
-                            medalInfo.isUnlocked ? color.opacity(0.3) : Color.clear,
-                            lineWidth: 2
-                        )
-                )
-        )
-        .opacity(medalInfo.isUnlocked ? 1.0 : 0.8)
-    }
-}
-
-// MARK: - Medals Grid View
-struct MedalsGridView: View {
-    let medals: [MedalCategory]
-    
-    var body: some View {
-        VStack(spacing: 24) {
-            ForEach(medals, id: \.title) { category in
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        Text(category.title)
-                            .font(.headline)
-                        
-                        let stats = getCategoryStats(for: category)
-                        Text("\(stats.unlocked)/\(stats.total)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.leading, 4)
-                    }
-                    .padding(.horizontal)
-                    
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(category.medals, id: \.name) { medal in
-                                MedalBadge(
-                                    medalInfo: medal,
-                                    color: categoryColor(for: category.type)
-                                )
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                }
-                .background(Color.white) // Fondo blanco para cada categoría
-            }
-        }
-        .background(Color.white) // Fondo blanco general
-    }
-    
-    private func getCategoryStats(for category: MedalCategory) -> (unlocked: Int, total: Int) {
-        let unlockedCount = category.medals.filter { $0.isUnlocked }.count
-        return (unlockedCount, category.medals.count)
-    }
-    
-    private func categoryColor(for type: MedalType) -> Color {
-        type.color
-    }
-}
-
 // MARK: - Medal Manager
-final class MedalManager: ObservableObject {
+final class MedalManager {
     static let shared = MedalManager()
     
-    @Published private(set) var medals: [MedalCategory] = []
+    private(set) var medals: [MedalCategory] = []
     private var gameConfig: GameConfig?
     
     private init() {
@@ -329,7 +170,6 @@ final class MedalManager: ObservableObject {
         }
         
         saveMedalsProgress()
-        objectWillChange.send()
     }
     
     private func saveMedalsProgress() {
@@ -361,7 +201,6 @@ final class MedalManager: ObservableObject {
         }
     }
 
-    // Función auxiliar para crear objetivos por defecto según el tipo de medalla
     private func createDefaultObjective(for type: MedalType, requirement: String) -> MedalObjective {
         let target = extractTarget(from: requirement)
         
@@ -401,11 +240,8 @@ final class MedalManager: ObservableObject {
         }
     }
 
-    // Función auxiliar para extraer el target del requirement
     private func extractTarget(from requirement: String) -> Int {
-        // Extrae los números del texto del requisito
         if let target = Int(requirement.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()) {
-            // Para tiempo de juego, convierte minutos/horas a segundos
             if requirement.contains("minutos") {
                 return target * 60
             } else if requirement.contains("horas") {
@@ -413,171 +249,6 @@ final class MedalManager: ObservableObject {
             }
             return target
         }
-        return 0 // valor por defecto si no se puede extraer un número
-    }
-}
-
-// MARK: - Previews
-// Extension para facilitar la creación de previews
-extension Medal {
-    static var previewMedals: [Medal] {
-        [
-            Medal(
-                name: "Aprendiz del Pentagrama",
-                requirement: "50 notas acertadas",
-                image: "Badge-azul-1",
-                objective: MedalObjective(
-                    type: "notes_hit",
-                    target: 50,
-                    lifetime: true,
-                    resetOnFail: false,
-                    accuracy: nil
-                )
-            ),
-            Medal(
-                name: "Intérprete Prometedor",
-                requirement: "250 notas acertadas",
-                image: "Badge-azul-2",
-                objective: MedalObjective(
-                    type: "notes_hit",
-                    target: 250,
-                    lifetime: true,
-                    resetOnFail: false,
-                    accuracy: nil
-                )
-            ),
-            Medal(
-                name: "Virtuoso del Ritmo",
-                requirement: "1,000 notas acertadas",
-                image: "Badge-azul-3",
-                objective: MedalObjective(
-                    type: "notes_hit",
-                    target: 1000,
-                    lifetime: true,
-                    resetOnFail: false,
-                    accuracy: nil
-                )
-            ),
-            Medal(
-                name: "Toca y Aprende",
-                requirement: "30 minutos jugados",
-                image: "Badge-rojo-1",
-                objective: MedalObjective(
-                    type: "play_time",
-                    target: 1800,
-                    lifetime: true,
-                    resetOnFail: false,
-                    accuracy: nil
-                )
-            ),
-            Medal(
-                name: "Sesión de Ensayo",
-                requirement: "2 horas jugadas",
-                image: "Badge-rojo-2",
-                objective: MedalObjective(
-                    type: "play_time",
-                    target: 7200,
-                    lifetime: true,
-                    resetOnFail: false,
-                    accuracy: nil
-                )
-            )
-        ]
-    }
-}
-
-// Actualizar el preview
-struct Previews_AchievementBadge: PreviewProvider {
-    static var previews: some View {
-        MedalsGridView(medals: [
-            MedalCategory(
-                type: .notesHit,
-                medals: [
-                    MedalInfo(
-                        from: Medal(
-                            name: "Aprendiz del Pentagrama",
-                            requirement: "50 notas acertadas",
-                            image: "Badge-azul-1",
-                            objective: MedalObjective(
-                                type: "notes_hit",
-                                target: 50,
-                                lifetime: true,
-                                resetOnFail: false,
-                                accuracy: nil
-                            )
-                        ),
-                        isUnlocked: true
-                    ),
-                    MedalInfo(
-                        from: Medal(
-                            name: "Intérprete Prometedor",
-                            requirement: "250 notas acertadas",
-                            image: "Badge-azul-2",
-                            objective: MedalObjective(
-                                type: "notes_hit",
-                                target: 250,
-                                lifetime: true,
-                                resetOnFail: false,
-                                accuracy: nil
-                            )
-                        ),
-                        isUnlocked: false
-                    ),
-                    MedalInfo(
-                        from: Medal(
-                            name: "Virtuoso del Ritmo",
-                            requirement: "1,000 notas acertadas",
-                            image: "Badge-azul-3",
-                            objective: MedalObjective(
-                                type: "notes_hit",
-                                target: 1000,
-                                lifetime: true,
-                                resetOnFail: false,
-                                accuracy: nil
-                            )
-                        ),
-                        isUnlocked: false
-                    )
-                ]
-            ),
-            MedalCategory(
-                type: .playTime,
-                medals: [
-                    MedalInfo(
-                        from: Medal(
-                            name: "Toca y Aprende",
-                            requirement: "30 minutos jugados",
-                            image: "Badge-rojo-1",
-                            objective: MedalObjective(
-                                type: "play_time",
-                                target: 1800,
-                                lifetime: true,
-                                resetOnFail: false,
-                                accuracy: nil
-                            )
-                        ),
-                        isUnlocked: true
-                    ),
-                    MedalInfo(
-                        from: Medal(
-                            name: "Sesión de Ensayo",
-                            requirement: "2 horas jugadas",
-                            image: "Badge-rojo-2",
-                            objective: MedalObjective(
-                                type: "play_time",
-                                target: 7200,
-                                lifetime: true,
-                                resetOnFail: false,
-                                accuracy: nil
-                            )
-                        ),
-                        isUnlocked: false
-                    )
-                ]
-            )
-        ])
-        .padding()
-        .previewLayout(.sizeThatFits)
-        .previewDisplayName("Medals Grid")
+        return 0
     }
 }
