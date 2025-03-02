@@ -17,36 +17,33 @@ class ProfileViewController: UIViewController {
     private var profileHeaderView: ProfileHeaderView!
     private var statsSection: ExpandableSectionView!
     private var achievementsSection: ExpandableSectionView!
-    private let headerView = ProfileHeaderView()
-    private let statsView = StatsView()
-    private let achievementsView = AchievementsView()
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
-           super.viewDidLoad()
-           setupViews()
-           
-           // Cargar el perfil guardado al iniciar
-           let profile = UserProfile.load()
-           configure(with: profile)
-       }
+        super.viewDidLoad()
+        setupNavigationBar()
+        setupViews()
+        loadProfile()
+    }
     
     // MARK: - Setup
     private func setupNavigationBar() {
         title = "Perfil"
         navigationController?.navigationBar.prefersLargeTitles = false
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemBackground // Asegurarse de que esto se establece
     }
     
     private func setupViews() {
         // Setup ScrollView
         scrollView = UIScrollView()
         scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.backgroundColor = .systemBackground // Añadir color de fondo
         view.addSubview(scrollView)
         
         // Setup ContentView
         contentView = UIView()
         contentView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.backgroundColor = .systemBackground // Añadir color de fondo
         scrollView.addSubview(contentView)
         
         // Setup ProfileHeaderView
@@ -168,40 +165,23 @@ extension ProfileViewController: ExpandableSectionViewDelegate {
 #if DEBUG
 import SwiftUI
 
+@available(iOS 17.0, *)
 extension ProfileViewController {
     private struct Preview: UIViewControllerRepresentable {
+        init() {
+            // Llamar a prepare antes de crear la preview
+            Self.prepare()
+        }
+        
         func makeUIViewController(context: Context) -> ProfileViewController {
             let viewController = ProfileViewController()
-            
-            // Los datos ya se cargarán automáticamente en viewDidLoad
-            // a través de UserProfile.load() y MedalManager.shared
-            
             return viewController
         }
         
         func updateUIViewController(_ uiViewController: ProfileViewController, context: Context) {}
-    }
-    
-    @available(iOS 13.0, *)
-    struct ProfileViewController_Preview: PreviewProvider {
-        static var previews: some View {
-            Group {
-                // Asegurarse de que hay datos de prueba en UserDefaults
-                prepare()
-                
-                // Preview en Light Mode
-                Preview()
-                    .edgesIgnoringSafeArea(.all)
-                    .preferredColorScheme(.light)
-                
-                // Preview en Dark Mode
-                Preview()
-                    .edgesIgnoringSafeArea(.all)
-                    .preferredColorScheme(.dark)
-            }
-        }
         
-        static func prepare() {
+        // Movido prepare como método estático dentro de Preview
+        private static func prepare() {
             // Crear perfil de prueba
             let profile = UserProfile(
                 username: UserProfile.defaultUsername,
@@ -230,6 +210,22 @@ extension ProfileViewController {
             
             // Guardar el perfil de prueba en UserDefaults
             profile.save()
+        }
+    }
+    
+    struct ProfileViewController_Preview: PreviewProvider {
+        static var previews: some View {
+            Group {
+                // Preview en Light Mode
+                Preview()
+                    .ignoresSafeArea()
+                    .preferredColorScheme(.light)
+                
+                // Preview en Dark Mode
+                Preview()
+                    .ignoresSafeArea()
+                    .preferredColorScheme(.dark)
+            }
         }
     }
 }

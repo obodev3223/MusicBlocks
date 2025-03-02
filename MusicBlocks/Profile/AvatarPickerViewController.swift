@@ -11,7 +11,7 @@ protocol AvatarPickerViewControllerDelegate: AnyObject {
     func avatarPicker(_ picker: AvatarPickerViewController, didSelect avatar: String)
 }
 
-class AvatarPickerViewController: UIViewController {
+class AvatarPickerViewController: UIViewController, UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     private let collectionView: UICollectionView
     private let availableAvatars: [String]
     private var selectedAvatar: String
@@ -22,11 +22,11 @@ class AvatarPickerViewController: UIViewController {
         self.selectedAvatar = selectedAvatar
         self.availableAvatars = availableAvatars
         
+        // Configurar el layout con tamaños estimados
         let layout = UICollectionViewFlowLayout()
         layout.scrollDirection = .vertical
-        layout.minimumLineSpacing = 20
-        layout.minimumInteritemSpacing = 20
-        layout.itemSize = CGSize(width: 120, height: 160)
+        layout.minimumLineSpacing = 16
+        layout.minimumInteritemSpacing = 16
         
         self.collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         super.init(nibName: nil, bundle: nil)
@@ -45,6 +45,7 @@ class AvatarPickerViewController: UIViewController {
         title = "Elegir Avatar"
         view.backgroundColor = .systemBackground
         
+        // Configurar botones de navegación
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "Cancelar",
             style: .plain,
@@ -59,18 +60,20 @@ class AvatarPickerViewController: UIViewController {
             action: #selector(handleSave)
         )
         
+        // Configurar collection view
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .systemBackground
         collectionView.delegate = self
         collectionView.dataSource = self
         collectionView.register(AvatarCell.self, forCellWithReuseIdentifier: "AvatarCell")
+        collectionView.contentInset = UIEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
         
         view.addSubview(collectionView)
         
         NSLayoutConstraint.activate([
             collectionView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
     }
@@ -82,9 +85,8 @@ class AvatarPickerViewController: UIViewController {
     @objc private func handleSave() {
         delegate?.avatarPicker(self, didSelect: selectedAvatar)
     }
-}
-
-extension AvatarPickerViewController: UICollectionViewDelegate, UICollectionViewDataSource {
+    
+    // MARK: - UICollectionViewDataSource
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return availableAvatars.count
     }
@@ -96,24 +98,42 @@ extension AvatarPickerViewController: UICollectionViewDelegate, UICollectionView
         return cell
     }
     
+    // MARK: - UICollectionViewDelegate
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         selectedAvatar = availableAvatars[indexPath.item]
         collectionView.reloadData()
     }
+    
+    // MARK: - UICollectionViewDelegateFlowLayout
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        let availableWidth = collectionView.bounds.width - 48
+        let width = availableWidth / 3
+        let height = width * 1.4
+        
+        return CGSize(width: width, height: height)
+    }
 }
 
+// MARK: - Avatar Cell
 class AvatarCell: UICollectionViewCell {
+    private let containerView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemBackground
+        view.layer.cornerRadius = 12
+        view.clipsToBounds = true
+        return view
+    }()
+    
     private let imageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 12
         return imageView
     }()
     
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 12) // Cambiado de .caption a .systemFont
+        label.font = .systemFont(ofSize: 12)
         label.textColor = .secondaryLabel
         label.textAlignment = .center
         return label
@@ -129,21 +149,32 @@ class AvatarCell: UICollectionViewCell {
     }
     
     private func setupViews() {
-        [imageView, nameLabel].forEach {
-            $0.translatesAutoresizingMaskIntoConstraints = false
-            contentView.addSubview($0)
-        }
+        contentView.addSubview(containerView)
+        containerView.addSubview(imageView)
+        containerView.addSubview(nameLabel)
+        
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
         
         NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.heightAnchor.constraint(equalTo: imageView.widthAnchor, multiplier: 4/3),
+            // Container constraints
+            containerView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            containerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            containerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            containerView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
             
-            nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 8),
-            nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            nameLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+            // Image constraints
+            imageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+            imageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8),
+            imageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -8),
+            imageView.heightAnchor.constraint(equalTo: imageView.widthAnchor), // Aspecto cuadrado
+            
+            // Label constraints
+            nameLabel.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 4),
+            nameLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 4),
+            nameLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -4),
+            nameLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8)
         ])
     }
     
@@ -151,8 +182,17 @@ class AvatarCell: UICollectionViewCell {
         imageView.image = UIImage(named: avatar)
         nameLabel.text = avatar
         
-        layer.borderWidth = isSelected ? 3 : 0
-        layer.borderColor = isSelected ? UIColor.systemPurple.cgColor : nil
-        backgroundColor = isSelected ? .systemPurple.withAlphaComponent(0.1) : .clear
+        containerView.layer.borderWidth = isSelected ? 3 : 0
+        containerView.layer.borderColor = isSelected ? UIColor.systemPurple.cgColor : nil
+        containerView.backgroundColor = isSelected ? .systemPurple.withAlphaComponent(0.1) : .systemBackground
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        imageView.image = nil
+        nameLabel.text = nil
+        containerView.layer.borderWidth = 0
+        containerView.layer.borderColor = nil
+        containerView.backgroundColor = .systemBackground
     }
 }
