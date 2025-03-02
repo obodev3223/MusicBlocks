@@ -122,8 +122,8 @@ class ProfileViewController: UIViewController {
             statsSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             statsSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            // AchievementsSection - Espaciado reducido respecto a stats
-            achievementsSection.topAnchor.constraint(equalTo: statsSection.bottomAnchor, constant: 8),
+            // AchievementsSection - Reducir aún más el espaciado
+            achievementsSection.topAnchor.constraint(equalTo: statsSection.bottomAnchor, constant: 4), // Cambiado de 8 a 4
             achievementsSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             achievementsSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             achievementsSection.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
@@ -192,7 +192,7 @@ class ProfileViewController: UIViewController {
             }
         }
     }
-
+    
     /// Obtiene el view controller más alto en la jerarquía
     private func getTopViewController() -> UIViewController? {
         // Obtener la escena activa y su ventana

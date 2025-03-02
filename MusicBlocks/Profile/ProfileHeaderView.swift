@@ -158,3 +158,59 @@ class ProfileHeaderView: UIView {
         }
     }
 }
+
+#if DEBUG
+import SwiftUI
+
+@available(iOS 17.0, *)
+struct ProfileHeaderView_Previews: PreviewProvider {
+    static var previews: some View {
+        // Preview en modo claro
+        ProfileHeaderViewRepresentable()
+            .frame(height: 250)
+            .padding()
+            .previewDisplayName("Light Mode")
+        
+        // Preview en modo oscuro
+        ProfileHeaderViewRepresentable()
+            .frame(height: 250)
+            .padding()
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Dark Mode")
+    }
+    
+    private struct ProfileHeaderViewRepresentable: UIViewRepresentable {
+        func makeUIView(context: Context) -> ProfileHeaderView {
+            let view = ProfileHeaderView()
+            view.configure(with: UserProfile.mock)
+            return view
+        }
+        
+        func updateUIView(_ uiView: ProfileHeaderView, context: Context) {}
+    }
+}
+
+extension UserProfile {
+    static var mock: UserProfile {
+        UserProfile(
+            username: "Usuario de Prueba",
+            avatarName: "avatar1",
+            statistics: Statistics(
+                totalScore: 1000,
+                currentLevel: 5,
+                playTime: 3600,
+                notesHit: 100,
+                currentStreak: 5,
+                bestStreak: 10,
+                perfectLevelsCount: 2,
+                totalGamesPlayed: 15,
+                averageAccuracy: 0.85
+            ),
+            achievements: Achievements(
+                unlockedMedals: [:],
+                lastUpdateDate: Date()
+            )
+        )
+    }
+}
+#endif

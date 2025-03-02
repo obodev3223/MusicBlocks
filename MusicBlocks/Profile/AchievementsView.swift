@@ -474,3 +474,127 @@ class MedalView: UIView {
         }
     }
 }
+
+#if DEBUG
+import SwiftUI
+
+// Función helper para obtener medallas de prueba
+private func getMockMedals() -> [MedalCategory] {
+    guard let gameConfig = GameLevelProcessor.loadGameLevelsFromFile(),
+          let medals = try? JSONDecoder().decode(Medals.self, from: JSONEncoder().encode(gameConfig.medals)) else {
+        return []
+    }
+    
+    return [
+        MedalCategory(
+            type: .notesHit,
+            medals: medals.notesHit.map { medal in
+                MedalInfo(
+                    from: medal,
+                    isUnlocked: Bool.random() // Para la preview, algunas estarán desbloqueadas al azar
+                )
+            }
+        ),
+        MedalCategory(
+            type: .playTime,
+            medals: medals.playTime.map { medal in
+                MedalInfo(
+                    from: medal,
+                    isUnlocked: Bool.random()
+                )
+            }
+        ),
+        MedalCategory(
+            type: .streaks,
+            medals: medals.streaks.map { medal in
+                MedalInfo(
+                    from: medal,
+                    isUnlocked: Bool.random()
+                )
+            }
+        ),
+        MedalCategory(
+            type: .perfectTuning,
+            medals: medals.perfectTuning.map { medal in
+                MedalInfo(
+                    from: medal,
+                    isUnlocked: Bool.random()
+                )
+            }
+        )
+    ]
+}
+
+@available(iOS 17.0, *)
+struct AchievementsView_Previews: PreviewProvider {
+    static var previews: some View {
+        AchievementsViewRepresentable()
+            .frame(height: 600)
+            .padding()
+            .previewDisplayName("Light Mode")
+        
+        AchievementsViewRepresentable()
+            .frame(height: 600)
+            .padding()
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Dark Mode")
+    }
+    
+    private struct AchievementsViewRepresentable: UIViewRepresentable {
+        func makeUIView(context: Context) -> AchievementsView {
+            let mockMedals = getMockMedals()
+            return AchievementsView(medals: mockMedals)
+        }
+        
+        func updateUIView(_ uiView: AchievementsView, context: Context) {}
+    }
+}
+
+@available(iOS 17.0, *)
+struct MedalStatsView_Previews: PreviewProvider {
+    static var previews: some View {
+        UIViewPreview {
+            let view = MedalStatsView()
+            view.configure(with: getMockMedals())
+            return view
+        }
+        .frame(height: 200)
+        .padding()
+        .previewLayout(.sizeThatFits)
+        .previewDisplayName("Medal Stats View")
+    }
+}
+
+@available(iOS 17.0, *)
+struct MedalsGridView_Previews: PreviewProvider {
+    static var previews: some View {
+        UIViewPreview {
+            let view = MedalsGridView()
+            view.configure(with: getMockMedals())
+            return view
+        }
+        .frame(height: 400)
+        .padding()
+        .previewLayout(.sizeThatFits)
+        .previewDisplayName("Medals Grid View")
+    }
+}
+
+// Helper para previews de UIView
+struct UIViewPreview<View: UIView>: UIViewRepresentable {
+    let view: View
+    
+    init(_ builder: @escaping () -> View) {
+        view = builder()
+    }
+    
+    func makeUIView(context: Context) -> View {
+        return view
+    }
+    
+    func updateUIView(_ view: View, context: Context) {
+        view.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        view.setContentHuggingPriority(.defaultHigh, for: .vertical)
+    }
+}
+#endif

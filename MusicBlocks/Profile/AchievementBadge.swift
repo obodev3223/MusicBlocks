@@ -56,7 +56,7 @@ extension MedalType: CaseIterable {
         case .streaks:
             return "Racha"
         case .perfectTuning:
-            return "Perfección"
+            return "Afinación"
         }
     }
     
@@ -69,7 +69,7 @@ extension MedalType: CaseIterable {
         case .streaks:
             return "Rachas"
         case .perfectTuning:
-            return "Perfect"
+            return "Afinación"
         }
     }
 }

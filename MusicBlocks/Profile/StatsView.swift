@@ -129,3 +129,40 @@ class StatRowView: UIView {
         ])
     }
 }
+
+#if DEBUG
+import SwiftUI
+
+@available(iOS 17.0, *)
+struct StatsView_Previews: PreviewProvider {
+    static var previews: some View {
+        StatsViewRepresentable()
+            .padding()
+            .previewDisplayName("Light Mode")
+        
+        StatsViewRepresentable()
+            .padding()
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Dark Mode")
+    }
+    
+    private struct StatsViewRepresentable: UIViewRepresentable {
+        func makeUIView(context: Context) -> StatsView {
+            let mockStats = Statistics(
+                totalScore: 1500,
+                currentLevel: 5,
+                playTime: 3600,
+                notesHit: 250,
+                currentStreak: 10,
+                bestStreak: 15,
+                perfectLevelsCount: 3,
+                totalGamesPlayed: 20,
+                averageAccuracy: 0.83
+            )
+            return StatsView(statistics: mockStats)
+        }
+        
+        func updateUIView(_ uiView: StatsView, context: Context) {}
+    }
+}
+#endif

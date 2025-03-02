@@ -45,6 +45,8 @@ class ExpandableSectionView: UIView {
     private var isExpanded = false
     weak var delegate: ExpandableSectionViewDelegate?
     
+    private var contentTopConstraint: NSLayoutConstraint?
+    
     // MARK: - Initialization
     init(title: String, icon: UIImage?, iconTintColor: UIColor = .systemBlue) {
         super.init(frame: .zero)
@@ -103,60 +105,73 @@ class ExpandableSectionView: UIView {
       }
       
       // MARK: - Public Methods
-      func setContentView(_ view: UIView) {
-          // Remover vista de contenido anterior si existe
-          contentView?.removeFromSuperview()
-          
-          // Configurar nueva vista de contenido
-          contentView = view
-          if let contentView = contentView {
-              contentView.translatesAutoresizingMaskIntoConstraints = false
-              addSubview(contentView)
-              
-              NSLayoutConstraint.activate([
-                  contentView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8),
-                  contentView.leadingAnchor.constraint(equalTo: leadingAnchor),
-                  contentView.trailingAnchor.constraint(equalTo: trailingAnchor),
-                  contentView.bottomAnchor.constraint(equalTo: bottomAnchor)
-              ])
-              
-              // Ocultar inicialmente el contenido
-              contentView.isHidden = !isExpanded
-              contentView.alpha = isExpanded ? 1 : 0
-          }
-      }
+    func setContentView(_ view: UIView) {
+            // Remover vista de contenido anterior si existe
+            contentView?.removeFromSuperview()
+            
+            // Configurar nueva vista de contenido
+            contentView = view
+            if let contentView = contentView {
+                contentView.translatesAutoresizingMaskIntoConstraints = false
+                addSubview(contentView)
+                
+                // Crear constraint de top con una constante más pequeña
+                contentTopConstraint = contentView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 4) // Cambiado de 8 a 4
+                
+                NSLayoutConstraint.activate([
+                    contentTopConstraint!,
+                    contentView.leadingAnchor.constraint(equalTo: leadingAnchor),
+                    contentView.trailingAnchor.constraint(equalTo: trailingAnchor),
+                    contentView.bottomAnchor.constraint(equalTo: bottomAnchor)
+                ])
+                
+                // Ocultar inicialmente el contenido
+                contentView.isHidden = !isExpanded
+                contentView.alpha = isExpanded ? 1 : 0
+            }
+        }
       
       // MARK: - Actions
       @objc private func handleHeaderTap() {
           toggleSection()
       }
       
-      private func toggleSection() {
-          isExpanded.toggle()
-          
-          UIView.animate(withDuration: 0.3) {
-              // Rotar el chevron
-              self.chevronImageView.transform = self.isExpanded ?
-                  CGAffineTransform(rotationAngle: .pi) :
-                  .identity
-              
-              // Mostrar/ocultar contenido
-              self.contentView?.isHidden = !self.isExpanded
-              self.contentView?.alpha = self.isExpanded ? 1 : 0
-          }
-          
-          delegate?.expandableSectionDidToggle(self)
-      }
+    private func toggleSection() {
+            isExpanded.toggle()
+            
+            UIView.animate(withDuration: 0.3) {
+                // Rotar el chevron
+                self.chevronImageView.transform = self.isExpanded ?
+                    CGAffineTransform(rotationAngle: .pi) :
+                    .identity
+                
+                // Mostrar/ocultar contenido
+                self.contentView?.isHidden = !self.isExpanded
+                self.contentView?.alpha = self.isExpanded ? 1 : 0
+                
+                // Ajustar el espacio inferior del headerView
+                self.headerView.layoutIfNeeded()
+            }
+            
+            delegate?.expandableSectionDidToggle(self)
+        }
       
       // MARK: - Layout
-      override func layoutSubviews() {
-          super.layoutSubviews()
-          
-          // Aplicar sombra al header
-          headerView.layer.shadowColor = UIColor.black.cgColor
-          headerView.layer.shadowOffset = CGSize(width: 0, height: 2)
-          headerView.layer.shadowRadius = 4
-          headerView.layer.shadowOpacity = 0.1
-          headerView.layer.masksToBounds = false
-      }
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        
+        // Aplicar sombra al header
+        headerView.layer.shadowColor = UIColor.black.cgColor
+        headerView.layer.shadowOffset = CGSize(width: 0, height: 2)
+        headerView.layer.shadowRadius = 4
+        headerView.layer.shadowOpacity = 0.1
+        headerView.layer.masksToBounds = false
+        
+        // Ajustar el padding bottom del header según el estado
+        let bottomPadding: CGFloat = isExpanded ? 4 : 0
+        headerView.layer.cornerRadius = 10
+        headerView.layer.maskedCorners = isExpanded ?
+            [.layerMinXMinYCorner, .layerMaxXMinYCorner] :
+            [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+    }
   }
