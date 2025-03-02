@@ -10,6 +10,7 @@ import UIKit
 protocol ProfileHeaderViewDelegate: AnyObject {
     func profileHeaderView(_ view: ProfileHeaderView, didUpdateUsername username: String)
     func profileHeaderViewDidTapAvatar(_ view: ProfileHeaderView)
+    func profileHeaderViewDidRequestUsernameEdit(_ view: ProfileHeaderView, currentUsername: String) // Nuevo método
 }
 
 class ProfileHeaderView: UIView {
@@ -128,34 +129,7 @@ class ProfileHeaderView: UIView {
     }
 
     @objc private func handleUsernameTap() {
-        let alert = UIAlertController(
-            title: "Editar nombre",
-            message: "Introduce tu nuevo nombre de usuario",
-            preferredStyle: .alert
-        )
-        
-        alert.addTextField { textField in
-            textField.text = self.usernameLabel.text
-            textField.clearButtonMode = .whileEditing
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Guardar", style: .default) { [weak self] _ in
-            guard let self = self,
-                  let textField = alert.textFields?.first,
-                  let newUsername = textField.text,
-                  !newUsername.isEmpty else { return }
-            
-            self.usernameLabel.text = newUsername
-            self.delegate?.profileHeaderView(self, didUpdateUsername: newUsername)
-        })
-        
-        // Obtener la ventana principal usando la nueva API
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootViewController = window.rootViewController {
-            rootViewController.present(alert, animated: true)
-        }
+        delegate?.profileHeaderViewDidRequestUsernameEdit(self, currentUsername: usernameLabel.text ?? "")
     }
 }
 

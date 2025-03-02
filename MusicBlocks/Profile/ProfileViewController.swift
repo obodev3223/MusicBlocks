@@ -77,17 +77,19 @@ class ProfileViewController: UIViewController {
         statsSection = ExpandableSectionView(
             title: "Estadísticas",
             icon: UIImage(systemName: "chart.bar.fill"),
-            iconTintColor: .systemPurple
+            iconTintColor: .systemPurple,
+            contentTopPadding: 8 // Usar el padding estándar para la primera sección
         )
         statsSection.translatesAutoresizingMaskIntoConstraints = false
         statsSection.delegate = self
         contentView.addSubview(statsSection)
-        
+
         // Setup AchievementsSection - Sección de logros
         achievementsSection = ExpandableSectionView(
             title: "Logros",
             icon: UIImage(systemName: "trophy.fill"),
-            iconTintColor: .systemYellow
+            iconTintColor: .systemYellow,
+            contentTopPadding: 0 // Usar padding 0 para que esté más juntas cuando se expanda
         )
         achievementsSection.translatesAutoresizingMaskIntoConstraints = false
         achievementsSection.delegate = self
@@ -118,12 +120,12 @@ class ProfileViewController: UIViewController {
             profileHeaderView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
             // StatsSection - Separación respecto al header
-            statsSection.topAnchor.constraint(equalTo: profileHeaderView.bottomAnchor, constant: 20),
+            statsSection.topAnchor.constraint(equalTo: profileHeaderView.bottomAnchor, constant: 16),
             statsSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             statsSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            // AchievementsSection - Reducir aún más el espaciado
-            achievementsSection.topAnchor.constraint(equalTo: statsSection.bottomAnchor, constant: 4), // Cambiado de 8 a 4
+            // AchievementsSection - Espaciado mínimo respecto a stats
+            achievementsSection.topAnchor.constraint(equalTo: statsSection.bottomAnchor, constant: 0),
             achievementsSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             achievementsSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             achievementsSection.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
@@ -213,13 +215,11 @@ class ProfileViewController: UIViewController {
 
 // MARK: - ProfileHeaderViewDelegate
 extension ProfileViewController: ProfileHeaderViewDelegate {
-    /// Maneja la actualización del nombre de usuario
     func profileHeaderView(_ view: ProfileHeaderView, didUpdateUsername username: String) {
         profile.username = username
         profile.save()
     }
     
-    /// Maneja la selección del avatar mostrando el picker
     func profileHeaderViewDidTapAvatar(_ view: ProfileHeaderView) {
         let avatarPicker = AvatarPickerViewController(
             selectedAvatar: profile.avatarName,
@@ -228,6 +228,62 @@ extension ProfileViewController: ProfileHeaderViewDelegate {
         avatarPicker.delegate = self
         let nav = UINavigationController(rootViewController: avatarPicker)
         present(nav, animated: true)
+    }
+    
+    func profileHeaderViewDidRequestUsernameEdit(_ view: ProfileHeaderView, currentUsername: String) {
+        let alert = UIAlertController(
+            title: "Editar nombre",
+            message: "Introduce tu nuevo nombre de usuario",
+            preferredStyle: .alert
+        )
+        
+        // Configurar el textField antes de añadirlo
+        let configuration: (UITextField) -> Void = { textField in
+            textField.text = currentUsername
+            textField.clearButtonMode = .whileEditing
+            textField.autocapitalizationType = .words
+            textField.autocorrectionType = .no
+            textField.spellCheckingType = .no
+            textField.smartDashesType = .no
+            textField.smartQuotesType = .no
+            textField.smartInsertDeleteType = .no
+            
+            // Añadir padding al textField
+            let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: textField.frame.height))
+            textField.leftView = paddingView
+            textField.leftViewMode = .always
+        }
+        
+        alert.addTextField(configurationHandler: configuration)
+        
+        // Crear acciones
+        let cancelAction = UIAlertAction(title: "Cancelar", style: .cancel)
+        
+        let saveAction = UIAlertAction(title: "Guardar", style: .default) { [weak self] _ in
+            guard let self = self,
+                  let textField = alert.textFields?.first,
+                  let newUsername = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !newUsername.isEmpty else { return }
+            
+            // Realizar los cambios en el hilo principal
+            DispatchQueue.main.async {
+                self.profile.username = newUsername
+                self.profile.save()
+                self.profileHeaderView.configure(with: self.profile)
+            }
+        }
+        
+        // Añadir acciones
+        alert.addAction(cancelAction)
+        alert.addAction(saveAction)
+        
+        // Presentar el alert en el hilo principal
+        DispatchQueue.main.async {
+            self.present(alert, animated: true) {
+                // Activar el campo de texto después de que el alert se haya presentado
+                alert.textFields?.first?.becomeFirstResponder()
+            }
+        }
     }
 }
 
@@ -252,67 +308,4 @@ extension ProfileViewController: ExpandableSectionViewDelegate {
     }
 }
 
-#if DEBUG
-// MARK: - SwiftUI Preview
-import SwiftUI
 
-@available(iOS 17.0, *)
-extension ProfileViewController {
-    /// Proporciona una preview del ProfileViewController para SwiftUI
-    private struct Preview: UIViewControllerRepresentable {
-        init() {
-            Self.prepare()
-        }
-        
-        func makeUIViewController(context: Context) -> ProfileViewController {
-            let viewController = ProfileViewController()
-            return viewController
-        }
-        
-        func updateUIViewController(_ uiViewController: ProfileViewController, context: Context) {}
-        
-        /// Prepara los datos de prueba para la preview
-        private static func prepare() {
-            let profile = UserProfile(
-                username: UserProfile.defaultUsername,
-                avatarName: "avatar1",
-                statistics: Statistics(
-                    totalScore: 1500,
-                    currentLevel: 5,
-                    playTime: 3600,
-                    notesHit: 250,
-                    currentStreak: 10,
-                    bestStreak: 15,
-                    perfectLevelsCount: 3,
-                    totalGamesPlayed: 20,
-                    averageAccuracy: 0.83
-                ),
-                achievements: Achievements(
-                    unlockedMedals: [
-                        MedalType.notesHit.rawValue: [true, false, false],
-                        MedalType.playTime.rawValue: [true, false, false],
-                        MedalType.streaks.rawValue: [true, true, false],
-                        MedalType.perfectTuning.rawValue: [true, false, false]
-                    ],
-                    lastUpdateDate: Date()
-                )
-            )
-            profile.save()
-        }
-    }
-    
-    struct ProfileViewController_Preview: PreviewProvider {
-        static var previews: some View {
-            Group {
-                Preview()
-                    .ignoresSafeArea()
-                    .preferredColorScheme(.light)
-                
-                Preview()
-                    .ignoresSafeArea()
-                    .preferredColorScheme(.dark)
-            }
-        }
-    }
-}
-#endif

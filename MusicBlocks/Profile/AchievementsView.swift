@@ -11,7 +11,7 @@ class AchievementsView: UIView {
     private let stackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 24
+        stack.spacing = 16 // Reducido de 24 a 16
         return stack
     }()
     
@@ -36,7 +36,7 @@ class AchievementsView: UIView {
         stackView.addArrangedSubview(medalsGridView)
         
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            stackView.topAnchor.constraint(equalTo: topAnchor, constant: 4), // Reducido de 8 a 4
             stackView.leadingAnchor.constraint(equalTo: leadingAnchor),
             stackView.trailingAnchor.constraint(equalTo: trailingAnchor),
             stackView.bottomAnchor.constraint(equalTo: bottomAnchor)
@@ -220,7 +220,7 @@ class MedalsGridView: UIView {
     private let stackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
-        stack.spacing = 24
+        stack.spacing = 16
         return stack
     }()
     
