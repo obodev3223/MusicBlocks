@@ -414,21 +414,17 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     
     // MARK: - Helper Methods
     private func showSuccessOverlay(multiplier: Int, message: String) {
-        // Eliminar overlay anterior si existe
+        // Remove previous overlay if exists
         currentOverlay?.removeFromParent()
         
         let overlaySize = CGSize(width: 300, height: 150)
         let overlay = SuccessOverlayNode(size: overlaySize, multiplier: multiplier, message: message)
-        
-        // Calcular posición en el 20% inferior de la pantalla
-        let yPosition = size.height * 0.2
-        overlay.position = CGPoint(x: size.width/2, y: yPosition)
         addChild(overlay)
         currentOverlay = overlay
         
-        overlay.show(in: self)
+        overlay.show(in: self, overlayPosition: .bottom)
         
-        // Ocultar después de 2 segundos
+        // Hide after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
             overlay?.hide()
         }
@@ -436,18 +432,17 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     
     // Añade el método para mostrar el overlay de fallo:
     private func showFailureOverlay() {
-        // Eliminar overlay anterior si existe
+        // Remove previous overlay if exists
         currentOverlay?.removeFromParent()
         
         let overlaySize = CGSize(width: 300, height: 150)
         let overlay = FailureOverlayNode(size: overlaySize)
-        overlay.position = CGPoint(x: size.width/2, y: size.height/2)
         addChild(overlay)
         currentOverlay = overlay
         
-        overlay.show(in: self)
+        overlay.show(in: self, overlayPosition: .bottom)
         
-        // Ocultar después de 2 segundos
+        // Hide after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
             overlay?.hide()
         }
@@ -531,7 +526,7 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     private func handleGameOver() {
         audioController.stop()
         
-        // Eliminar overlay anterior si existe
+        // Remove previous overlay if exists
         currentOverlay?.removeFromParent()
         
         let overlaySize = CGSize(width: 400, height: 300)
@@ -541,11 +536,10 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
             self?.currentOverlay?.hide()
         }
         
-        overlay.position = CGPoint(x: size.width/2, y: size.height/2)
         addChild(overlay)
         currentOverlay = overlay
         
-        overlay.show(in: self)
+        overlay.show(in: self, overlayPosition: .center)
     }
     
 }

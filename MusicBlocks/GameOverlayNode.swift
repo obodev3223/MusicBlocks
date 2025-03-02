@@ -18,6 +18,22 @@ class GameOverlayNode: SKNode {
         static let backgroundAlpha: CGFloat = 0.7
     }
     
+    enum OverlayPosition {
+        case bottom    // For success and failure overlays
+        case center    // For game over overlay
+        
+        func getPosition(in scene: SKScene) -> CGPoint {
+            switch self {
+            case .bottom:
+                // Position at 20% from bottom of screen
+                return CGPoint(x: scene.size.width/2, y: scene.size.height * 0.2)
+            case .center:
+                // Position at center of screen
+                return CGPoint(x: scene.size.width/2, y: scene.size.height/2)
+            }
+        }
+    }
+    
     private let backgroundNode: SKShapeNode
     // Cambiado de private a protected para que las subclases puedan acceder
     let contentNode: SKNode
@@ -43,17 +59,25 @@ class GameOverlayNode: SKNode {
         addChild(backgroundNode)
     }
     
-    func show(in scene: SKScene, duration: TimeInterval = 0.3) {
-        alpha = 0
-        setScale(0.5)
-        
-        let appearAction = SKAction.group([
-            SKAction.fadeIn(withDuration: duration),
-            SKAction.scale(to: 1.0, duration: duration)
-        ])
-        
-        run(appearAction)
-    }
+    // Replace the existing show method in GameOverlayNode
+    func show(in scene: SKScene, overlayPosition: OverlayPosition = .center, duration: TimeInterval = 0.3) {
+            // Set initial state
+            alpha = 0
+            setScale(0.5)
+            
+            // Set position using the enum method
+            self.position = overlayPosition.getPosition(in: scene)
+            
+            // Ensure overlay is above other content
+            zPosition = 100
+            
+            let appearAction = SKAction.group([
+                SKAction.fadeIn(withDuration: duration),
+                SKAction.scale(to: 1.0, duration: duration)
+            ])
+            
+            run(appearAction)
+        }
     
     func hide(duration: TimeInterval = 0.3) {
         let disappearAction = SKAction.group([
@@ -77,14 +101,14 @@ class SuccessOverlayNode: GameOverlayNode {
         checkmarkNode.fontSize = Layout.iconSize
         checkmarkNode.fontName = "Helvetica-Bold"
         checkmarkNode.fontColor = getColor(for: multiplier)
-        checkmarkNode.position = CGPoint(x: 0, y: 10)
+        checkmarkNode.position = CGPoint(x: -60, y: -5)
         contentNode.addChild(checkmarkNode)
         
         let messageNode = SKLabelNode(text: message)
-        messageNode.fontSize = 24
+        messageNode.fontSize = 16
         messageNode.fontName = "Helvetica-Bold"
         messageNode.fontColor = getColor(for: multiplier)
-        messageNode.position = CGPoint(x: 0, y: -20)
+        messageNode.position = CGPoint(x: 0, y: 0)
         contentNode.addChild(messageNode)
         
         if multiplier > 1 {
@@ -92,7 +116,7 @@ class SuccessOverlayNode: GameOverlayNode {
             multiplierNode.fontSize = 20
             multiplierNode.fontName = "Helvetica-Bold"
             multiplierNode.fontColor = .orange
-            multiplierNode.position = CGPoint(x: 0, y: -45)
+            multiplierNode.position = CGPoint(x: 60, y: 0)
             contentNode.addChild(multiplierNode)
         }
     }
@@ -120,14 +144,14 @@ class FailureOverlayNode: GameOverlayNode {
         xmarkNode.fontSize = Layout.iconSize
         xmarkNode.fontName = "Helvetica-Bold"
         xmarkNode.fontColor = .red
-        xmarkNode.position = CGPoint(x: 0, y: 10)
+        xmarkNode.position = CGPoint(x: -90, y: -5)
         contentNode.addChild(xmarkNode)
         
         let messageNode = SKLabelNode(text: "¡Intenta de nuevo!")
-        messageNode.fontSize = 24
+        messageNode.fontSize = 18
         messageNode.fontName = "Helvetica-Bold"
         messageNode.fontColor = .red
-        messageNode.position = CGPoint(x: 0, y: -20)
+        messageNode.position = CGPoint(x: 0, y: 0)
         contentNode.addChild(messageNode)
     }
     
