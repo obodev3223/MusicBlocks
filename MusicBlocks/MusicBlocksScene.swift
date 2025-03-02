@@ -417,11 +417,13 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         // Remove previous overlay if exists
         currentOverlay?.removeFromParent()
         
-        let overlaySize = CGSize(width: 300, height: 150)
+        // Nuevo tamaño: 350x60
+        let overlaySize = CGSize(width: 350, height: 60)
         let overlay = SuccessOverlayNode(size: overlaySize, multiplier: multiplier, message: message)
         addChild(overlay)
         currentOverlay = overlay
         
+        // Mostrar en la parte inferior
         overlay.show(in: self, overlayPosition: .bottom)
         
         // Hide after 2 seconds
@@ -435,11 +437,13 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         // Remove previous overlay if exists
         currentOverlay?.removeFromParent()
         
-        let overlaySize = CGSize(width: 300, height: 150)
+        // Nuevo tamaño: 350x60
+        let overlaySize = CGSize(width: 350, height: 60)
         let overlay = FailureOverlayNode(size: overlaySize)
         addChild(overlay)
         currentOverlay = overlay
         
+        // Mostrar en la parte inferior
         overlay.show(in: self, overlayPosition: .bottom)
         
         // Hide after 2 seconds

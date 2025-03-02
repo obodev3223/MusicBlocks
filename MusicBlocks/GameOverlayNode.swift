@@ -25,8 +25,8 @@ class GameOverlayNode: SKNode {
         func getPosition(in scene: SKScene) -> CGPoint {
             switch self {
             case .bottom:
-                // Position at 20% from bottom of screen
-                return CGPoint(x: scene.size.width/2, y: scene.size.height * 0.2)
+                // Position at 10% from bottom of screen
+                return CGPoint(x: scene.size.width/2, y: scene.size.height * 0.1)
             case .center:
                 // Position at center of screen
                 return CGPoint(x: scene.size.width/2, y: scene.size.height/2)
@@ -98,14 +98,14 @@ class SuccessOverlayNode: GameOverlayNode {
         super.init(size: size)
         
         let checkmarkNode = SKLabelNode(text: "✓")
-        checkmarkNode.fontSize = Layout.iconSize
+        checkmarkNode.fontSize = 30 // Tamaño reducido
         checkmarkNode.fontName = "Helvetica-Bold"
         checkmarkNode.fontColor = getColor(for: multiplier)
-        checkmarkNode.position = CGPoint(x: -60, y: -5)
+        checkmarkNode.position = CGPoint(x: -60, y: 0) // Ajustado horizontalmente
         contentNode.addChild(checkmarkNode)
         
         let messageNode = SKLabelNode(text: message)
-        messageNode.fontSize = 16
+        messageNode.fontSize = 16 // Tamaño reducido
         messageNode.fontName = "Helvetica-Bold"
         messageNode.fontColor = getColor(for: multiplier)
         messageNode.position = CGPoint(x: 0, y: 0)
@@ -113,10 +113,10 @@ class SuccessOverlayNode: GameOverlayNode {
         
         if multiplier > 1 {
             let multiplierNode = SKLabelNode(text: "x\(multiplier)")
-            multiplierNode.fontSize = 20
+            multiplierNode.fontSize = 18 // Tamaño reducido
             multiplierNode.fontName = "Helvetica-Bold"
             multiplierNode.fontColor = .orange
-            multiplierNode.position = CGPoint(x: 60, y: 0)
+            multiplierNode.position = CGPoint(x: 60, y: 0) // Ajustado horizontalmente
             contentNode.addChild(multiplierNode)
         }
     }
@@ -141,14 +141,14 @@ class FailureOverlayNode: GameOverlayNode {
         super.init(size: size)
         
         let xmarkNode = SKLabelNode(text: "✗")
-        xmarkNode.fontSize = Layout.iconSize
+        xmarkNode.fontSize = 30 // Tamaño reducido
         xmarkNode.fontName = "Helvetica-Bold"
         xmarkNode.fontColor = .red
-        xmarkNode.position = CGPoint(x: -90, y: -5)
+        xmarkNode.position = CGPoint(x: -90, y: 0) // Ajustado horizontalmente
         contentNode.addChild(xmarkNode)
         
         let messageNode = SKLabelNode(text: "¡Intenta de nuevo!")
-        messageNode.fontSize = 18
+        messageNode.fontSize = 16 // Tamaño reducido
         messageNode.fontName = "Helvetica-Bold"
         messageNode.fontColor = .red
         messageNode.position = CGPoint(x: 0, y: 0)
