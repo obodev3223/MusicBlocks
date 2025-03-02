@@ -147,8 +147,6 @@ class MusicBlock: SKSpriteNode {
         }
 
     
-
-    
     /// Hace que el bloque caiga a una velocidad determinada con un incremento opcional
     /// - Parameters:
     ///   - speed: Velocidad inicial de caída

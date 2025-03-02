@@ -88,6 +88,28 @@ class MusicBlocksScene: SKScene {
     private var lastUpdateTime: TimeInterval = 0
     private let acceptableDeviation: Double = 10.0
     
+    // Para manejar los bloques musicales
+    private let blockSize = CGSize(width: 280, height: 120)
+    private let blockSpacing: CGFloat = 5.0
+    private var blocks: [SKNode] = []
+    private var totalBlocksAppeared = 0
+        
+    // Para controlar el tiempo de aparición de bloques
+    private var lastBlockSpawnTime: TimeInterval = 0
+    private let blockSpawnInterval: TimeInterval = 4.0  // Cada 4 segundos
+    
+    // Posición superior para los bloques
+    private var topSlotY: CGFloat {
+        // Calcular basado en la posición del área principal
+        return size.height/2 + mainAreaHeight/2 - blockSize.height/2 - blockSpacing
+    }
+
+    // Variables para almacenar información del área principal
+    private var mainAreaNode: SKNode!
+    private var mainAreaHeight: CGFloat = 0
+    private var mainAreaWidth: CGFloat = 0
+    
+    
     
     // MARK: - UI Elements
     /// Etiquetas principales
@@ -102,7 +124,7 @@ class MusicBlocksScene: SKScene {
     private var topBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
     var detectedNoteCounterNode: DetectedNoteCounterNode!
-    private var floatingTargetNote: FloatingTargetNoteNode!
+
     
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
@@ -117,6 +139,14 @@ class MusicBlocksScene: SKScene {
             }
         }
         
+        // Iniciar secuencia de generación de bloques
+            let spawnSequence = SKAction.sequence([
+                SKAction.run { [weak self] in self?.spawnBlock() },
+                SKAction.wait(forDuration: 4.0)
+            ])
+            let spawnRepeat = SKAction.repeat(spawnSequence, count: 6)
+            run(spawnRepeat)
+        
         // Configurar toda la escena
         setupScene()
     }
@@ -125,6 +155,8 @@ class MusicBlocksScene: SKScene {
         super.willMove(from: view)
         audioController.stop()
     }
+    
+    
     
     private func setupScene() {
 
@@ -152,9 +184,6 @@ class MusicBlocksScene: SKScene {
         setupMainArea(width: mainAreaWidth,
                       height: mainAreaHeight,
                       topBarHeight: topBarHeight)
-        
-        //Configurar la nota aleatoria flotante
-        setupFloatingTargetNote(width: size.width)
         
         // Configurar barras laterales (40% más cortas)
         let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
@@ -191,6 +220,10 @@ class MusicBlocksScene: SKScene {
     }
         
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
+        // Guardar dimensiones para usarlas después
+        mainAreaWidth = width
+        mainAreaHeight = height
+        
         let containerNode = createContainerWithShadow(
             size: CGSize(width: width, height: height),
             cornerRadius: Layout.cornerRadius,
@@ -200,21 +233,10 @@ class MusicBlocksScene: SKScene {
             ),
             zPosition: 1
         )
+        mainAreaNode = containerNode  // Guardar referencia
         addChild(containerNode)
     }
     
-    private func setupFloatingTargetNote(width: CGFloat) {
-        floatingTargetNote = FloatingTargetNoteNode(width: width)
-        
-        // Posicionar el panel flotante encima del área principal
-        let yPosition = size.height/2 + Layout.verticalSpacing * 2
-        floatingTargetNote.position = CGPoint(
-            x: size.width/2,
-            y: yPosition
-        )
-        
-        addChild(floatingTargetNote)
-    }
     
     /// Configura las barras laterales con indicadores
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
@@ -313,7 +335,6 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     return container
 }
 
-    
     /// Configura el overlay de éxito
     private func setupSuccessOverlay(size: CGSize) {
         successOverlay = SKNode()
@@ -344,6 +365,113 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         addChild(successOverlay)
     }
     
+    //Método para crear un bloque
+    private func createBlock() -> SKNode {
+        let blockNode = SKNode()
+        
+        // Elegir un estilo aleatorio para variedad visual
+        let blockStyles: [BlockStyle] = [
+            BlockStyle.defaultBlock,
+            BlockStyle.iceBlock,
+            BlockStyle.hardiceBlock,
+            BlockStyle.ghostBlock,
+            BlockStyle.changingBlock
+        ]
+        let blockStyle = blockStyles.randomElement() ?? BlockStyle.defaultBlock
+        
+        // Crear el fondo del bloque
+        let background = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
+        background.fillColor = blockStyle.backgroundColor
+        background.strokeColor = blockStyle.borderColor
+        background.lineWidth = blockStyle.borderWidth
+        
+        // Añadir textura si está disponible
+        if let texture = blockStyle.fillTexture {
+            background.fillTexture = texture
+            background.alpha = blockStyle.textureOpacity
+        }
+        
+        // Añadir sombra si está configurada
+        if let shadowColor = blockStyle.shadowColor,
+           let shadowOffset = blockStyle.shadowOffset {
+            background.shadowColor = shadowColor
+            background.shadowOffset = shadowOffset
+            if let blur = blockStyle.shadowBlur {
+                background.shadowBlurRadius = blur
+            }
+        }
+        
+        background.zPosition = 0
+        blockNode.addChild(background)
+        
+        // Generar una nota aleatoria usando TunerEngine
+        if let randomNote = TunerEngine.shared.generateRandomNote() {
+            // Generar el contenido visual del bloque con la nota
+            let contentNode = BlockContentGenerator.generateBlockContent(
+                with: blockStyle,
+                blockSize: blockSize,
+                desiredNote: randomNote,
+                baseNoteX: 0,
+                baseNoteY: 0
+            )
+            blockNode.addChild(contentNode)
+            
+            // Almacenar la nota en los datos de usuario del nodo para uso futuro
+            blockNode.userData = NSMutableDictionary()
+            blockNode.userData?.setValue(randomNote.fullName, forKey: "noteName")
+            
+            // También podemos guardar más detalles si los necesitamos después
+            // por ejemplo para la lógica del juego o para efectos de sonido
+            // blockNode.userData?.setValue(randomNote, forKey: "tunerNote")
+        }
+        
+        return blockNode
+    }
+    
+    //Método para generar un nuevo bloque
+    private func spawnBlock() {
+        if blocks.count >= 6 { return }  // Máximo 6 bloques en pantalla
+        
+        let moveDuration = 0.5
+        let moveDistance = blockSize.height + blockSpacing
+        
+        // Mover los bloques existentes hacia abajo
+        for block in blocks {
+            let moveDown = SKAction.moveBy(x: 0, y: -moveDistance, duration: moveDuration)
+            moveDown.timingMode = .easeInEaseOut
+            block.run(moveDown)
+        }
+        
+        // Crear nuevo bloque con nota aleatoria
+        let newBlock = createBlock()
+        
+        // Posicionarlo inicialmente fuera de la pantalla (arriba)
+        newBlock.position = CGPoint(
+            x: mainAreaWidth/2,
+            y: topSlotY + moveDistance
+        )
+        
+        // Añadir al área principal
+        mainAreaNode.addChild(newBlock)
+        
+        // Animar la entrada del bloque
+        let moveToSlot = SKAction.moveTo(y: topSlotY, duration: moveDuration)
+        moveToSlot.timingMode = .easeInEaseOut
+        newBlock.run(moveToSlot)
+        
+        blocks.insert(newBlock, at: 0)
+        totalBlocksAppeared += 1
+    }
+    
+    // Método para limpiar los bloques
+    private func clearBlocks() {
+        for block in blocks {
+            block.removeFromParent()
+        }
+        blocks.removeAll()
+        totalBlocksAppeared = 0
+    }
+    
     
     // MARK: - Update Methods
     private func updateUI() {
@@ -366,17 +494,16 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         topBarNode?.updateScore(gameEngine.score)
         topBarNode?.updateLives(gameEngine.lives)  // Añadir esta línea para actualizar las vidas
         
-        // Actualizar nota objetivo en el panel flotante
-        floatingTargetNote.targetNote = gameEngine.targetNote
+
         
         // Animar el panel según el estado
         switch gameEngine.noteState {
         case .waiting, .correct:
-            floatingTargetNote.animate(scale: 1.0, opacity: 1.0)
+
         case .wrong:
-            floatingTargetNote.animate(scale: 0.95, opacity: 0.7)
+      
         case .success:
-            floatingTargetNote.animate(scale: 1.1, opacity: 1.0)
+  
         }
         
         // Actualizar estado visual
@@ -486,6 +613,14 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         // Iniciar nuevo juego
         gameEngine.startNewGame()
         
+        // Iniciar secuencia de bloques cayendo
+            let spawnSequence = SKAction.sequence([
+                SKAction.run { [weak self] in self?.spawnBlock() },
+                SKAction.wait(forDuration: 4.0)
+            ])
+            let spawnRepeat = SKAction.repeat(spawnSequence, count: 6)
+            run(spawnRepeat)
+        
         // Actualizar la UI inicial
         updateGameUI()
     }
@@ -529,6 +664,9 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     
     private func handleGameOver() {
         audioController.stop()
+        
+        // Limpiar bloques existentes
+            clearBlocks()
         
         // Remove previous overlay if exists
         currentOverlay?.removeFromParent()

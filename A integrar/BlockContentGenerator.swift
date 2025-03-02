@@ -1,8 +1,8 @@
 //
 //  BlockContentGenerator.swift
-//  MusicBlocksPruebas
+//  MusicBlocks
 //
-//  Created by Jose R. García on 8/2/25.
+//  Created by Jose R. García on 2/3/25.
 //
 
 import SpriteKit
