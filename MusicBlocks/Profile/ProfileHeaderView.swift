@@ -35,11 +35,22 @@ class ProfileHeaderView: UIView {
     }()
     
     private let usernameLabel: UILabel = {
-        let label = UILabel()
-        label.font = .systemFont(ofSize: 24, weight: .bold)
-        label.textAlignment = .center
-        return label
-    }()
+            let label = UILabel()
+            label.font = .systemFont(ofSize: 20, weight: .medium)
+            label.textAlignment = .center
+            label.isUserInteractionEnabled = true
+            return label
+        }()
+            
+    private func setupGestures() {
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(usernameTapped))
+        usernameLabel.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc private func usernameTapped() {
+        // Cambiado para usar el nombre correcto del método delegate
+        delegate?.profileHeaderView(self, didUpdateUsername: usernameLabel.text ?? "")
+    }
     
     private let editUsernameButton: UIButton = {
         let button = UIButton()
@@ -55,6 +66,7 @@ class ProfileHeaderView: UIView {
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupViews()
+        setupGestures()
     }
     
     required init?(coder: NSCoder) {
