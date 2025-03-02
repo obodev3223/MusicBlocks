@@ -245,8 +245,6 @@ class ChangingBlock: MusicBlock {
         
         super.fall(speed: speed, increment: increment)
     }
-    
-
 }
 
 /// Bloque explosivo: se debe mantener la nota durante un tiempo antes de destruirse.

@@ -1,6 +1,6 @@
 //
 //  MusicalNoteType.swift
-//  MusicBlocksPruebas
+//  MusicBlocks
 //
 //  Created by Jose R. García on 5/2/25.
 //
