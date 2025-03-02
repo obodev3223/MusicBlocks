@@ -45,16 +45,16 @@ class ExpandableSectionView: UIView {
     private var isExpanded = false
     weak var delegate: ExpandableSectionViewDelegate?
     
-    // Nueva propiedad para controlar el espacio entre el header y el contenido
-    private var contentTopPadding: CGFloat = 0
+    // Constraints que serán activadas/desactivadas
+    private var contentConstraints: [NSLayoutConstraint] = []
+    private var collapsedConstraint: NSLayoutConstraint?
     
     // MARK: - Initialization
-    init(title: String, icon: UIImage?, iconTintColor: UIColor = .systemBlue, contentTopPadding: CGFloat = 8) {
+    init(title: String, icon: UIImage?, iconTintColor: UIColor = .systemBlue) {
         super.init(frame: .zero)
         titleLabel.text = title
         iconImageView.image = icon
         iconImageView.tintColor = iconTintColor
-        self.contentTopPadding = contentTopPadding
         setupViews()
     }
     
@@ -98,6 +98,12 @@ class ExpandableSectionView: UIView {
             
             headerView.heightAnchor.constraint(equalToConstant: 50)
         ])
+        
+        // Crear constraint para el estado colapsado (hace que el bottom de la vista sea igual al bottom del header)
+        collapsedConstraint = bottomAnchor.constraint(equalTo: headerView.bottomAnchor)
+        
+        // Activar el constraint de colapso inicialmente ya que empezamos colapsados
+        collapsedConstraint?.isActive = true
     }
     
     private func setupGesture() {
@@ -108,8 +114,10 @@ class ExpandableSectionView: UIView {
     
     // MARK: - Public Methods
     func setContentView(_ view: UIView) {
-        // Remover vista de contenido anterior si existe
+        // Remover vista de contenido y constraints anteriores si existen
         contentView?.removeFromSuperview()
+        NSLayoutConstraint.deactivate(contentConstraints)
+        contentConstraints.removeAll()
         
         // Configurar nueva vista de contenido
         contentView = view
@@ -117,17 +125,26 @@ class ExpandableSectionView: UIView {
             contentView.translatesAutoresizingMaskIntoConstraints = false
             addSubview(contentView)
             
-            NSLayoutConstraint.activate([
-                // Usar el valor de contentTopPadding en lugar del valor fijo de 8
-                contentView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: contentTopPadding),
-                contentView.leadingAnchor.constraint(equalTo: leadingAnchor),
-                contentView.trailingAnchor.constraint(equalTo: trailingAnchor),
-                contentView.bottomAnchor.constraint(equalTo: bottomAnchor)
-            ])
+            // Crear nuevas constraints para el contenido
+            let topConstraint = contentView.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 8)
+            let leadingConstraint = contentView.leadingAnchor.constraint(equalTo: leadingAnchor)
+            let trailingConstraint = contentView.trailingAnchor.constraint(equalTo: trailingAnchor)
+            let bottomConstraint = contentView.bottomAnchor.constraint(equalTo: bottomAnchor)
             
-            // Ocultar inicialmente el contenido
-            contentView.isHidden = !isExpanded
-            contentView.alpha = isExpanded ? 1 : 0
+            // Guardar las constraints para poder activarlas/desactivarlas después
+            contentConstraints = [topConstraint, leadingConstraint, trailingConstraint, bottomConstraint]
+            
+            // Si la sección está expandida, activar las constraints de contenido y desactivar la de colapso
+            if isExpanded {
+                NSLayoutConstraint.activate(contentConstraints)
+                collapsedConstraint?.isActive = false
+                contentView.isHidden = false
+                contentView.alpha = 1
+            } else {
+                // Si está colapsada, ocultar el contenido y no activar sus constraints
+                contentView.isHidden = true
+                contentView.alpha = 0
+            }
         }
     }
     
@@ -145,9 +162,22 @@ class ExpandableSectionView: UIView {
                 CGAffineTransform(rotationAngle: .pi) :
                 .identity
             
-            // Mostrar/ocultar contenido
-            self.contentView?.isHidden = !self.isExpanded
-            self.contentView?.alpha = self.isExpanded ? 1 : 0
+            if self.isExpanded {
+                // Expandir: desactivar constraint de colapso, activar constraints de contenido
+                self.collapsedConstraint?.isActive = false
+                NSLayoutConstraint.activate(self.contentConstraints)
+                self.contentView?.isHidden = false
+                self.contentView?.alpha = 1
+            } else {
+                // Colapsar: desactivar constraints de contenido, activar constraint de colapso
+                NSLayoutConstraint.deactivate(self.contentConstraints)
+                self.collapsedConstraint?.isActive = true
+                self.contentView?.isHidden = true
+                self.contentView?.alpha = 0
+            }
+            
+            // Forzar actualización del layout
+            self.superview?.layoutIfNeeded()
         }
         
         delegate?.expandableSectionDidToggle(self)

@@ -51,6 +51,22 @@ class ProfileViewController: UIViewController {
         title = "Perfil"
         navigationController?.navigationBar.prefersLargeTitles = false
         view.backgroundColor = .systemBackground
+        
+        // Agregar botón para volver al menú principal
+        let menuButton = UIBarButtonItem(
+            image: UIImage(systemName: "house.fill"),
+            style: .plain,
+            target: self,
+            action: #selector(returnToMainMenu)
+        )
+        menuButton.tintColor = .systemRed
+        navigationItem.leftBarButtonItem = menuButton
+    }
+    
+    /// Acción para volver al menú principal (ContentView)
+    @objc private func returnToMainMenu() {
+        // Cerrar este view controller y volver al ContentView
+        dismiss(animated: true)
     }
     
     /// Configura todas las vistas y su jerarquía
@@ -77,19 +93,17 @@ class ProfileViewController: UIViewController {
         statsSection = ExpandableSectionView(
             title: "Estadísticas",
             icon: UIImage(systemName: "chart.bar.fill"),
-            iconTintColor: .systemPurple,
-            contentTopPadding: 8 // Usar el padding estándar para la primera sección
+            iconTintColor: .systemRed
         )
         statsSection.translatesAutoresizingMaskIntoConstraints = false
         statsSection.delegate = self
         contentView.addSubview(statsSection)
-
+        
         // Setup AchievementsSection - Sección de logros
         achievementsSection = ExpandableSectionView(
             title: "Logros",
             icon: UIImage(systemName: "trophy.fill"),
-            iconTintColor: .systemYellow,
-            contentTopPadding: 0 // Usar padding 0 para que esté más juntas cuando se expanda
+            iconTintColor: .systemYellow
         )
         achievementsSection.translatesAutoresizingMaskIntoConstraints = false
         achievementsSection.delegate = self
@@ -120,12 +134,12 @@ class ProfileViewController: UIViewController {
             profileHeaderView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
             // StatsSection - Separación respecto al header
-            statsSection.topAnchor.constraint(equalTo: profileHeaderView.bottomAnchor, constant: 16),
+            statsSection.topAnchor.constraint(equalTo: profileHeaderView.bottomAnchor, constant: 20),
             statsSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             statsSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             
-            // AchievementsSection - Espaciado mínimo respecto a stats
-            achievementsSection.topAnchor.constraint(equalTo: statsSection.bottomAnchor, constant: 0),
+            // AchievementsSection - Espaciado reducido respecto a stats
+            achievementsSection.topAnchor.constraint(equalTo: statsSection.bottomAnchor, constant: 8),
             achievementsSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
             achievementsSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
             achievementsSection.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
@@ -152,7 +166,8 @@ class ProfileViewController: UIViewController {
     }
     
     /// Maneja la visualización del alert para editar el nombre de usuario
-    private func showEditUsernameAlert() {
+    /// Maneja la visualización del alert para editar el nombre de usuario
+    private func showEditUsernameAlert(currentUsername: String) {
         // Asegurarnos de que estamos en el hilo principal
         DispatchQueue.main.async {
             let alertController = UIAlertController(
@@ -163,7 +178,7 @@ class ProfileViewController: UIViewController {
             
             // Añadir campo de texto
             alertController.addTextField { textField in
-                textField.text = self.profile.username
+                textField.text = currentUsername
                 textField.placeholder = "Nombre de usuario"
                 textField.autocapitalizationType = .words
             }
@@ -177,8 +192,11 @@ class ProfileViewController: UIViewController {
                     return
                 }
                 
+                // Actualizar el nombre de usuario
                 self.profile.username = newUsername
                 self.profile.save()
+                
+                // Actualizar la interfaz
                 self.profileHeaderView.configure(with: self.profile)
             }
             
@@ -188,13 +206,15 @@ class ProfileViewController: UIViewController {
             alertController.addAction(saveAction)
             alertController.addAction(cancelAction)
             
-            // Encontrar el view controller más alto en la jerarquía
-            if let topController = self.getTopViewController() {
-                topController.present(alertController, animated: true)
+            // Presentar el alert desde el presentador correcto
+            if let presentingController = self.presentingViewController {
+                presentingController.present(alertController, animated: true)
+            } else {
+                self.present(alertController, animated: true)
             }
         }
     }
-    
+
     /// Obtiene el view controller más alto en la jerarquía
     private func getTopViewController() -> UIViewController? {
         // Obtener la escena activa y su ventana
@@ -215,11 +235,14 @@ class ProfileViewController: UIViewController {
 
 // MARK: - ProfileHeaderViewDelegate
 extension ProfileViewController: ProfileHeaderViewDelegate {
+    /// Maneja la actualización del nombre de usuario
     func profileHeaderView(_ view: ProfileHeaderView, didUpdateUsername username: String) {
+        // Aquí simplemente actualizamos el modelo con el nuevo nombre
         profile.username = username
         profile.save()
     }
     
+    /// Maneja la selección del avatar mostrando el picker
     func profileHeaderViewDidTapAvatar(_ view: ProfileHeaderView) {
         let avatarPicker = AvatarPickerViewController(
             selectedAvatar: profile.avatarName,
@@ -228,62 +251,6 @@ extension ProfileViewController: ProfileHeaderViewDelegate {
         avatarPicker.delegate = self
         let nav = UINavigationController(rootViewController: avatarPicker)
         present(nav, animated: true)
-    }
-    
-    func profileHeaderViewDidRequestUsernameEdit(_ view: ProfileHeaderView, currentUsername: String) {
-        let alert = UIAlertController(
-            title: "Editar nombre",
-            message: "Introduce tu nuevo nombre de usuario",
-            preferredStyle: .alert
-        )
-        
-        // Configurar el textField antes de añadirlo
-        let configuration: (UITextField) -> Void = { textField in
-            textField.text = currentUsername
-            textField.clearButtonMode = .whileEditing
-            textField.autocapitalizationType = .words
-            textField.autocorrectionType = .no
-            textField.spellCheckingType = .no
-            textField.smartDashesType = .no
-            textField.smartQuotesType = .no
-            textField.smartInsertDeleteType = .no
-            
-            // Añadir padding al textField
-            let paddingView = UIView(frame: CGRect(x: 0, y: 0, width: 8, height: textField.frame.height))
-            textField.leftView = paddingView
-            textField.leftViewMode = .always
-        }
-        
-        alert.addTextField(configurationHandler: configuration)
-        
-        // Crear acciones
-        let cancelAction = UIAlertAction(title: "Cancelar", style: .cancel)
-        
-        let saveAction = UIAlertAction(title: "Guardar", style: .default) { [weak self] _ in
-            guard let self = self,
-                  let textField = alert.textFields?.first,
-                  let newUsername = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !newUsername.isEmpty else { return }
-            
-            // Realizar los cambios en el hilo principal
-            DispatchQueue.main.async {
-                self.profile.username = newUsername
-                self.profile.save()
-                self.profileHeaderView.configure(with: self.profile)
-            }
-        }
-        
-        // Añadir acciones
-        alert.addAction(cancelAction)
-        alert.addAction(saveAction)
-        
-        // Presentar el alert en el hilo principal
-        DispatchQueue.main.async {
-            self.present(alert, animated: true) {
-                // Activar el campo de texto después de que el alert se haya presentado
-                alert.textFields?.first?.becomeFirstResponder()
-            }
-        }
     }
 }
 
@@ -308,4 +275,63 @@ extension ProfileViewController: ExpandableSectionViewDelegate {
     }
 }
 
+#if DEBUG
+// MARK: - SwiftUI Preview
+import SwiftUI
 
+struct ProfileViewControllerPreview: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> ProfileViewController {
+        // Crear datos de ejemplo para la preview
+        let profile = UserProfile(
+            username: "Jugador de Prueba",
+            avatarName: "avatar1",
+            statistics: Statistics(
+                totalScore: 2500,
+                currentLevel: 7,
+                playTime: 7200, // 2 horas
+                notesHit: 450,
+                currentStreak: 15,
+                bestStreak: 25,
+                perfectLevelsCount: 5,
+                totalGamesPlayed: 35,
+                averageAccuracy: 0.88
+            ),
+            achievements: Achievements(
+                unlockedMedals: [
+                    MedalType.notesHit.rawValue: [true, true, false],
+                    MedalType.playTime.rawValue: [true, true, false],
+                    MedalType.streaks.rawValue: [true, true, true],
+                    MedalType.perfectTuning.rawValue: [true, true, false]
+                ],
+                lastUpdateDate: Date()
+            )
+        )
+        profile.save()
+        
+        // Crear y devolver el view controller
+        let profileVC = ProfileViewController()
+        return profileVC
+    }
+    
+    func updateUIViewController(_ uiViewController: ProfileViewController, context: Context) {
+        // No es necesario actualizar nada aquí
+    }
+}
+
+struct ProfileViewController_Preview: PreviewProvider {
+    static var previews: some View {
+        // Vista de previsualización para modo claro y oscuro
+        Group {
+            ProfileViewControllerPreview()
+                .edgesIgnoringSafeArea(.all)
+                .preferredColorScheme(.light)
+                .previewDisplayName("Perfil - Modo Claro")
+            
+            ProfileViewControllerPreview()
+                .edgesIgnoringSafeArea(.all)
+                .preferredColorScheme(.dark)
+                .previewDisplayName("Perfil - Modo Oscuro")
+        }
+    }
+}
+#endif

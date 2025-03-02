@@ -10,7 +10,6 @@ import UIKit
 protocol ProfileHeaderViewDelegate: AnyObject {
     func profileHeaderView(_ view: ProfileHeaderView, didUpdateUsername username: String)
     func profileHeaderViewDidTapAvatar(_ view: ProfileHeaderView)
-    func profileHeaderViewDidRequestUsernameEdit(_ view: ProfileHeaderView, currentUsername: String) // Nuevo método
 }
 
 class ProfileHeaderView: UIView {
@@ -21,7 +20,7 @@ class ProfileHeaderView: UIView {
         imageView.layer.cornerRadius = 12
         imageView.clipsToBounds = true
         imageView.layer.borderWidth = 2
-        imageView.layer.borderColor = UIColor.systemPurple.cgColor
+        imageView.layer.borderColor = UIColor.systemRed.cgColor
         return imageView
     }()
     
@@ -29,7 +28,7 @@ class ProfileHeaderView: UIView {
         let button = UIButton()
         let config = UIImage.SymbolConfiguration(pointSize: 30)
         button.setImage(UIImage(systemName: "pencil.circle.fill", withConfiguration: config), for: .normal)
-        button.tintColor = .systemPurple
+        button.tintColor = .systemRed
         button.backgroundColor = .white
         button.layer.cornerRadius = 15
         return button
@@ -49,15 +48,14 @@ class ProfileHeaderView: UIView {
     }
     
     @objc private func usernameTapped() {
-        // Cambiado para usar el nombre correcto del método delegate
-        delegate?.profileHeaderView(self, didUpdateUsername: usernameLabel.text ?? "")
+        handleUsernameTap()
     }
     
     private let editUsernameButton: UIButton = {
         let button = UIButton()
         let config = UIImage.SymbolConfiguration(pointSize: 14)
         button.setImage(UIImage(systemName: "pencil", withConfiguration: config), for: .normal)
-        button.tintColor = .systemPurple
+        button.tintColor = .systemRed
         return button
     }()
     
@@ -117,7 +115,7 @@ class ProfileHeaderView: UIView {
         
         if profile.avatarName.isEmpty {
             avatarImageView.image = UIImage(systemName: "person.circle.fill")
-            avatarImageView.tintColor = .systemPurple
+            avatarImageView.tintColor = .systemRed
         } else {
             avatarImageView.image = UIImage(named: profile.avatarName)
         }
@@ -129,7 +127,59 @@ class ProfileHeaderView: UIView {
     }
 
     @objc private func handleUsernameTap() {
-        delegate?.profileHeaderViewDidRequestUsernameEdit(self, currentUsername: usernameLabel.text ?? "")
+        showEditUsernameAlert()
+    }
+    
+    private func showEditUsernameAlert() {
+        let alert = UIAlertController(
+            title: "Editar nombre",
+            message: "Introduce tu nuevo nombre de usuario",
+            preferredStyle: .alert
+        )
+        
+        alert.addTextField { textField in
+            textField.text = self.usernameLabel.text
+            textField.clearButtonMode = .whileEditing
+        }
+        
+        alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Guardar", style: .default) { [weak self] _ in
+            guard let self = self,
+                  let textField = alert.textFields?.first,
+                  let newUsername = textField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !newUsername.isEmpty else { return }
+            
+            self.usernameLabel.text = newUsername
+            self.delegate?.profileHeaderView(self, didUpdateUsername: newUsername)
+        })
+        
+        // Buscar el view controller más cercano para presentar el alert
+        if let viewController = self.findViewController() {
+            viewController.present(alert, animated: true)
+        } else {
+            // Fallback si no encontramos un view controller
+            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+               let window = windowScene.windows.first,
+               let rootViewController = window.rootViewController {
+                var topViewController = rootViewController
+                while let presentedViewController = topViewController.presentedViewController {
+                    topViewController = presentedViewController
+                }
+                topViewController.present(alert, animated: true)
+            }
+        }
+    }
+    
+    // Método auxiliar para encontrar el view controller más cercano
+    private func findViewController() -> UIViewController? {
+        var responder: UIResponder? = self
+        while let nextResponder = responder?.next {
+            responder = nextResponder
+            if let viewController = responder as? UIViewController {
+                return viewController
+            }
+        }
+        return nil
     }
 }
 

@@ -183,8 +183,8 @@ class AvatarCell: UICollectionViewCell {
         nameLabel.text = avatar
         
         containerView.layer.borderWidth = isSelected ? 3 : 0
-        containerView.layer.borderColor = isSelected ? UIColor.systemPurple.cgColor : nil
-        containerView.backgroundColor = isSelected ? .systemPurple.withAlphaComponent(0.1) : .systemBackground
+        containerView.layer.borderColor = isSelected ? UIColor.systemRed.cgColor : nil
+        containerView.backgroundColor = isSelected ? .systemRed.withAlphaComponent(0.1) : .systemBackground
     }
     
     override func prepareForReuse() {
