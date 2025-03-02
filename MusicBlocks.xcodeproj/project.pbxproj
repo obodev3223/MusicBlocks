@@ -36,6 +36,11 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		9E7EE4992D74DE47007F6C87 /* A integrar */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "A integrar";
+			sourceTree = "<group>";
+		};
 		9E9E3DE22D5F6A92001928B6 /* MusicBlocks */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MusicBlocks;
@@ -84,6 +89,7 @@
 		9E9E3DD72D5F6A92001928B6 = {
 			isa = PBXGroup;
 			children = (
+				9E7EE4992D74DE47007F6C87 /* A integrar */,
 				9E9E3DE22D5F6A92001928B6 /* MusicBlocks */,
 				9E9E3DF32D5F6A93001928B6 /* MusicBlocksTests */,
 				9E9E3DFD2D5F6A93001928B6 /* MusicBlocksUITests */,
@@ -128,6 +134,7 @@
 				9E9E3E672D5F6D67001928B6 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				9E7EE4992D74DE47007F6C87 /* A integrar */,
 				9E9E3DE22D5F6A92001928B6 /* MusicBlocks */,
 			);
 			name = MusicBlocks;
