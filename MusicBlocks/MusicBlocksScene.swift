@@ -12,143 +12,71 @@ import SwiftUI
 class MusicBlocksScene: SKScene {
     @Environment(\.screenSize) var screenSize
     
-    // Add the backgroundPattern property at the class level
-    private var backgroundPattern: BackgroundPatternNode!
+    // MARK: - Properties
+    /// Managers y Controllers
+    let audioController = AudioController.sharedInstance
+    private let tunerEngine = TunerEngine.shared
+    private let gameEngine = GameEngine()
+    private var blocksManager: BlocksManager!
     
-    private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat) -> (container: SKNode, shape: SKShapeNode) {
-        // Crear el nodo contenedor
-        let containerNode = SKNode()
-        
-        // Crear el nodo de sombra
-        let shadowNode = SKEffectNode()
-        let shadowShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-        shadowShape.fillColor = .black
-        shadowShape.strokeColor = .clear
-        shadowShape.alpha = CGFloat(Layout.shadowOpacity)
-        shadowNode.addChild(shadowShape)
-        shadowNode.shouldRasterize = true
-        shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
-        shadowNode.position = Layout.shadowOffset
-        
-        // Crear el nodo principal
-        let mainShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-        mainShape.fillColor = .white
-        mainShape.strokeColor = .clear
-        mainShape.alpha = Layout.containerAlpha
-        
-        // Añadir los nodos en orden (primero la sombra, luego el contenido)
-        containerNode.addChild(shadowNode)
-        containerNode.addChild(mainShape)
-        
-        return (containerNode, mainShape)
-    }
+    /// UI Elements
+    private var backgroundPattern: BackgroundPatternNode!
+    private var mainAreaNode: SKNode!
+    private var mainAreaHeight: CGFloat = 0
+    private var mainAreaWidth: CGFloat = 0
+    private var topBarNode: TopBar?
+    private var currentOverlay: GameOverlayNode?
+    
+    // Indicadores
+    var stabilityIndicatorNode: StabilityIndicatorNode!
+    var stabilityCounterNode: StabilityCounterNode!
+    var tuningIndicatorNode: TuningIndicatorNode!
+    var detectedNoteCounterNode: DetectedNoteCounterNode!
+    
+    /// Estado del juego
+    private var lastUpdateTime: TimeInterval = 0
+    private let acceptableDeviation: Double = 10.0
     
     // MARK: - Layout Configuration
     private struct Layout {
-        /// Márgenes de seguridad para el contenido
         static let margins = UIEdgeInsets(
             top: 6,
             left: 20,
-            bottom: UIScreen.main.bounds.height * 0.05, // Dinámico según la pantalla
+            bottom: UIScreen.main.bounds.height * 0.05,
             right: 20
         )
         static let cornerRadius: CGFloat = 15
-        
-        // Espacio entre elementos
-        static let verticalSpacing: CGFloat = 20 // Nuevo: espacio vertical entre elementos
+        static let verticalSpacing: CGFloat = 20
         
         // Proporciones de las áreas principales
-        static let topBarHeightRatio: CGFloat = 0.08     // 8% de altura
-        static let mainAreaHeightRatio: CGFloat = 0.74    // 74% de altura
-        static let sideBarWidthRatio: CGFloat = 0.07     // 15% del ancho
-        static let mainAreaWidthRatio: CGFloat = 0.75    // 66% del ancho
-        static let sideBarHeightRatio: CGFloat = 0.4   // Altura de las barras
-
+        static let topBarHeightRatio: CGFloat = 0.08
+        static let mainAreaHeightRatio: CGFloat = 0.74
+        static let sideBarWidthRatio: CGFloat = 0.07
+        static let mainAreaWidthRatio: CGFloat = 0.75
+        static let sideBarHeightRatio: CGFloat = 0.4
         
-        // Tamaños relativos de fuente
-        static let scoreFontRatio: CGFloat = 0.5         // 50% de la altura de su contenedor
-        static let currentNoteFontRatio: CGFloat = 0.3   // 30% de la altura del área principal
-        static let targetNoteFontRatio: CGFloat = 0.5    // 50% de la altura de su contenedor
-        
-        // Nuevas constantes para el diseño 3D
+        // Efectos visuales
         static let shadowRadius: CGFloat = 8.0
         static let shadowOpacity: Float = 0.8
         static let shadowOffset = CGPoint(x: 0, y: -2)
         static let containerAlpha: CGFloat = 0.95
     }
     
-    // MARK: - Properties
-    /// Controladores principales
-    let audioController = AudioController.sharedInstance
-    private let tunerEngine = TunerEngine.shared
-    private let gameEngine = GameEngine()
-    
-    /// Estado del juego
-    var score: Int = 0
-    private var lastUpdateTime: TimeInterval = 0
-    private let acceptableDeviation: Double = 10.0
-    
-    // Para manejar los bloques musicales
-    private let blockSize = CGSize(width: 270, height: 100)
-    private let blockSpacing: CGFloat = 2.0
-    private var blocks: [SKNode] = []
-    private var totalBlocksAppeared = 0
-        
-    // Para controlar el tiempo de aparición de bloques
-    private var lastBlockSpawnTime: TimeInterval = 0
-    private let blockSpawnInterval: TimeInterval = 6.0  // Cada 4 segundos
-    
-    // Posición superior para los bloques
-
-    private var topSlotY: CGFloat {
-        // Calculado relativo al mainArea
-        return mainAreaHeight/2 - blockSize.height/2 - blockSpacing
-    }
-
-    // Variables para almacenar información del área principal
-    private var mainAreaNode: SKNode!
-    private var mainAreaHeight: CGFloat = 0
-    private var mainAreaWidth: CGFloat = 0
-    
-    
-    
-    // MARK: - UI Elements
-    /// Etiquetas principales
-    var scoreLabel: SKLabelNode!
-    var targetNoteLabel: SKLabelNode!
-    var successOverlay: SKNode!
-    
-    /// Indicadores y contadores
-    var stabilityIndicatorNode: StabilityIndicatorNode!
-    var stabilityCounterNode: StabilityCounterNode!
-    var tuningIndicatorNode: TuningIndicatorNode!
-    private var topBarNode: TopBar?
-    private var currentOverlay: GameOverlayNode?
-    var detectedNoteCounterNode: DetectedNoteCounterNode!
-
-    
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
         super.didMove(to: view)
         
+        print("Scene did move to view")
+        
         // Reiniciar el audio cuando la escena se carga
         Task {
             audioController.stop()
-            try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 segundos
+            try? await Task.sleep(nanoseconds: 100_000_000)
             await MainActor.run {
                 audioController.start()
             }
         }
         
-        // Iniciar secuencia de generación de bloques
-            let spawnSequence = SKAction.sequence([
-                SKAction.run { [weak self] in self?.spawnBlock() },
-                SKAction.wait(forDuration: 4.0)
-            ])
-            let spawnRepeat = SKAction.repeat(spawnSequence, count: 6)
-            run(spawnRepeat)
-        
-        // Configurar toda la escena
         setupScene()
     }
     
@@ -157,49 +85,40 @@ class MusicBlocksScene: SKScene {
         audioController.stop()
     }
     
-    
-    
+    // MARK: - Setup Methods
     private func setupScene() {
-
-        backgroundPattern = BackgroundPatternNode(size: size)
-        backgroundPattern.zPosition = -10 // Asegura que esté detrás de todo
-        addChild(backgroundPattern)
-        
-        let safeWidth = size.width - Layout.margins.left - Layout.margins.right
-        let safeHeight = size.height - Layout.margins.top - Layout.margins.bottom
-        
-        // Calcular alturas
-        let topBarHeight = safeHeight * Layout.topBarHeightRatio
-        let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
-        
-        
-        // Calcular anchos
-        let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
-        let sideBarWidth = safeWidth * Layout.sideBarWidthRatio
-        
-        // Configurar barras superior e inferior
-        setupTopBar(width: safeWidth, height: topBarHeight)
-        
-        
-        // Configurar área principal con ajuste de posición
-        setupMainArea(width: mainAreaWidth,
-                      height: mainAreaHeight,
-                      topBarHeight: topBarHeight)
-        
-        // Configurar barras laterales (40% más cortas)
-        let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
-        setupSideBars(width: sideBarWidth,
-                      height: sideBarHeight,
-                      topBarHeight: topBarHeight)
-        
-        // Configurar overlay de éxito
-        setupSuccessOverlay(size: CGSize(width: mainAreaWidth * 0.5,
-                                         height: safeHeight * 0.25))
-        
+        setupBackground()
+        setupLayout()
         setupAndStart()
     }
     
-    // Configura la barra superior con la puntuación
+    private func setupBackground() {
+        backgroundPattern = BackgroundPatternNode(size: size)
+        backgroundPattern.zPosition = -10
+        addChild(backgroundPattern)
+    }
+    
+    private func setupLayout() {
+        let safeWidth = size.width - Layout.margins.left - Layout.margins.right
+        let safeHeight = size.height - Layout.margins.top - Layout.margins.bottom
+        
+        let topBarHeight = safeHeight * Layout.topBarHeightRatio
+        let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
+        let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
+        let sideBarWidth = safeWidth * Layout.sideBarWidthRatio
+        let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
+        
+        setupTopBar(width: safeWidth, height: topBarHeight)
+        setupMainArea(width: mainAreaWidth, height: mainAreaHeight, topBarHeight: topBarHeight)
+        setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
+        
+        // Inicializar BlocksManager después de crear mainAreaNode
+        blocksManager = BlocksManager(
+            mainAreaNode: mainAreaNode,
+            mainAreaHeight: mainAreaHeight
+        )
+    }
+    
     private func setupTopBar(width: CGFloat, height: CGFloat) {
         let safeAreaTop = view?.safeAreaInsets.top ?? 0
         let position = CGPoint(
@@ -207,11 +126,12 @@ class MusicBlocksScene: SKScene {
             y: size.height - safeAreaTop - height / 2
         )
         
-        let (containerNode, _) = createContainerWithShadow(
+        let containerNode = createContainerWithShadow(
             size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius
+            cornerRadius: Layout.cornerRadius,
+            position: position,
+            zPosition: 1
         )
-        containerNode.position = position
         addChild(containerNode)
         
         topBarNode = TopBar.create(width: width, height: height, position: position)
@@ -219,290 +139,207 @@ class MusicBlocksScene: SKScene {
             addChild(topBar)
         }
     }
-        
+    
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-            // Guardar dimensiones para usarlas después
-            mainAreaWidth = width
-            mainAreaHeight = height
-            
-            // Crear el contenedor del área principal
-            let containerNode = createContainerWithShadow(
-                size: CGSize(width: width, height: height),
-                cornerRadius: Layout.cornerRadius,
-                position: CGPoint(
-                    x: size.width/2,
-                    y: size.height/2 - (Layout.verticalSpacing/2)
-                ),
-                zPosition: 1
-            )
-            
-            // Crear un nodo para el contenido que estará por encima del fondo
-            let mainContent = SKNode()
-            mainContent.zPosition = 2
-            
-            // Ajustar la posición del contenido para que se centre en el área principal
-            mainContent.position = .zero
-            
-            containerNode.addChild(mainContent)
-            mainAreaNode = mainContent
-            
-            addChild(containerNode)
-        }
+        // Guardar dimensiones para usarlas después
+        mainAreaWidth = width
+        mainAreaHeight = height
+        
+        // Crear el contenedor del área principal
+        let containerNode = createContainerWithShadow(
+            size: CGSize(width: width, height: height),
+            cornerRadius: Layout.cornerRadius,
+            position: CGPoint(
+                x: size.width/2,
+                y: size.height/2 - (Layout.verticalSpacing/2)
+            ),
+            zPosition: 1
+        )
+        
+        // Crear un nodo para el contenido que estará por encima del fondo
+        let mainContent = SKNode()
+        mainContent.zPosition = 2
+        mainContent.position = .zero
+        
+        containerNode.addChild(mainContent)
+        mainAreaNode = mainContent
+        addChild(containerNode)
+        
+        // Inicializar BlocksManager aquí, después de configurar mainAreaNode
+        blocksManager = BlocksManager(
+            mainAreaNode: mainContent,
+            mainAreaHeight: height
+        )
+    }
     
-    
-    /// Configura las barras laterales con indicadores
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-        // Barra izquierda - Estabilidad
-        let leftBarPosition = CGPoint(
+        setupLeftSideBar(width: width, height: height)
+        setupRightSideBar(width: width, height: height)
+    }
+    
+    private func setupLeftSideBar(width: CGFloat, height: CGFloat) {
+        let position = CGPoint(
             x: Layout.margins.left + width/2,
             y: size.height/2 - (Layout.verticalSpacing/2)
         )
         
-        // Se crea el contenedor de la barra lateral izquierda
         let leftBar = createContainerWithShadow(
             size: CGSize(width: width, height: height),
             cornerRadius: Layout.cornerRadius,
-            position: leftBarPosition,
+            position: position,
             zPosition: 1
         )
         addChild(leftBar)
         
-        // Indicador de estabilidad (barra vertical)
-        stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
-        stabilityIndicatorNode.position = CGPoint.zero // Centrado en el contenedor
-        stabilityIndicatorNode.zPosition = 10
-        leftBar.addChild(stabilityIndicatorNode)
-        
-        // Distancia de los contadores con el final de las barras
-        let leftBarBottom = leftBarPosition.y - height/2
-        let counterYPosition = leftBarBottom - 30
-        
-        // Contador de estabilidad - horizontal y más ancho
-        stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 2.0, height: 30))
-        stabilityCounterNode.position = CGPoint(x: leftBarPosition.x, y: counterYPosition)
-        stabilityCounterNode.zPosition = 10
-        addChild(stabilityCounterNode)
-        
-        // Barra derecha - Afinación
-        let rightBarPosition = CGPoint(
+        setupStabilityIndicators(in: leftBar, at: position, width: width, height: height)
+    }
+    
+    private func setupRightSideBar(width: CGFloat, height: CGFloat) {
+        let position = CGPoint(
             x: size.width - Layout.margins.right - width/2,
             y: size.height/2 - (Layout.verticalSpacing/2)
         )
         
-        // Se crea el contenedor de la barra lateral derecha
         let rightBar = createContainerWithShadow(
             size: CGSize(width: width, height: height),
             cornerRadius: Layout.cornerRadius,
-            position: rightBarPosition,
+            position: position,
             zPosition: 1
         )
         addChild(rightBar)
         
-        // Indicador de afinación (derecha)
-        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
-        tuningIndicatorNode.position = CGPoint.zero // Centrado en el contenedor
-        tuningIndicatorNode.zPosition = 10
-        rightBar.addChild(tuningIndicatorNode)
+        setupTuningIndicators(in: rightBar, at: position, width: width, height: height)
+    }
+    
+    private func setupStabilityIndicators(in container: SKNode, at position: CGPoint, width: CGFloat, height: CGFloat) {
+        stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
+        stabilityIndicatorNode.position = .zero
+        stabilityIndicatorNode.zPosition = 10
+        container.addChild(stabilityIndicatorNode)
         
-        // CORREGIDO: Posicionar el contador usando la misma distancia desde la barra derecha
+        let counterYPosition = position.y - height/2 - 30
+        stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 2.0, height: 30))
+        stabilityCounterNode.position = CGPoint(x: position.x, y: counterYPosition)
+        stabilityCounterNode.zPosition = 10
+        addChild(stabilityCounterNode)
+    }
+    
+    private func setupTuningIndicators(in container: SKNode, at position: CGPoint, width: CGFloat, height: CGFloat) {
+        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
+        tuningIndicatorNode.position = .zero
+        tuningIndicatorNode.zPosition = 10
+        container.addChild(tuningIndicatorNode)
+        
+        let counterYPosition = position.y - height/2 - 30
         detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: width * 2.0, height: 30))
-        detectedNoteCounterNode.position = CGPoint(x: rightBarPosition.x, y: counterYPosition)
+        detectedNoteCounterNode.position = CGPoint(x: position.x, y: counterYPosition)
         detectedNoteCounterNode.zPosition = 10
         addChild(detectedNoteCounterNode)
     }
-
-    // Función auxiliar para crear contenedores con sombra
-private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
-    let container = SKNode()
-    container.position = position
-    container.zPosition = zPosition
     
-    // Nodo para la sombra con efecto de desenfoque
-    let shadowNode = SKEffectNode()
-    shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
-    shadowNode.shouldRasterize = true
-    shadowNode.shouldEnableEffects = true
-    shadowNode.position = Layout.shadowOffset
-    container.addChild(shadowNode)
-    
-    // Forma que representa la sombra
-    let shadowShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-    shadowShape.fillColor = .black
-    shadowShape.strokeColor = .clear
-    shadowShape.alpha = CGFloat(Layout.shadowOpacity)
-    shadowNode.addChild(shadowShape)
-    
-    // Nodo principal sin filtro
-    let mainShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-    mainShape.fillColor = .white
-    mainShape.strokeColor = .clear
-    mainShape.alpha = Layout.containerAlpha
-    mainShape.zPosition = 1 // Se asegura que quede por encima de la sombra
-    container.addChild(mainShape)
-    
-    return container
-}
-
-    /// Configura el overlay de éxito
-    private func setupSuccessOverlay(size: CGSize) {
-        successOverlay = SKNode()
-        
-        let overlayBackground = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
-        overlayBackground.fillColor = .white
-        overlayBackground.strokeColor = .clear
-        overlayBackground.position = .zero
-        
-        let checkmarkLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        checkmarkLabel.fontSize = size.height * 0.3
-        checkmarkLabel.fontColor = .green
-        checkmarkLabel.text = "✔️"
-        checkmarkLabel.position = CGPoint(x: 0, y: size.height * 0.1)
-        
-        let perfectLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        perfectLabel.fontSize = size.height * 0.15
-        perfectLabel.fontColor = .green
-        perfectLabel.text = "¡Perfecto!"
-        perfectLabel.position = CGPoint(x: 0, y: -size.height * 0.2)
-        
-        successOverlay.addChild(overlayBackground)
-        successOverlay.addChild(checkmarkLabel)
-        successOverlay.addChild(perfectLabel)
-        successOverlay.position = CGPoint(x: size.width/2, y: size.height/2)
-        successOverlay.isHidden = true
-        
-        addChild(successOverlay)
-    }
-    
-    //Método para crear un bloque
-    private func createBlock() -> SKNode {
-        let blockNode = SKNode()
-        blockNode.zPosition = 2 // Aseguramos que el nodo principal esté por encima del mainArea
-        
-        // Elegir un estilo aleatorio para variedad visual
-        let blockStyles: [BlockStyle] = [
-            .defaultBlock,
-            .iceBlock,
-            .hardiceBlock,
-            .ghostBlock,
-            .changingBlock
-        ]
-        let blockStyle = blockStyles.randomElement() ?? .defaultBlock
-        
-        // Crear el contenedor principal
+    private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
         let container = SKNode()
-        container.zPosition = 0 // Relativo al blockNode
+        container.position = position
+        container.zPosition = zPosition
         
-        // Si el estilo tiene sombra, crear el nodo de sombra
-        if let shadowColor = blockStyle.shadowColor,
-           let shadowOffset = blockStyle.shadowOffset,
-           let shadowBlur = blockStyle.shadowBlur {
-            let shadowNode = SKEffectNode()
-            shadowNode.shouldRasterize = true
-            shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": shadowBlur])
-            shadowNode.zPosition = 1 // La sombra va detrás del fondo
-            
-            let shadowShape = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
-            shadowShape.fillColor = shadowColor
-            shadowShape.strokeColor = .clear
-            shadowShape.alpha = 0.5
-            
-            shadowNode.addChild(shadowShape)
-            shadowNode.position = CGPoint(x: shadowOffset.width, y: shadowOffset.height)
-            container.addChild(shadowNode)
-        }
+        let shadowNode = SKEffectNode()
+        shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
+        shadowNode.shouldRasterize = true
+        shadowNode.shouldEnableEffects = true
+        shadowNode.position = Layout.shadowOffset
+        container.addChild(shadowNode)
         
-        // Crear el fondo del bloque
-        let background = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
-        background.fillColor = blockStyle.backgroundColor
-        background.strokeColor = blockStyle.borderColor
-        background.lineWidth = blockStyle.borderWidth
-        background.zPosition = 2 // El fondo va por encima de la sombra
+        let shadowShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
+        shadowShape.fillColor = .black
+        shadowShape.strokeColor = .clear
+        shadowShape.alpha = CGFloat(Layout.shadowOpacity)
+        shadowNode.addChild(shadowShape)
         
-        // Añadir textura si está disponible
-        if let texture = blockStyle.fillTexture {
-            background.fillTexture = texture
-            background.alpha = blockStyle.textureOpacity
-        }
+        let mainShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
+        mainShape.fillColor = .white
+        mainShape.strokeColor = .clear
+        mainShape.alpha = Layout.containerAlpha
+        mainShape.zPosition = 1
+        container.addChild(mainShape)
         
-        container.addChild(background)
-        blockNode.addChild(container)
+        return container
+    }
+    
+    // MARK: - Game Control Methods
+    private func setupAndStart() {
+        initializeUIElements()
         
-        // Generar una nota aleatoria usando TunerEngine
-        if let randomNote = TunerEngine.shared.generateRandomNote() {
-            // Generar el contenido visual del bloque con la nota
-            let contentNode = BlockContentGenerator.generateBlockContent(
-                with: blockStyle,
-                blockSize: blockSize,
-                desiredNote: randomNote,
-                baseNoteX: 0,
-                baseNoteY: 0
+        audioController.start()
+        gameEngine.startNewGame()
+        
+        // Iniciar secuencia de bloques cayendo
+        startBlockSequence()
+        
+        updateGameUI()
+    }
+    
+    private func startBlockSequence() {
+        // Detener cualquier secuencia anterior si existe
+        removeAction(forKey: "spawnSequence")
+        
+        let spawnSequence = SKAction.sequence([
+            SKAction.wait(forDuration: 1.0), // Esperar un poco antes de empezar
+            SKAction.repeatForever(
+                SKAction.sequence([
+                    SKAction.run { [weak self] in
+                        self?.blocksManager.spawnBlock()
+                    },
+                    SKAction.wait(forDuration: 4.0)
+                ])
             )
-            contentNode.zPosition = 3 // El contenido musical va por encima del fondo
-            blockNode.addChild(contentNode)
-            
-            // Almacenar la nota en los datos de usuario del nodo
-            blockNode.userData = NSMutableDictionary()
-            blockNode.userData?.setValue(randomNote.fullName, forKey: "noteName")
-        }
+        ])
         
-        return blockNode
+        run(spawnSequence, withKey: "spawnSequence")
     }
     
-    //Método para generar un nuevo bloque
-    private func spawnBlock() {
-        if blocks.count >= 6 { return }
-        
-        let moveDuration = 0.5
-        let moveDistance = blockSize.height + blockSpacing
-        
-        // Mover los bloques existentes hacia abajo
-        for block in blocks {
-            let moveDown = SKAction.moveBy(x: 0, y: -moveDistance, duration: moveDuration)
-            moveDown.timingMode = .easeInEaseOut
-            block.run(moveDown)
+    private func initializeUIElements() {
+        if detectedNoteCounterNode == nil {
+            let safePosition = CGPoint(
+                x: min(size.width * 0.9, size.width - DetectedNoteCounterNode.Layout.defaultSize.width),
+                y: size.height * 0.3
+            )
+            detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(at: safePosition)
+            addChild(detectedNoteCounterNode)
         }
-        
-        // Crear nuevo bloque con nota aleatoria
-        let newBlock = createBlock()
-        
-        // Calcular la posición inicial - ahora solo sumamos un pequeño offset para la animación
-        let startY = (mainAreaHeight/2) - (blockSize.height/2) - blockSpacing
-        newBlock.position = CGPoint(
-            x: 0,
-            y: startY + 10 // Un pequeño offset para la animación de entrada
-        )
-        
-        // Añadir al área principal
-        mainAreaNode.addChild(newBlock)
-        
-        // Animar la entrada del bloque a su posición final
-        let moveToSlot = SKAction.moveTo(y: startY, duration: moveDuration)
-        moveToSlot.timingMode = .easeInEaseOut
-        newBlock.run(moveToSlot)
-        
-        blocks.insert(newBlock, at: 0)
-        totalBlocksAppeared += 1
     }
     
-    // Método para limpiar los bloques
-    private func clearBlocks() {
-        for block in blocks {
-            block.removeFromParent()
-        }
-        blocks.removeAll()
-        totalBlocksAppeared = 0
+    private func startGame() {
+        audioController.start()
+        gameEngine.startNewGame()
+        
+        // Iniciar secuencia de bloques
+        let spawnSequence = SKAction.sequence([
+            SKAction.run { [weak self] in
+                self?.blocksManager.spawnBlock()
+            },
+            SKAction.wait(forDuration: 4.0)
+        ])
+        let spawnRepeat = SKAction.repeat(spawnSequence, count: 6)
+        run(spawnRepeat)
+        
+        updateGameUI()
     }
-    
     
     // MARK: - Update Methods
+    override func update(_ currentTime: TimeInterval) {
+        let deltaTime = lastUpdateTime > 0 ? currentTime - lastUpdateTime : 0
+        lastUpdateTime = currentTime
+        
+        updateUI()
+        checkNoteAndUpdateScore(deltaTime: deltaTime)
+    }
+    
     private func updateUI() {
         let tunerData = audioController.tunerData
-                
-        // Actualizar el contador de notas detectadas
+        
         detectedNoteCounterNode?.currentNote = tunerData.note
         detectedNoteCounterNode?.isActive = tunerData.isActive
         
-        // Actualizar indicadores laterales
         stabilityIndicatorNode.duration = audioController.stabilityDuration
         stabilityCounterNode.duration = audioController.stabilityDuration
         
@@ -511,42 +348,13 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     }
     
     private func updateGameUI() {
-        // Actualizar puntuación y vidas en la TopBar
         topBarNode?.updateScore(gameEngine.score)
         topBarNode?.updateLives(gameEngine.lives)
-
-        // Animar el panel según el estado
-        switch gameEngine.noteState {
-        case .waiting, .correct:
-            break // No hacer nada en estos casos, pero necesitamos el 'break'
-        case .wrong:
-            break // No hacer nada en este caso, pero necesitamos el 'break'
-        case .success:
-            break // No hacer nada en este caso, pero necesitamos el 'break'
-        }
-
-        // Actualizar estado visual
-        switch gameEngine.noteState {
-        case .waiting:
-            successOverlay.isHidden = true
-            
-        case .correct(let deviation):
-            successOverlay.isHidden = true
-            
-        case .wrong:
-            showFailureOverlay()
-            
-        case .success(let multiplier, let message):
-            showSuccessOverlay(multiplier: multiplier, message: message)
-        }
         
-        // Manejar game over si es necesario
-        if gameEngine.gameState == .gameOver {
-            handleGameOver()
-        }
+        handleGameState()
     }
     
-    func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
+    private func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
         let tunerData = audioController.tunerData
         gameEngine.checkNote(
             currentNote: tunerData.note,
@@ -554,140 +362,69 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
             isActive: tunerData.isActive
         )
         
-        // Actualizar la UI según el estado del juego
         updateGameUI()
     }
     
-    // MARK: - Helper Methods
+    // MARK: - Game State Handling
+    private func handleGameState() {
+        switch gameEngine.gameState {
+        case .gameOver:
+            handleGameOver()
+        case .playing:
+            handleGameplayState()
+        }
+    }
+    
+    private func handleGameplayState() {
+        switch gameEngine.noteState {
+        case .success(let multiplier, let message):
+            showSuccessOverlay(multiplier: multiplier, message: message)
+        case .wrong:
+            showFailureOverlay()
+        default:
+            currentOverlay?.hide()
+        }
+    }
+    
+    private func handleGameOver() {
+        audioController.stop()
+        blocksManager.clearBlocks()
+        
+        showGameOverOverlay()
+    }
+    
+    // MARK: - Overlay Methods
     private func showSuccessOverlay(multiplier: Int, message: String) {
-        // Remove previous overlay if exists
         currentOverlay?.removeFromParent()
         
-        // Nuevo tamaño: 350x60
         let overlaySize = CGSize(width: 350, height: 60)
         let overlay = SuccessOverlayNode(size: overlaySize, multiplier: multiplier, message: message)
         addChild(overlay)
         currentOverlay = overlay
         
-        // Mostrar en la parte inferior
         overlay.show(in: self, overlayPosition: .bottom)
         
-        // Hide after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
             overlay?.hide()
         }
     }
     
-    // Añade el método para mostrar el overlay de fallo:
     private func showFailureOverlay() {
-        // Remove previous overlay if exists
         currentOverlay?.removeFromParent()
         
-        // Nuevo tamaño: 350x60
         let overlaySize = CGSize(width: 350, height: 60)
         let overlay = FailureOverlayNode(size: overlaySize)
         addChild(overlay)
         currentOverlay = overlay
         
-        // Mostrar en la parte inferior
         overlay.show(in: self, overlayPosition: .bottom)
         
-        // Hide after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
             overlay?.hide()
         }
     }
     
-    func getDeviationColor(deviation: Double) -> SKColor {
-        guard audioController.tunerData.isActive else {
-            return .gray
-        }
-        
-        let absDeviation = abs(deviation)
-        if absDeviation <= acceptableDeviation {
-            return .green
-        } else if absDeviation < 15 {
-            return .orange
-        } else {
-            return .red
-        }
-    }
-    
-    // MARK: - Game Setup & Control
-    private func setupAndStart() {
-        // Asegurarnos que todos los elementos de UI estén configurados antes de actualizar
-        if detectedNoteCounterNode == nil {
-            // Si por alguna razón no se ha inicializado, lo hacemos aquí
-            let safePosition = CGPoint(
-                x: min(size.width * 0.9, size.width - DetectedNoteCounterNode.Layout.defaultSize.width),
-                y: size.height * 0.3
-            )
-            detectedNoteCounterNode = DetectedNoteCounterNode.createForRightSideBar(at: safePosition)
-            addChild(detectedNoteCounterNode)
-        }
-        
-        // Iniciar el audio
-        audioController.start()
-        
-        // Iniciar nuevo juego
-        gameEngine.startNewGame()
-        
-        // Iniciar secuencia de bloques cayendo
-            let spawnSequence = SKAction.sequence([
-                SKAction.run { [weak self] in self?.spawnBlock() },
-                SKAction.wait(forDuration: 4.0)
-            ])
-            let spawnRepeat = SKAction.repeat(spawnSequence, count: 6)
-            run(spawnRepeat)
-        
-        // Actualizar la UI inicial
-        updateGameUI()
-    }
-    
-    private func updateGameState() {
-        // Actualizar puntuación
-        topBarNode?.updateScore(gameEngine.score)
-        
-        // Actualizar nota objetivo si existe
-        if let targetNote = gameEngine.targetNote {
-            targetNoteLabel.text = "Nota objetivo: \(targetNote.fullName)"
-        } else {
-            targetNoteLabel.text = "Nota objetivo: -"
-        }
-    }
-    
-    // MARK: - Game Loop
-    override func update(_ currentTime: TimeInterval) {
-        let deltaTime = lastUpdateTime > 0 ? currentTime - lastUpdateTime : 0
-        lastUpdateTime = currentTime
-        
-        // Actualizar la UI general (indicadores de estabilidad, etc.)
-        updateUI()
-        
-        // Actualizar el estado del juego
-        checkNoteAndUpdateScore(deltaTime: deltaTime)
-    }
-    
-    private func handleGameState() {
-        if gameEngine.gameState == .gameOver {
-            handleGameOverState()
-        }
-        // El estado .playing ya se maneja en updateGameUI
-    }
-    
-    private func handleGameOverState() {
-        // Mostrar pantalla de game over
-        // Por ahora solo detenemos el audio
-        audioController.stop()
-    }
-    
-    private func handleGameOver() {
-        audioController.stop()
-        
-        // Limpiar bloques existentes
-            clearBlocks()
-        
-        // Remove previous overlay if exists
+    private func showGameOverOverlay() {
         currentOverlay?.removeFromParent()
         
         let overlaySize = CGSize(width: 400, height: 300)
@@ -702,15 +439,13 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         
         overlay.show(in: self, overlayPosition: .center)
     }
-    
 }
 
-// Extensión para obtener el tamaño de la pantalla
+// MARK: - Environment Values
 private struct ScreenSizeKey: EnvironmentKey {
     static let defaultValue: CGSize = UIScreen.main.bounds.size
 }
 
-// MARK: - Environment Values
 extension EnvironmentValues {
     var screenSize: CGSize {
         get { self[ScreenSizeKey.self] }
@@ -746,9 +481,9 @@ struct MusicBlocksSceneView: View {
     var body: some View {
         GeometryReader { geometry in
             SpriteView(scene: MusicBlocksScene(size: geometry.size))
-                .ignoresSafeArea() // Elimina cualquier margen
-                .frame(maxWidth: .infinity, maxHeight: .infinity) // Ocupa toda la pantalla
-                .navigationBarHidden(true) // Ocultar barra de navegación
+                .ignoresSafeArea()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .navigationBarHidden(true)
         }
     }
 }
@@ -759,8 +494,7 @@ import SwiftUI
 struct MusicBlocksScene_Previews: PreviewProvider {
     static var previews: some View {
         MusicBlocksSceneView()
-            .previewDevice("iPhone 16") // Puedes cambiar el dispositivo para ver diferentes tamaños
+            .previewDevice("iPhone 16")
     }
 }
 #endif
-

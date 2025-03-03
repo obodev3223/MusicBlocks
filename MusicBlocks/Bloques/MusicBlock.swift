@@ -1,6 +1,6 @@
 //
 //  MusicBlock.swift
-//  MusicBlocksPruebas
+//  MusicBlocks
 //
 //  Created by Jose R. García on 4/2/25.
 //
