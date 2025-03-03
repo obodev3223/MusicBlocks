@@ -22,9 +22,9 @@ class BlocksManager {
     private var totalBlocksAppeared = 0
     private weak var mainAreaNode: SKNode?
     private var mainAreaHeight: CGFloat = 0
-    private let tunerEngine: TunerEngine
     private var difficulty: NoteDifficulty = .intermediate
     private var usedNotes: Set<String> = []
+    private var availableNotes: [MusicalNote]
     
     // MARK: - Initialization
     init(blockSize: CGSize = CGSize(width: 270, height: 110),
@@ -35,36 +35,41 @@ class BlocksManager {
         self.blockSpacing = blockSpacing
         self.mainAreaNode = mainAreaNode
         self.mainAreaHeight = mainAreaHeight
-        self.tunerEngine = .shared
+        self.availableNotes = MusicalNote.generateAvailableNotes()
     }
     
     // MARK: - Note Generation
-    private func generateNote() -> TunerEngine.Note? {
-        // Obtener una nota que no se haya usado recientemente
-        var attempts = 0
-        let maxAttempts = 10
-        
-        while attempts < maxAttempts {
-            if let note = tunerEngine.generateRandomNote() {
-                // Si la nota no se ha usado recientemente
+        private func generateNote() -> MusicalNote {
+            var attempts = 0
+            let maxAttempts = 10
+            var filteredNotes = filterNotesByDifficulty(availableNotes)
+            
+            while attempts < maxAttempts {
+                guard let note = filteredNotes.randomElement() else { break }
                 if !usedNotes.contains(note.fullName) {
-                    // Agregar la nota al conjunto de notas usadas
                     usedNotes.insert(note.fullName)
-                    
-                    // Mantener el tamaño del conjunto limitado
                     if usedNotes.count > 4 {
                         usedNotes.remove(usedNotes.first!)
                     }
-                    
                     return note
                 }
+                attempts += 1
             }
-            attempts += 1
+            
+            // Si no encontramos una nota no usada, usar cualquiera
+            return filteredNotes.randomElement() ?? availableNotes[0]
         }
         
-        // Si no podemos encontrar una nota nueva, usar cualquier nota aleatoria
-        return tunerEngine.generateRandomNote()
-    }
+        private func filterNotesByDifficulty(_ notes: [MusicalNote]) -> [MusicalNote] {
+            switch difficulty {
+            case .beginner:
+                return notes.filter { $0.alteration == .natural && $0.octave == 4 }
+            case .intermediate:
+                return notes.filter { $0.octave == 4 }
+            case .advanced:
+                return notes
+            }
+        }
     
     // MARK: - Block Management Methods
     func spawnBlock() {
