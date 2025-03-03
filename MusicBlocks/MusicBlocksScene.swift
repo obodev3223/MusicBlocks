@@ -126,17 +126,16 @@ class MusicBlocksScene: SKScene {
             y: size.height - safeAreaTop - height / 2
         )
         
-        let containerNode = createContainerWithShadow(
-            size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius,
-            position: position,
-            zPosition: 1
-        )
-        addChild(containerNode)
-        
+        // Ya no necesitamos crear un contenedor de sombra aquí porque TopBar maneja su propio fondo
         topBarNode = TopBar.create(width: width, height: height, position: position)
         if let topBar = topBarNode {
+            // Asegurarnos de que la TopBar tenga una zPosition adecuada
+            topBar.zPosition = 100 // Un valor alto para asegurar que esté por encima de otros elementos
             addChild(topBar)
+            
+            // Inicializar con valores por defecto
+            topBar.updateScore(0)
+            topBar.updateLives(3) // O el número inicial de vidas que quieras mostrar
         }
     }
     

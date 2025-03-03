@@ -74,8 +74,12 @@ class TopBar: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
+        // Configurar posiciones relativas al centro de la TopBar
+        let centerY: CGFloat = 0
+        
         // Crear nodo de sombra
         let shadowNode = SKEffectNode()
+        shadowNode.zPosition = 1
         let shadowShape = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
         shadowShape.fillColor = .black
         shadowShape.strokeColor = .clear
@@ -88,6 +92,7 @@ class TopBar: SKNode {
         
         // Crear fondo principal
         let backgroundNode = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
+        backgroundNode.zPosition = 2
         backgroundNode.fillColor = .white
         backgroundNode.strokeColor = .clear
         backgroundNode.alpha = Layout.backgroundAlpha
@@ -96,25 +101,28 @@ class TopBar: SKNode {
         addChild(shadowNode)
         addChild(backgroundNode)
         
-        // Configurar etiqueta de puntuación (a la derecha)
+        // Configurar elementos del score (a la derecha)
         let rightMargin = size.width/2 - Layout.horizontalMargin
         
         // Posicionar estrella
-        scoreIcon.position = CGPoint(x: rightMargin - 120, y: 0)
+        scoreIcon.zPosition = 3
+        scoreIcon.position = CGPoint(x: rightMargin - 120, y: centerY)
         addChild(scoreIcon)
         
         // Posicionar texto "Score:"
-        scoreText.position = CGPoint(x: rightMargin - 85, y: 0)
+        scoreText.zPosition = 3
+        scoreText.position = CGPoint(x: rightMargin - 85, y: centerY)
         addChild(scoreText)
         
         // Posicionar número de puntuación
-        scoreLabel.position = CGPoint(x: rightMargin - 30, y: 0)
+        scoreLabel.zPosition = 3
+        scoreLabel.position = CGPoint(x: rightMargin - 30, y: centerY)
         addChild(scoreLabel)
         
         // Crear corazones de vida (a la izquierda)
         setupHearts()
     }
-    
+
     private func setupHearts() {
         // Eliminar corazones existentes
         for heart in heartNodes {
@@ -124,20 +132,24 @@ class TopBar: SKNode {
         
         // Calcular posición inicial (izquierda)
         let startX = -size.width/2 + Layout.horizontalMargin + Layout.heartSize/2
+        let centerY: CGFloat = 0
         
         // Crear corazones según maxLives
         for i in 0..<maxLives {
-            let heart = SKLabelNode(text: "♥︎") // Utilizamos el símbolo básico de corazón
+            let heart = SKLabelNode(text: "❤️") // Usar emoji para mejor visualización
             heart.fontSize = Layout.heartSize
-            heart.fontColor = .red
             heart.verticalAlignmentMode = .center
+            heart.zPosition = 3
             heart.position = CGPoint(
                 x: startX + CGFloat(i) * (Layout.heartSize + Layout.heartSpacing),
-                y: 0
+                y: centerY
             )
             addChild(heart)
             heartNodes.append(heart)
         }
+        
+        // Actualizar visualización inicial de los corazones
+        updateLives(lives)
     }
     
     // MARK: - Public Methods

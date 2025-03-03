@@ -8,6 +8,13 @@
 import SpriteKit
 
 class BlocksManager {
+    // MARK: - Types
+    enum NoteDifficulty {
+        case beginner    // Solo notas naturales en una octava
+        case intermediate // Notas naturales y alteraciones simples
+        case advanced    // Todas las notas y alteraciones
+    }
+    
     // MARK: - Properties
     private let blockSize: CGSize
     private let blockSpacing: CGFloat
@@ -15,6 +22,9 @@ class BlocksManager {
     private var totalBlocksAppeared = 0
     private weak var mainAreaNode: SKNode?
     private var mainAreaHeight: CGFloat = 0
+    private let tunerEngine: TunerEngine
+    private var difficulty: NoteDifficulty = .intermediate
+    private var usedNotes: Set<String> = []
     
     // MARK: - Initialization
     init(blockSize: CGSize = CGSize(width: 270, height: 110),
@@ -25,6 +35,35 @@ class BlocksManager {
         self.blockSpacing = blockSpacing
         self.mainAreaNode = mainAreaNode
         self.mainAreaHeight = mainAreaHeight
+        self.tunerEngine = .shared
+    }
+    
+    // MARK: - Note Generation
+    private func generateNote() -> TunerEngine.Note? {
+        // Obtener una nota que no se haya usado recientemente
+        var attempts = 0
+        let maxAttempts = 10
+        
+        while attempts < maxAttempts {
+            if let note = tunerEngine.generateRandomNote() {
+                // Si la nota no se ha usado recientemente
+                if !usedNotes.contains(note.fullName) {
+                    // Agregar la nota al conjunto de notas usadas
+                    usedNotes.insert(note.fullName)
+                    
+                    // Mantener el tamaño del conjunto limitado
+                    if usedNotes.count > 4 {
+                        usedNotes.remove(usedNotes.first!)
+                    }
+                    
+                    return note
+                }
+            }
+            attempts += 1
+        }
+        
+        // Si no podemos encontrar una nota nueva, usar cualquier nota aleatoria
+        return tunerEngine.generateRandomNote()
     }
     
     // MARK: - Block Management Methods
@@ -130,8 +169,8 @@ class BlocksManager {
         container.addChild(background)
         blockNode.addChild(container)
         
-        // Generar una nota aleatoria usando TunerEngine
-        if let randomNote = TunerEngine.shared.generateRandomNote() {
+        // Generar una nota usando nuestro propio generador
+        if let randomNote = generateNote() {
             // Generar el contenido visual del bloque con la nota
             let contentNode = BlockContentGenerator.generateBlockContent(
                 with: blockStyle,
@@ -149,6 +188,16 @@ class BlocksManager {
         }
         
         return blockNode
+    }
+    
+    // MARK: - Public Methods
+    func setDifficulty(_ difficulty: NoteDifficulty) {
+        self.difficulty = difficulty
+        usedNotes.removeAll()
+    }
+    
+    func getCurrentNote() -> String? {
+        return blocks.first?.userData?.value(forKey: "noteName") as? String
     }
     
     func clearBlocks() {

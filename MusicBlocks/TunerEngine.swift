@@ -66,14 +66,8 @@ class TunerEngine {
     
     // MARK: - Properties
     
-    private let concertPitch: Double = 442.0
-    private let availableNotes: [Note]
-    
-    // MARK: - Initialization
-    
-    private init() {
-        self.availableNotes = TunerEngine.generateAvailableNotes()
-    }
+    private let concertPitch: Double = 442.0   
+
     
     // MARK: - Public Methods
     
@@ -93,11 +87,7 @@ class TunerEngine {
             isActive: true
         )
     }
-    
-    /// Genera una nota aleatoria para práctica
-    func generateRandomNote() -> Note? {
-        return availableNotes.randomElement()
-    }
+
     
     /// Parsea una nota desde string
     func parseNote(_ noteString: String) -> Note? {
