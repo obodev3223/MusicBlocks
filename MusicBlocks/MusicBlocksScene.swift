@@ -89,14 +89,14 @@ class MusicBlocksScene: SKScene {
     private let acceptableDeviation: Double = 10.0
     
     // Para manejar los bloques musicales
-    private let blockSize = CGSize(width: 280, height: 120)
-    private let blockSpacing: CGFloat = 5.0
+    private let blockSize = CGSize(width: 270, height: 100)
+    private let blockSpacing: CGFloat = 2.0
     private var blocks: [SKNode] = []
     private var totalBlocksAppeared = 0
         
     // Para controlar el tiempo de aparición de bloques
     private var lastBlockSpawnTime: TimeInterval = 0
-    private let blockSpawnInterval: TimeInterval = 4.0  // Cada 4 segundos
+    private let blockSpawnInterval: TimeInterval = 6.0  // Cada 4 segundos
     
     // Posición superior para los bloques
 
@@ -221,28 +221,33 @@ class MusicBlocksScene: SKScene {
     }
         
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-        // Guardar dimensiones para usarlas después
-        mainAreaWidth = width
-        mainAreaHeight = height
-        
-        let containerNode = createContainerWithShadow(
-            size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius,
-            position: CGPoint(
-                x: size.width/2,
-                y: size.height/2 - (Layout.verticalSpacing/2)
-            ),
-            zPosition: 1
-        )
-        
-        // Asegurar que el contenido del mainArea esté por encima del fondo
-        let mainContent = SKNode()
-        mainContent.zPosition = 2 // Por encima del fondo del mainArea
-        containerNode.addChild(mainContent)
-        
-        mainAreaNode = mainContent  // Ahora mainAreaNode apunta al nodo de contenido
-        addChild(containerNode)
-    }
+            // Guardar dimensiones para usarlas después
+            mainAreaWidth = width
+            mainAreaHeight = height
+            
+            // Crear el contenedor del área principal
+            let containerNode = createContainerWithShadow(
+                size: CGSize(width: width, height: height),
+                cornerRadius: Layout.cornerRadius,
+                position: CGPoint(
+                    x: size.width/2,
+                    y: size.height/2 - (Layout.verticalSpacing/2)
+                ),
+                zPosition: 1
+            )
+            
+            // Crear un nodo para el contenido que estará por encima del fondo
+            let mainContent = SKNode()
+            mainContent.zPosition = 2
+            
+            // Ajustar la posición del contenido para que se centre en el área principal
+            mainContent.position = .zero
+            
+            containerNode.addChild(mainContent)
+            mainAreaNode = mainContent
+            
+            addChild(containerNode)
+        }
     
     
     /// Configura las barras laterales con indicadores
@@ -252,10 +257,6 @@ class MusicBlocksScene: SKScene {
             x: Layout.margins.left + width/2,
             y: size.height/2 - (Layout.verticalSpacing/2)
         )
-        
-        // Posición del área principal para cálculos de espacio
-        let mainAreaY = size.height/2 - (Layout.verticalSpacing/2)
-        let mainAreaHeight = size.height * Layout.mainAreaHeightRatio
         
         // Se crea el contenedor de la barra lateral izquierda
         let leftBar = createContainerWithShadow(
@@ -449,7 +450,7 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     
     //Método para generar un nuevo bloque
     private func spawnBlock() {
-        if blocks.count >= 6 { return }  // Máximo 6 bloques en pantalla
+        if blocks.count >= 6 { return }
         
         let moveDuration = 0.5
         let moveDistance = blockSize.height + blockSpacing
@@ -464,22 +465,18 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         // Crear nuevo bloque con nota aleatoria
         let newBlock = createBlock()
         
-        // Calcular la posición inicial relativa al mainArea
-        // El punto (0,0) del mainArea está en su centro
-        let startY = mainAreaHeight/2 - blockSize.height/2 - blockSpacing
+        // Calcular la posición inicial - ahora solo sumamos un pequeño offset para la animación
+        let startY = (mainAreaHeight/2) - (blockSize.height/2) - blockSpacing
         newBlock.position = CGPoint(
-            x: 0, // Centro horizontal del mainArea
-            y: startY + moveDistance // Posición inicial un poco más arriba
+            x: 0,
+            y: startY + 10 // Un pequeño offset para la animación de entrada
         )
         
         // Añadir al área principal
         mainAreaNode.addChild(newBlock)
         
         // Animar la entrada del bloque a su posición final
-        let moveToSlot = SKAction.moveTo(
-            y: startY, // Posición final
-            duration: moveDuration
-        )
+        let moveToSlot = SKAction.moveTo(y: startY, duration: moveDuration)
         moveToSlot.timingMode = .easeInEaseOut
         newBlock.run(moveToSlot)
         
