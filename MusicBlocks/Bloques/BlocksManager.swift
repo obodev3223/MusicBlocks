@@ -194,15 +194,16 @@ class BlocksManager {
                 color: shadowColor,
                 offset: shadowOffset,
                 blur: shadowBlur,
-                cornerRadius: style.cornerRadius  // Añadir el parámetro cornerRadius
+                cornerRadius: style.cornerRadius
             )
-            
-            // Crear fondo del bloque
-            let background = createBackground(with: style)
-            container.addChild(background)
-            
-            return container
+            container.addChild(shadowNode)
         }
+        
+        // Crear fondo del bloque
+        let background = createBackground(with: style)
+        container.addChild(background)
+        
+        return container
     }
     
     private func createShadowNode(color: SKColor, offset: CGSize, blur: CGFloat, cornerRadius: CGFloat) -> SKNode {

@@ -10,18 +10,18 @@ import Foundation
 class GameEngine: ObservableObject {
     // MARK: - Published Properties
     @Published var score: Int = 0
-    @Published var lives: Int = 3
+    @Published var lives: Int = 0 // Se inicializará con el valor del nivel
     @Published var targetNote: MusicalNote?
     @Published var gameState: GameState = .playing
     @Published var noteState: NoteState = .waiting
     
-    // MARK: - Public Properties
-    let maxLives: Int = 2
-    
     // MARK: - Private Properties
-    private let tunerEngine: TunerEngine
-    private let availableNotes: [MusicalNote]
-    private var noteMatchTime: TimeInterval = 0
+        private let tunerEngine: TunerEngine
+        private let gameManager = GameManager.shared
+        private var noteMatchTime: TimeInterval = 0
+        private var maxExtraLives: Int = 0 // Se obtendrá del nivel actual
+        private var scoreThresholdsForExtraLives: [Int] = [] // Se obtendrá del nivel actual
+        
     
     // Constantes para tiempos
     private let requiredMatchTime: TimeInterval = 1.0
@@ -29,12 +29,11 @@ class GameEngine: ObservableObject {
     private let noteGenerationDelay: TimeInterval = 2.0
     private let minimalNoteDetectionTime: TimeInterval = 0.5
     private let acceptableDeviation: Double = 10.0
-    
-    // Umbral de tiempo para confirmar silencio
-    private let silenceThreshold: TimeInterval = 0.3
-    private var lastSilenceTime: Date?
+
     
     // Estado de detección de notas
+    private let silenceThreshold: TimeInterval = 0.3
+    private var lastSilenceTime: Date?
     private var currentNoteStartTime: Date?
     private var lastErrorTime: Date?
     private var isShowingError: Bool = false
@@ -72,7 +71,6 @@ class GameEngine: ObservableObject {
     // MARK: - Initialization
     init(tunerEngine: TunerEngine = .shared) {
         self.tunerEngine = tunerEngine
-        self.availableNotes = MusicalNote.generateAvailableNotes()
         setupGame()
     }
     
@@ -143,8 +141,21 @@ class GameEngine: ObservableObject {
         }
     }
     
-    // MARK: - Private Methods
+
+    // MARK: - Game Setup
     private func setupGame() {
+        guard let currentLevel = gameManager.currentLevel else {
+            print("Error: No hay nivel actual configurado")
+            return
+        }
+        
+        // Inicializar vidas desde la configuración del nivel
+        lives = currentLevel.lives.initial
+        
+        // Configurar vidas extra
+        maxExtraLives = currentLevel.lives.extraLives.maxExtra
+        scoreThresholdsForExtraLives = currentLevel.lives.extraLives.scoreThresholds
+        
         startNewGame()
     }
     
@@ -169,15 +180,33 @@ class GameEngine: ObservableObject {
         return 1.0 - (absDeviation / acceptableDeviation)
     }
     
-    private func getScoreMultiplier(accuracy: Double) -> (Int, String) {
-        if accuracy >= ScoreThresholds.perfect {
-            return (ScoreMultipliers.perfect, "Excelente")
-        } else if accuracy >= ScoreThresholds.excellent {
-            return (ScoreMultipliers.excellent, "Perfecto")
-        } else if accuracy >= ScoreThresholds.good {
-            return (ScoreMultipliers.good, "Bien")
+    private func calculateScore(accuracy: Double, blockBasePoints: Int) -> (score: Int, message: String) {
+            guard let thresholds = gameManager.gameConfig?.accuracyThresholds else {
+                return (blockBasePoints, "Good") // Valor por defecto si no hay configuración
+            }
+            
+            if accuracy >= thresholds.perfect.threshold {
+                return (Int(Double(blockBasePoints) * thresholds.perfect.multiplier), "Excelente!")
+            } else if accuracy >= thresholds.excellent.threshold {
+                return (Int(Double(blockBasePoints) * thresholds.excellent.multiplier), "Perfecto!")
+            } else if accuracy >= thresholds.good.threshold {
+                return (Int(Double(blockBasePoints) * thresholds.good.multiplier), "Bien")
+            }
+            
+            return (0, "Fallo") // Sin puntuación si no alcanza el umbral mínimo
         }
-        return (1, "Bien")  // Valor por defecto en lugar de (0, "")
+    
+    private func checkForExtraLife(currentScore: Int) {
+        for threshold in scoreThresholdsForExtraLives {
+            if currentScore >= threshold && lives < (gameManager.currentLevel?.lives.initial ?? 3) + maxExtraLives {
+                lives += 1
+                // Eliminar el threshold usado para no dar vidas extra repetidas
+                if let index = scoreThresholdsForExtraLives.firstIndex(of: threshold) {
+                    scoreThresholdsForExtraLives.remove(at: index)
+                }
+                break
+            }
+        }
     }
     
     private func handleWrongNote() {
@@ -202,21 +231,21 @@ class GameEngine: ObservableObject {
         }
     }
     
-    private func handleSuccess(deviation: Double) {
+    private func handleSuccess(deviation: Double, blockConfig: Block) {
         isInSuccessState = true
         
-        // Calcular la precisión y el multiplicador
+        // Calcular la precisión y la puntuación
         let accuracy = calculateAccuracy(deviation: deviation)
-        let (multiplier, message) = getScoreMultiplier(accuracy: accuracy)
+        let (scorePoints, message) = calculateScore(accuracy: accuracy, blockBasePoints: blockConfig.basePoints)
         
-        // Solo sumar puntuación si hay multiplicador
-        if multiplier > 0 {
-            let finalScore = baseScore * multiplier
-            score += finalScore
-        }
+        // Actualizar puntuación
+        score += scorePoints
         
-        // Actualizar el estado con el mensaje y multiplicador
-        noteState = .success(multiplier: multiplier, message: message)
+        // Comprobar si corresponde vida extra
+        checkForExtraLife(currentScore: score)
+        
+        // Actualizar el estado con el mensaje
+        noteState = .success(multiplier: scorePoints / blockConfig.basePoints, message: message)
         
         // Programar la siguiente nota
         DispatchQueue.main.asyncAfter(deadline: .now() + noteGenerationDelay) { [weak self] in

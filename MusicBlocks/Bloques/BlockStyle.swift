@@ -10,8 +10,6 @@ import SpriteKit
 struct BlockStyle {
     // Identificador y propiedades básicas
     let name: String
-    let requiredHits: Int
-    let initialAlpha: CGFloat
     
     // Relleno y borde
     let backgroundColor: SKColor
@@ -42,8 +40,6 @@ struct BlockStyle {
 extension BlockStyle {
     static let defaultBlock = BlockStyle(
         name: "defaultBlock",
-        requiredHits: 1,
-        initialAlpha: 1.0,
         backgroundColor: .white,
         borderColor: .black,
         borderWidth: 5.0,
@@ -59,8 +55,6 @@ extension BlockStyle {
     
     static let iceBlock = BlockStyle(
         name: "iceBlock",
-        requiredHits: 2,
-        initialAlpha: 0.9,
         backgroundColor: SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.5),
         borderColor: SKColor(red: 0.5, green: 0.7, blue: 0.9, alpha: 1.0),
         borderWidth: 5.0,
@@ -76,8 +70,6 @@ extension BlockStyle {
     
     static let hardiceBlock = BlockStyle(
         name: "hardiceBlock",
-        requiredHits: 3,
-        initialAlpha: 0.9,
         backgroundColor: SKColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0),
         borderColor: SKColor.blue,
         borderWidth: 5.0,
@@ -93,8 +85,6 @@ extension BlockStyle {
     
     static let ghostBlock = BlockStyle(
         name: "ghostBlock",
-        requiredHits: 1,
-        initialAlpha: 0.7,
         backgroundColor: SKColor(white: 0.9, alpha: 0.5),
         borderColor: SKColor(white: 0.8, alpha: 0.7),
         borderWidth: 5.0,
@@ -110,8 +100,6 @@ extension BlockStyle {
     
     static let changingBlock = BlockStyle(
         name: "changingBlock",
-        requiredHits: 1,
-        initialAlpha: 1.0,
         backgroundColor: SKColor(red: 0.8, green: 0.6, blue: 1.0, alpha: 1.0),
         borderColor: SKColor.magenta,
         borderWidth: 5.0,
@@ -127,8 +115,6 @@ extension BlockStyle {
     
     static let explosiveBlock = BlockStyle(
         name: "explosiveBlock",
-        requiredHits: 1,
-        initialAlpha: 1.0,
         backgroundColor: SKColor(red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0),
         borderColor: SKColor.red,
         borderWidth: 5.0,
