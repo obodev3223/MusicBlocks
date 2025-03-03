@@ -11,7 +11,7 @@ class GameEngine: ObservableObject {
     // MARK: - Published Properties
     @Published var score: Int = 0
     @Published var lives: Int = 3
-    @Published var targetNote: TunerEngine.Note?
+    @Published var targetNote: MusicalNote?
     @Published var gameState: GameState = .playing
     @Published var noteState: NoteState = .waiting
     
@@ -20,17 +20,17 @@ class GameEngine: ObservableObject {
     
     // MARK: - Private Properties
     private let tunerEngine: TunerEngine
-    
+    private let availableNotes: [MusicalNote]
     private var noteMatchTime: TimeInterval = 0
     
     // Constantes para tiempos
     private let requiredMatchTime: TimeInterval = 1.0
-    private let errorDisplayTime: TimeInterval = 2.0  // Tiempo que se muestra el error
-    private let noteGenerationDelay: TimeInterval = 2.0  // Tiempo antes de generar nueva nota
-    private let minimalNoteDetectionTime: TimeInterval = 0.5  // Tiempo mínimo para considerar una nota
+    private let errorDisplayTime: TimeInterval = 2.0
+    private let noteGenerationDelay: TimeInterval = 2.0
+    private let minimalNoteDetectionTime: TimeInterval = 0.5
     private let acceptableDeviation: Double = 10.0
     
-    // Añadir umbral de tiempo para confirmar silencio
+    // Umbral de tiempo para confirmar silencio
     private let silenceThreshold: TimeInterval = 0.3
     private var lastSilenceTime: Date?
     
@@ -38,23 +38,22 @@ class GameEngine: ObservableObject {
     private var currentNoteStartTime: Date?
     private var lastErrorTime: Date?
     private var isShowingError: Bool = false
-    private var currentDetectedNote: TunerEngine.Note?
+    private var currentDetectedNote: MusicalNote?
     private var isInSuccessState: Bool = false
     
-    // Añadir constantes para los umbrales de puntuación
+    // Umbrales de puntuación
     private struct ScoreThresholds {
-        static let good = 0.60     // 60% de precisión
-        static let excellent = 0.80 // 80% de precisión
-        static let perfect = 0.95   // 95% de precisión
-    }
-
-    private struct ScoreMultipliers {
-        static let good = 1      // x1 para buena afinación
-        static let excellent = 2 // x2 para excelente afinación
-        static let perfect = 3   // x3 para afinación perfecta
+        static let good = 0.60
+        static let excellent = 0.80
+        static let perfect = 0.95
     }
     
-    // Puntuación base por nota correcta
+    private struct ScoreMultipliers {
+        static let good = 1
+        static let excellent = 2
+        static let perfect = 3
+    }
+    
     private let baseScore = 100
     
     // MARK: - Types
@@ -73,6 +72,7 @@ class GameEngine: ObservableObject {
     // MARK: - Initialization
     init(tunerEngine: TunerEngine = .shared) {
         self.tunerEngine = tunerEngine
+        self.availableNotes = MusicalNote.generateAvailableNotes()
         setupGame()
     }
     
@@ -93,7 +93,7 @@ class GameEngine: ObservableObject {
         generateNewNote()
     }
     
-    func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
+    private func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
         // No procesar nada si el juego no está activo o estamos en estado de éxito
         guard gameState == .playing && !isInSuccessState else { return }
         
@@ -113,22 +113,16 @@ class GameEngine: ObservableObject {
         // Si hay señal activa, resetear el tiempo de silencio
         lastSilenceTime = nil
         
-        guard let parsedNote = tunerEngine.parseNote(currentNote),
+        guard let parsedNote = MusicalNote.parse(currentNote),
               let target = targetNote else {
             resetNoteDetection()
             return
         }
         
         // Si es una nota nueva diferente a la que estábamos detectando
-        if currentDetectedNote != parsedNote {
+        if currentDetectedNote?.fullName != parsedNote.fullName {
             currentDetectedNote = parsedNote
             currentNoteStartTime = Date()
-            return
-        }
-        
-        // Verificar el tiempo mínimo de detección
-        guard let startTime = currentNoteStartTime,
-              Date().timeIntervalSince(startTime) >= minimalNoteDetectionTime else {
             return
         }
         
@@ -154,26 +148,27 @@ class GameEngine: ObservableObject {
         startNewGame()
     }
     
+    
     private func generateNewNote() {
         guard !isShowingError && !isInSuccessState else { return }
         
         resetNoteDetection()
-        targetNote = tunerEngine.generateRandomNote()
+        targetNote = availableNotes.randomElement()
         noteState = .waiting
     }
     
     private func calculateAccuracy(deviation: Double) -> Double {
-            let absDeviation = abs(deviation)
-            
-            // Siempre devolver un valor entre 0 y 1, incluso si la desviación es mayor
-            // que la aceptable, para permitir diferentes niveles de puntuación
-            if absDeviation > acceptableDeviation {
-                return 0.0
-            }
-            
-            return 1.0 - (absDeviation / acceptableDeviation)
+        let absDeviation = abs(deviation)
+        
+        // Siempre devolver un valor entre 0 y 1, incluso si la desviación es mayor
+        // que la aceptable, para permitir diferentes niveles de puntuación
+        if absDeviation > acceptableDeviation {
+            return 0.0
         }
-
+        
+        return 1.0 - (absDeviation / acceptableDeviation)
+    }
+    
     private func getScoreMultiplier(accuracy: Double) -> (Int, String) {
         if accuracy >= ScoreThresholds.perfect {
             return (ScoreMultipliers.perfect, "Excelente")
@@ -230,31 +225,31 @@ class GameEngine: ObservableObject {
             self.generateNewNote()
         }
     }
-
+    
     private func resetNoteDetection() {
-            currentDetectedNote = nil
-            currentNoteStartTime = nil
-            noteMatchTime = 0
-            if !isShowingError && !isInSuccessState {
-                noteState = .waiting
-            }
+        currentDetectedNote = nil
+        currentNoteStartTime = nil
+        noteMatchTime = 0
+        if !isShowingError && !isInSuccessState {
+            noteState = .waiting
         }
-
+    }
+    
     private func handleFailure() {
-            lives -= 1
-            
-            if lives <= 0 {
-                gameState = .gameOver
-                stopGame()
-                return
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                guard let self = self,
-                      self.gameState == .playing else { return }
-                self.generateNewNote()
-            }
+        lives -= 1
+        
+        if lives <= 0 {
+            gameState = .gameOver
+            stopGame()
+            return
         }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self,
+                  self.gameState == .playing else { return }
+            self.generateNewNote()
+        }
+    }
     
     private func stopGame() {
         // Limpiar todos los estados

@@ -8,13 +8,6 @@
 import SpriteKit
 
 class BlocksManager {
-    // MARK: - Types
-    enum NoteDifficulty {
-        case beginner    // Solo notas naturales en una octava
-        case intermediate // Notas naturales y alteraciones simples
-        case advanced    // Todas las notas y alteraciones
-    }
-    
     // MARK: - Properties
     private let blockSize: CGSize
     private let blockSpacing: CGFloat
@@ -22,8 +15,6 @@ class BlocksManager {
     private var totalBlocksAppeared = 0
     private weak var mainAreaNode: SKNode?
     private var mainAreaHeight: CGFloat = 0
-    private var difficulty: NoteDifficulty = .intermediate
-    private var usedNotes: Set<String> = []
     private var availableNotes: [MusicalNote]
     
     // MARK: - Initialization
@@ -39,38 +30,11 @@ class BlocksManager {
     }
     
     // MARK: - Note Generation
-        private func generateNote() -> MusicalNote {
-            var attempts = 0
-            let maxAttempts = 10
-            var filteredNotes = filterNotesByDifficulty(availableNotes)
+
+    private func generateNote() -> MusicalNote {
+        return availableNotes.randomElement() ?? availableNotes[0]
+    }
             
-            while attempts < maxAttempts {
-                guard let note = filteredNotes.randomElement() else { break }
-                if !usedNotes.contains(note.fullName) {
-                    usedNotes.insert(note.fullName)
-                    if usedNotes.count > 4 {
-                        usedNotes.remove(usedNotes.first!)
-                    }
-                    return note
-                }
-                attempts += 1
-            }
-            
-            // Si no encontramos una nota no usada, usar cualquiera
-            return filteredNotes.randomElement() ?? availableNotes[0]
-        }
-        
-        private func filterNotesByDifficulty(_ notes: [MusicalNote]) -> [MusicalNote] {
-            switch difficulty {
-            case .beginner:
-                return notes.filter { $0.alteration == .natural && $0.octave == 4 }
-            case .intermediate:
-                return notes.filter { $0.octave == 4 }
-            case .advanced:
-                return notes
-            }
-        }
-    
     // MARK: - Block Management Methods
     func spawnBlock() {
         guard let mainAreaNode = mainAreaNode else {
@@ -174,33 +138,26 @@ class BlocksManager {
         container.addChild(background)
         blockNode.addChild(container)
         
-        // Generar una nota usando nuestro propio generador
-        if let randomNote = generateNote() {
-            // Generar el contenido visual del bloque con la nota
-            let contentNode = BlockContentGenerator.generateBlockContent(
-                with: blockStyle,
-                blockSize: blockSize,
-                desiredNote: randomNote,
-                baseNoteX: 0,
-                baseNoteY: 0
-            )
-            contentNode.zPosition = 3
-            blockNode.addChild(contentNode)
-            
-            // Almacenar la nota en los datos de usuario del nodo
-            blockNode.userData = NSMutableDictionary()
-            blockNode.userData?.setValue(randomNote.fullName, forKey: "noteName")
-        }
-        
-        return blockNode
-    }
+        // Generar una nota y crear su contenido visual
+                let randomNote = generateNote()
+                let contentNode = BlockContentGenerator.generateBlockContent(
+                    with: blockStyle,
+                    blockSize: blockSize,
+                    desiredNote: randomNote,
+                    baseNoteX: 0,
+                    baseNoteY: 0
+                )
+                contentNode.zPosition = 3
+                blockNode.addChild(contentNode)
+                
+                // Almacenar la nota en los datos de usuario del nodo
+                blockNode.userData = NSMutableDictionary()
+                blockNode.userData?.setValue(randomNote.fullName, forKey: "noteName")
+                
+                return blockNode
+            }
     
     // MARK: - Public Methods
-    func setDifficulty(_ difficulty: NoteDifficulty) {
-        self.difficulty = difficulty
-        usedNotes.removeAll()
-    }
-    
     func getCurrentNote() -> String? {
         return blocks.first?.userData?.value(forKey: "noteName") as? String
     }

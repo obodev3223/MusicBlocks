@@ -12,24 +12,15 @@ import SpriteKit
 struct BlockContentGenerator {
     
     /// Genera el contenido visual de un bloque.
-    ///
-    /// - Parameters:
-    ///   - style: El estilo del bloque (por ejemplo, BlockStyle.defaultBlock).
-    ///   - blockSize: El tamaño del bloque.
-    ///   - desiredNote: La nota que se quiere visualizar (de tipo MusicalNote).
-    ///   - baseNoteX: Posición base en X para la nota (ajústala según tu diseño).
-    ///   - baseNoteY: Posición base en Y para la nota.
-    ///   - leftMargin: Margen izquierdo para dibujar el pentagrama.
-    ///   - rightMargin: Margen derecho para el pentagrama.
-    /// - Returns: Un SKNode con todo el contenido (pentagrama, clave, nota, accidentales y ledger lines).
-    static func generateBlockContent(with style: BlockStyle,
-                                     blockSize: CGSize,
-                                     desiredNote: MusicalNote,
-                                     baseNoteX: CGFloat,
-                                     baseNoteY: CGFloat,
-                                     leftMargin: CGFloat = 20,
-                                     rightMargin: CGFloat = 20) -> SKNode {
-        
+    static func generateBlockContent(
+        with style: BlockStyle,
+        blockSize: CGSize,
+        desiredNote: MusicalNote,
+        baseNoteX: CGFloat,
+        baseNoteY: CGFloat,
+        leftMargin: CGFloat = 20,
+        rightMargin: CGFloat = 20
+    ) -> SKNode {
         let contentNode = SKNode()
         
         // MARK: PENTAGRAMA
@@ -61,24 +52,25 @@ struct BlockContentGenerator {
         // MARK: NOTA
         // --- Añadir la nota en forma de imagen ---
         // Se calcula la posición final de la nota sumando un offset personalizado.
-        let notePosition = CGPoint(x: baseNoteX + desiredNote.offset.x,
-                                   y: baseNoteY + desiredNote.offset.y)
-        
-        let noteImage = SKSpriteNode(imageNamed: "wholeNote")
-        noteImage.size = CGSize(width: 23, height: 23)
-        noteImage.position = notePosition
-        noteImage.zPosition = 3
-        contentNode.addChild(noteImage)
+        let noteOffset = getNoteOffset(for: desiredNote)
+                let notePosition = CGPoint(x: baseNoteX + noteOffset.x,
+                                         y: baseNoteY + noteOffset.y)
+                
+                let noteImage = SKSpriteNode(imageNamed: "wholeNote")
+                noteImage.size = CGSize(width: 23, height: 23)
+                noteImage.position = notePosition
+                noteImage.zPosition = 3
+                contentNode.addChild(noteImage)
     
         // MARK: ALTERACIONES
         // --- Visualización de accidentales (sostenido o bemol) ---
-        if desiredNote.rawValue.contains("#") {
+        if desiredNote.alteration == .sharp {
                     let accidentalImage = SKSpriteNode(imageNamed: "sharp")
                     accidentalImage.size = CGSize(width: 45, height: 65)
                     accidentalImage.position = CGPoint(x: notePosition.x - 25, y: notePosition.y)
                     accidentalImage.zPosition = 3.5
                     contentNode.addChild(accidentalImage)
-                } else if desiredNote.rawValue.contains("b") {
+                } else if desiredNote.alteration == .flat {
                     let accidentalImage = SKSpriteNode(imageNamed: "flat")
                     accidentalImage.size = CGSize(width: 45, height: 65)
                     accidentalImage.position = CGPoint(x: notePosition.x - 25, y: notePosition.y)
@@ -92,6 +84,27 @@ struct BlockContentGenerator {
         
         return contentNode
     }
+    
+    private static func getNoteOffset(for note: MusicalNote) -> CGPoint {
+           // Tabla que mapea la combinación de nombre de nota y octava a su offset vertical
+           let baseOffsets: [String: CGFloat] = [
+               "DO": -36,
+               "RE": -30,
+               "MI": -24,
+               "FA": -18,
+               "SOL": -12,
+               "LA": -6,
+               "SI": 0
+           ]
+           
+           guard let baseOffset = baseOffsets[note.name] else {
+               return .zero
+           }
+           
+           // Ajustar el offset según la octava
+           let octaveOffset = CGFloat(note.octave - 4) * 42
+           return CGPoint(x: 0, y: baseOffset + octaveOffset)
+       }
     
     /// Dibuja ledger lines (líneas adicionales) si la nota se sale del pentagrama.
     ///
@@ -117,10 +130,13 @@ struct BlockContentGenerator {
         }
         
         // Para "Do6" y "La3", dibujamos dos ledger lines.
-                if note == .do6 {
+        let isHigh = note.name == "DO" && note.octave == 6
+                let isLow = note.name == "LA" && note.octave == 3
+                
+                if isHigh {
                     createLedgerLine(at: staffTop + 6)
                     createLedgerLine(at: staffTop + 18)
-                } else if note == .la3 {
+                } else if isLow {
                     createLedgerLine(at: staffBottom - 6)
                     createLedgerLine(at: staffBottom - 18)
                 } else {

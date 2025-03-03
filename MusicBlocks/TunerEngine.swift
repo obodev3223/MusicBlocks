@@ -29,9 +29,6 @@ class TunerEngine {
         
         // MARK: - Properties
         private let concertPitch: Double = 442.0
-
-    
-    // MARK: - Public Methods
     
     // MARK: - Public Methods
         /// Procesa una frecuencia y amplitud para obtener datos de afinación
