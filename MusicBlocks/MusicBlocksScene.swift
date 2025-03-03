@@ -99,9 +99,10 @@ class MusicBlocksScene: SKScene {
     private let blockSpawnInterval: TimeInterval = 4.0  // Cada 4 segundos
     
     // Posición superior para los bloques
+
     private var topSlotY: CGFloat {
-        // Calcular basado en la posición del área principal
-        return size.height/2 + mainAreaHeight/2 - blockSize.height/2 - blockSpacing
+        // Calculado relativo al mainArea
+        return mainAreaHeight/2 - blockSize.height/2 - blockSpacing
     }
 
     // Variables para almacenar información del área principal
@@ -452,17 +453,22 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         // Crear nuevo bloque con nota aleatoria
         let newBlock = createBlock()
         
-        // Posicionarlo inicialmente fuera de la pantalla (arriba)
+        // Calcular la posición inicial relativa al mainArea
+        // El punto (0,0) del mainArea está en su centro
+        let startY = mainAreaHeight/2 - blockSize.height/2 - blockSpacing
         newBlock.position = CGPoint(
-            x: mainAreaWidth/2,
-            y: topSlotY + moveDistance
+            x: 0, // Centro horizontal del mainArea
+            y: startY + moveDistance // Posición inicial un poco más arriba
         )
         
         // Añadir al área principal
         mainAreaNode.addChild(newBlock)
         
-        // Animar la entrada del bloque
-        let moveToSlot = SKAction.moveTo(y: topSlotY, duration: moveDuration)
+        // Animar la entrada del bloque a su posición final
+        let moveToSlot = SKAction.moveTo(
+            y: startY, // Posición final
+            duration: moveDuration
+        )
         moveToSlot.timingMode = .easeInEaseOut
         newBlock.run(moveToSlot)
         
