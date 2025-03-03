@@ -190,15 +190,52 @@ class BlocksManager {
         if let shadowColor = style.shadowColor,
            let shadowOffset = style.shadowOffset,
            let shadowBlur = style.shadowBlur {
-            let shadowNode = createShadowNode(color: shadowColor, offset: shadowOffset, blur: shadowBlur)
-            container.addChild(shadowNode)
+            let shadowNode = createShadowNode(
+                color: shadowColor,
+                offset: shadowOffset,
+                blur: shadowBlur,
+                cornerRadius: style.cornerRadius  // Añadir el parámetro cornerRadius
+            )
+            
+            // Crear fondo del bloque
+            let background = createBackground(with: style)
+            container.addChild(background)
+            
+            return container
+        }
+    }
+    
+    private func createShadowNode(color: SKColor, offset: CGSize, blur: CGFloat, cornerRadius: CGFloat) -> SKNode {
+        let shadowNode = SKEffectNode()
+        shadowNode.shouldRasterize = true
+        shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": blur])
+        shadowNode.zPosition = 1
+        
+        let shadowShape = SKShapeNode(rectOf: blockSize, cornerRadius: cornerRadius) // Usar el parámetro cornerRadius
+        shadowShape.fillColor = color
+        shadowShape.strokeColor = SKColor.clear // Especificar SKColor explícitamente
+        shadowShape.alpha = 0.5
+        
+        shadowNode.addChild(shadowShape)
+        shadowNode.position = CGPoint(x: offset.width, y: offset.height)
+        
+        return shadowNode
+    }
+
+    private func createBackground(with style: BlockStyle) -> SKNode {
+        let background = SKShapeNode(rectOf: blockSize, cornerRadius: style.cornerRadius)
+        background.fillColor = style.backgroundColor
+        background.strokeColor = style.borderColor
+        background.lineWidth = style.borderWidth
+        background.zPosition = 2
+        
+        // Añadir textura si está disponible
+        if let texture = style.fillTexture {
+            background.fillTexture = texture
+            background.alpha = style.textureOpacity
         }
         
-        // Crear fondo del bloque
-        let background = createBackground(with: style)
-        container.addChild(background)
-        
-        return container
+        return background
     }
     
     // MARK: - Public Methods
