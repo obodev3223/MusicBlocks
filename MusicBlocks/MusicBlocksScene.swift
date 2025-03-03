@@ -371,13 +371,34 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         
         // Elegir un estilo aleatorio para variedad visual
         let blockStyles: [BlockStyle] = [
-            BlockStyle.defaultBlock,
-            BlockStyle.iceBlock,
-            BlockStyle.hardiceBlock,
-            BlockStyle.ghostBlock,
-            BlockStyle.changingBlock
+            .defaultBlock,
+            .iceBlock,
+            .hardiceBlock,
+            .ghostBlock,
+            .changingBlock
         ]
-        let blockStyle = blockStyles.randomElement() ?? BlockStyle.defaultBlock
+        let blockStyle = blockStyles.randomElement() ?? .defaultBlock
+        
+        // Crear el contenedor principal
+        let container = SKNode()
+        
+        // Si el estilo tiene sombra, crear el nodo de sombra
+        if let shadowColor = blockStyle.shadowColor,
+           let shadowOffset = blockStyle.shadowOffset,
+           let shadowBlur = blockStyle.shadowBlur {
+            let shadowNode = SKEffectNode()
+            shadowNode.shouldRasterize = true
+            shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": shadowBlur])
+            
+            let shadowShape = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
+            shadowShape.fillColor = shadowColor
+            shadowShape.strokeColor = .clear
+            shadowShape.alpha = 0.5 // Ajusta según necesites
+            
+            shadowNode.addChild(shadowShape)
+            shadowNode.position = CGPoint(x: shadowOffset.width, y: shadowOffset.height)
+            container.addChild(shadowNode)
+        }
         
         // Crear el fondo del bloque
         let background = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
@@ -391,18 +412,8 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
             background.alpha = blockStyle.textureOpacity
         }
         
-        // Añadir sombra si está configurada
-        if let shadowColor = blockStyle.shadowColor,
-           let shadowOffset = blockStyle.shadowOffset {
-            background.shadowColor = shadowColor
-            background.shadowOffset = shadowOffset
-            if let blur = blockStyle.shadowBlur {
-                background.shadowBlurRadius = blur
-            }
-        }
-        
-        background.zPosition = 0
-        blockNode.addChild(background)
+        container.addChild(background)
+        blockNode.addChild(container)
         
         // Generar una nota aleatoria usando TunerEngine
         if let randomNote = TunerEngine.shared.generateRandomNote() {
@@ -416,13 +427,9 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
             )
             blockNode.addChild(contentNode)
             
-            // Almacenar la nota en los datos de usuario del nodo para uso futuro
+            // Almacenar la nota en los datos de usuario del nodo
             blockNode.userData = NSMutableDictionary()
             blockNode.userData?.setValue(randomNote.fullName, forKey: "noteName")
-            
-            // También podemos guardar más detalles si los necesitamos después
-            // por ejemplo para la lógica del juego o para efectos de sonido
-            // blockNode.userData?.setValue(randomNote, forKey: "tunerNote")
         }
         
         return blockNode
@@ -492,20 +499,18 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     private func updateGameUI() {
         // Actualizar puntuación y vidas en la TopBar
         topBarNode?.updateScore(gameEngine.score)
-        topBarNode?.updateLives(gameEngine.lives)  // Añadir esta línea para actualizar las vidas
-        
+        topBarNode?.updateLives(gameEngine.lives)
 
-        
         // Animar el panel según el estado
         switch gameEngine.noteState {
         case .waiting, .correct:
-
+            break // No hacer nada en estos casos, pero necesitamos el 'break'
         case .wrong:
-      
+            break // No hacer nada en este caso, pero necesitamos el 'break'
         case .success:
-  
+            break // No hacer nada en este caso, pero necesitamos el 'break'
         }
-        
+
         // Actualizar estado visual
         switch gameEngine.noteState {
         case .waiting:
