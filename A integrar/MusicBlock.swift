@@ -167,6 +167,10 @@ class MusicBlock: SKSpriteNode {
     }
 }
 
+
+
+
+
 // MARK: - Bloques Especiales
 
 /// Bloque de hielo: requiere dos aciertos para destruirse.
