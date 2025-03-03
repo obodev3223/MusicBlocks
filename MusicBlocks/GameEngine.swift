@@ -11,35 +11,30 @@ class GameEngine: ObservableObject {
     // MARK: - Published Properties
     @Published var score: Int = 0
     @Published var lives: Int = 0 // Se inicializará con el valor del nivel
-    @Published var targetNote: MusicalNote?
     @Published var gameState: GameState = .playing
     @Published var noteState: NoteState = .waiting
     
     // MARK: - Private Properties
-        private let tunerEngine: TunerEngine
-        private let gameManager = GameManager.shared
-        private var noteMatchTime: TimeInterval = 0
-        private var maxExtraLives: Int = 0 // Se obtendrá del nivel actual
-        private var scoreThresholdsForExtraLives: [Int] = [] // Se obtendrá del nivel actual
-        
+    private let tunerEngine: TunerEngine
+    private let gameManager = GameManager.shared
+    private var noteMatchTime: TimeInterval = 0
+    private var maxExtraLives: Int = 0 // Se obtendrá del nivel actual
+    private var scoreThresholdsForExtraLives: [Int] = [] // Se obtendrá del nivel actual
     
     // Constantes para tiempos
-    private let requiredMatchTime: TimeInterval = 1.0
     private let errorDisplayTime: TimeInterval = 2.0
-    private let noteGenerationDelay: TimeInterval = 2.0
+    private let silenceThreshold: TimeInterval = 0.3
     private let minimalNoteDetectionTime: TimeInterval = 0.5
     private let acceptableDeviation: Double = 10.0
-
     
     // Estado de detección de notas
-    private let silenceThreshold: TimeInterval = 0.3
     private var lastSilenceTime: Date?
     private var currentNoteStartTime: Date?
     private var lastErrorTime: Date?
     private var isShowingError: Bool = false
     private var currentDetectedNote: MusicalNote?
     private var isInSuccessState: Bool = false
-       
+    
     
     // MARK: - Types
     enum GameState {
@@ -62,9 +57,11 @@ class GameEngine: ObservableObject {
     
     // MARK: - Public Methods
     func startNewGame() {
+        guard let currentLevel = gameManager.currentLevel else { return }
+        
         // Resetear todo al empezar un nuevo juego
         score = 0
-        lives = maxLives
+        lives = currentLevel.lives.initial
         resetNoteDetection()
         isShowingError = false
         lastErrorTime = nil
@@ -74,10 +71,9 @@ class GameEngine: ObservableObject {
         currentNoteStartTime = nil
         
         gameState = .playing
-        generateNewNote()
     }
     
-    func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
+    func checkNote(currentNote: String, deviation: Double, isActive: Bool, currentBlockNote: String?, currentBlockConfig: Block?) {
         // No procesar nada si el juego no está activo o estamos en estado de éxito
         guard gameState == .playing && !isInSuccessState else { return }
         
@@ -98,7 +94,8 @@ class GameEngine: ObservableObject {
         lastSilenceTime = nil
         
         guard let parsedNote = MusicalNote.parse(currentNote),
-              let target = targetNote else {
+              let targetNote = currentBlockNote,
+              let blockConfig = currentBlockConfig else {
             resetNoteDetection()
             return
         }
@@ -107,11 +104,12 @@ class GameEngine: ObservableObject {
         if currentDetectedNote?.fullName != parsedNote.fullName {
             currentDetectedNote = parsedNote
             currentNoteStartTime = Date()
+            noteMatchTime = 0
             return
         }
         
         // Procesar la nota detectada
-        if parsedNote == target {
+        if parsedNote.fullName == targetNote {
             // Si la nota es correcta, siempre mostrar el estado correcto
             noteState = .correct(deviation: deviation)
             
@@ -119,15 +117,14 @@ class GameEngine: ObservableObject {
             noteMatchTime += 0.1
             
             // Si hemos mantenido la nota el tiempo suficiente, proceder al éxito
-            if noteMatchTime >= requiredMatchTime {
-                handleSuccess(deviation: deviation)
+            if noteMatchTime >= blockConfig.requiredTime {
+                handleSuccess(deviation: deviation, blockConfig: blockConfig)
             }
         } else {
             handleWrongNote()
         }
     }
     
-
     // MARK: - Game Setup
     private func setupGame() {
         guard let currentLevel = gameManager.currentLevel else {
@@ -145,42 +142,29 @@ class GameEngine: ObservableObject {
         startNewGame()
     }
     
-    
-    private func generateNewNote() {
-        guard !isShowingError && !isInSuccessState else { return }
-        
-        resetNoteDetection()
-        targetNote = availableNotes.randomElement()
-        noteState = .waiting
-    }
-    
     private func calculateAccuracy(deviation: Double) -> Double {
         let absDeviation = abs(deviation)
-        
-        // Siempre devolver un valor entre 0 y 1, incluso si la desviación es mayor
-        // que la aceptable, para permitir diferentes niveles de puntuación
         if absDeviation > acceptableDeviation {
             return 0.0
         }
-        
         return 1.0 - (absDeviation / acceptableDeviation)
     }
     
     private func calculateScore(accuracy: Double, blockBasePoints: Int) -> (score: Int, message: String) {
-            guard let thresholds = gameManager.gameConfig?.accuracyThresholds else {
-                return (blockBasePoints, "Good") // Valor por defecto si no hay configuración
-            }
-            
-            if accuracy >= thresholds.perfect.threshold {
-                return (Int(Double(blockBasePoints) * thresholds.perfect.multiplier), "Excelente!")
-            } else if accuracy >= thresholds.excellent.threshold {
-                return (Int(Double(blockBasePoints) * thresholds.excellent.multiplier), "Perfecto!")
-            } else if accuracy >= thresholds.good.threshold {
-                return (Int(Double(blockBasePoints) * thresholds.good.multiplier), "Bien")
-            }
-            
-            return (0, "Fallo") // Sin puntuación si no alcanza el umbral mínimo
+        guard let thresholds = gameManager.gameConfig?.accuracyThresholds else {
+            return (blockBasePoints, "Bien")
         }
+        
+        if accuracy >= thresholds.perfect.threshold {
+            return (Int(Double(blockBasePoints) * thresholds.perfect.multiplier), "¡Perfecto!")
+        } else if accuracy >= thresholds.excellent.threshold {
+            return (Int(Double(blockBasePoints) * thresholds.excellent.multiplier), "¡Excelente!")
+        } else if accuracy >= thresholds.good.threshold {
+            return (Int(Double(blockBasePoints) * thresholds.good.multiplier), "¡Bien!")
+        }
+        
+        return (0, "Fallo")
+    }
     
     private func checkForExtraLife(currentScore: Int) {
         for threshold in scoreThresholdsForExtraLives {
@@ -209,11 +193,11 @@ class GameEngine: ObservableObject {
             return
         }
         
-        // Solo programar nueva nota si el juego sigue activo
-        DispatchQueue.main.asyncAfter(deadline: .now() + errorDisplayTime + noteGenerationDelay) { [weak self] in
+        // Programar reseteo del estado de error
+        DispatchQueue.main.asyncAfter(deadline: .now() + errorDisplayTime) { [weak self] in
             guard let self = self, self.gameState == .playing else { return }
             self.isShowingError = false
-            self.generateNewNote()
+            self.noteState = .waiting
         }
     }
     
@@ -233,11 +217,12 @@ class GameEngine: ObservableObject {
         // Actualizar el estado con el mensaje
         noteState = .success(multiplier: scorePoints / blockConfig.basePoints, message: message)
         
-        // Programar la siguiente nota
-        DispatchQueue.main.asyncAfter(deadline: .now() + noteGenerationDelay) { [weak self] in
+        // Resetear estado después de un breve delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self = self else { return }
             self.isInSuccessState = false
-            self.generateNewNote()
+            self.noteState = .waiting
+            self.resetNoteDetection()
         }
     }
     
@@ -259,10 +244,13 @@ class GameEngine: ObservableObject {
             return
         }
         
+        // Ya no necesitamos generar una nueva nota
+        // solo restablecer el estado para seguir detectando
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self,
                   self.gameState == .playing else { return }
-            self.generateNewNote()
+            self.resetNoteDetection()
+            self.noteState = .waiting
         }
     }
     
@@ -271,7 +259,6 @@ class GameEngine: ObservableObject {
         resetNoteDetection()
         isShowingError = false
         lastErrorTime = nil
-        targetNote = nil
         lastSilenceTime = nil
         noteMatchTime = 0
         currentDetectedNote = nil
