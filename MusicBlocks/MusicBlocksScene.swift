@@ -145,7 +145,6 @@ class MusicBlocksScene: SKScene {
         mainAreaWidth = width
         mainAreaHeight = height
         
-        // Crear el contenedor del área principal
         let containerNode = createContainerWithShadow(
             size: CGSize(width: width, height: height),
             cornerRadius: Layout.cornerRadius,
@@ -156,7 +155,6 @@ class MusicBlocksScene: SKScene {
             zPosition: 1
         )
         
-        // Crear un nodo para el contenido que estará por encima del fondo
         let mainContent = SKNode()
         mainContent.zPosition = 2
         mainContent.position = .zero
@@ -165,11 +163,7 @@ class MusicBlocksScene: SKScene {
         mainAreaNode = mainContent
         addChild(containerNode)
         
-        // Inicializar BlocksManager aquí, después de configurar mainAreaNode
-        blocksManager = BlocksManager(
-            mainAreaNode: mainContent,
-            mainAreaHeight: height
-        )
+        print("MainAreaNode configured with position: \(mainContent.position)")
     }
     
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {

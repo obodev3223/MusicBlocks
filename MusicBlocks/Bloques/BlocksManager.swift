@@ -78,9 +78,76 @@ class BlocksManager {
     }
     
     private func createBlock() -> SKNode {
-        // Mover todo el código de createBlock() aquí
         let blockNode = SKNode()
-        // ... resto del código de createBlock()
+        blockNode.zPosition = 2
+        
+        // Elegir un estilo aleatorio para variedad visual
+        let blockStyles: [BlockStyle] = [
+            .defaultBlock,
+            .iceBlock,
+            .hardiceBlock,
+            .ghostBlock,
+            .changingBlock
+        ]
+        let blockStyle = blockStyles.randomElement() ?? .defaultBlock
+        
+        // Crear el contenedor principal
+        let container = SKNode()
+        container.zPosition = 0
+        
+        // Crear el fondo del bloque con sombra
+        if let shadowColor = blockStyle.shadowColor,
+           let shadowOffset = blockStyle.shadowOffset,
+           let shadowBlur = blockStyle.shadowBlur {
+            let shadowNode = SKEffectNode()
+            shadowNode.shouldRasterize = true
+            shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": shadowBlur])
+            shadowNode.zPosition = 1
+            
+            let shadowShape = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
+            shadowShape.fillColor = shadowColor
+            shadowShape.strokeColor = .clear
+            shadowShape.alpha = 0.5
+            
+            shadowNode.addChild(shadowShape)
+            shadowNode.position = CGPoint(x: shadowOffset.width, y: shadowOffset.height)
+            container.addChild(shadowNode)
+        }
+        
+        // Crear el fondo del bloque
+        let background = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
+        background.fillColor = blockStyle.backgroundColor
+        background.strokeColor = blockStyle.borderColor
+        background.lineWidth = blockStyle.borderWidth
+        background.zPosition = 2
+        
+        // Añadir textura si está disponible
+        if let texture = blockStyle.fillTexture {
+            background.fillTexture = texture
+            background.alpha = blockStyle.textureOpacity
+        }
+        
+        container.addChild(background)
+        blockNode.addChild(container)
+        
+        // Generar una nota aleatoria usando TunerEngine
+        if let randomNote = TunerEngine.shared.generateRandomNote() {
+            // Generar el contenido visual del bloque con la nota
+            let contentNode = BlockContentGenerator.generateBlockContent(
+                with: blockStyle,
+                blockSize: blockSize,
+                desiredNote: randomNote,
+                baseNoteX: 0,
+                baseNoteY: 0
+            )
+            contentNode.zPosition = 3
+            blockNode.addChild(contentNode)
+            
+            // Almacenar la nota en los datos de usuario del nodo
+            blockNode.userData = NSMutableDictionary()
+            blockNode.userData?.setValue(randomNote.fullName, forKey: "noteName")
+        }
+        
         return blockNode
     }
     
