@@ -234,7 +234,13 @@ class MusicBlocksScene: SKScene {
             ),
             zPosition: 1
         )
-        mainAreaNode = containerNode  // Guardar referencia
+        
+        // Asegurar que el contenido del mainArea esté por encima del fondo
+        let mainContent = SKNode()
+        mainContent.zPosition = 2 // Por encima del fondo del mainArea
+        containerNode.addChild(mainContent)
+        
+        mainAreaNode = mainContent  // Ahora mainAreaNode apunta al nodo de contenido
         addChild(containerNode)
     }
     
@@ -369,6 +375,7 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
     //Método para crear un bloque
     private func createBlock() -> SKNode {
         let blockNode = SKNode()
+        blockNode.zPosition = 2 // Aseguramos que el nodo principal esté por encima del mainArea
         
         // Elegir un estilo aleatorio para variedad visual
         let blockStyles: [BlockStyle] = [
@@ -382,6 +389,7 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         
         // Crear el contenedor principal
         let container = SKNode()
+        container.zPosition = 0 // Relativo al blockNode
         
         // Si el estilo tiene sombra, crear el nodo de sombra
         if let shadowColor = blockStyle.shadowColor,
@@ -390,11 +398,12 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
             let shadowNode = SKEffectNode()
             shadowNode.shouldRasterize = true
             shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": shadowBlur])
+            shadowNode.zPosition = 1 // La sombra va detrás del fondo
             
             let shadowShape = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
             shadowShape.fillColor = shadowColor
             shadowShape.strokeColor = .clear
-            shadowShape.alpha = 0.5 // Ajusta según necesites
+            shadowShape.alpha = 0.5
             
             shadowNode.addChild(shadowShape)
             shadowNode.position = CGPoint(x: shadowOffset.width, y: shadowOffset.height)
@@ -406,6 +415,7 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
         background.fillColor = blockStyle.backgroundColor
         background.strokeColor = blockStyle.borderColor
         background.lineWidth = blockStyle.borderWidth
+        background.zPosition = 2 // El fondo va por encima de la sombra
         
         // Añadir textura si está disponible
         if let texture = blockStyle.fillTexture {
@@ -426,6 +436,7 @@ private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, posi
                 baseNoteX: 0,
                 baseNoteY: 0
             )
+            contentNode.zPosition = 3 // El contenido musical va por encima del fondo
             blockNode.addChild(contentNode)
             
             // Almacenar la nota en los datos de usuario del nodo
