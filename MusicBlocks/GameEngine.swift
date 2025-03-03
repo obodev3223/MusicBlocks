@@ -39,21 +39,7 @@ class GameEngine: ObservableObject {
     private var isShowingError: Bool = false
     private var currentDetectedNote: MusicalNote?
     private var isInSuccessState: Bool = false
-    
-    // Umbrales de puntuación
-    private struct ScoreThresholds {
-        static let good = 0.60
-        static let excellent = 0.80
-        static let perfect = 0.95
-    }
-    
-    private struct ScoreMultipliers {
-        static let good = 1
-        static let excellent = 2
-        static let perfect = 3
-    }
-    
-    private let baseScore = 100
+       
     
     // MARK: - Types
     enum GameState {
