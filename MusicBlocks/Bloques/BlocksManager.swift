@@ -8,14 +8,14 @@
 import SpriteKit
 
 class BlocksManager {
+    
     // MARK: - Properties
     private let blockSize: CGSize
     private let blockSpacing: CGFloat
     private var blocks: [SKNode] = []
-    private var totalBlocksAppeared = 0
     private weak var mainAreaNode: SKNode?
     private var mainAreaHeight: CGFloat = 0
-    private var availableNotes: [MusicalNote]
+    private let gameManager = GameManager.shared
     
     // MARK: - Initialization
     init(blockSize: CGSize = CGSize(width: 270, height: 110),
@@ -26,15 +26,18 @@ class BlocksManager {
         self.blockSpacing = blockSpacing
         self.mainAreaNode = mainAreaNode
         self.mainAreaHeight = mainAreaHeight
-        self.availableNotes = MusicalNote.generateAvailableNotes()
     }
     
     // MARK: - Note Generation
-
-    private func generateNote() -> MusicalNote {
-        return availableNotes.randomElement() ?? availableNotes[0]
+    private func generateNote(for blockConfig: Block) -> MusicalNote? {
+        // Seleccionar una nota aleatoria de las permitidas para este tipo de bloque
+        guard let randomNoteString = blockConfig.notes.randomElement(),
+              let note = MusicalNote.parse(randomNoteString) else {
+            return nil
+        }
+        return note
     }
-            
+    
     // MARK: - Block Management Methods
     func spawnBlock() {
         guard let mainAreaNode = mainAreaNode else {
@@ -80,84 +83,126 @@ class BlocksManager {
         newBlock.run(moveToSlot)
         
         blocks.insert(newBlock, at: 0)
-        totalBlocksAppeared += 1
         
         print("Block added successfully. New count: \(blocks.count)")
     }
     
     private func createBlock() -> SKNode {
+        guard let currentLevel = gameManager.currentLevel else {
+            return createDefaultBlock()
+        }
+        
         let blockNode = SKNode()
         blockNode.zPosition = 2
         
-        // Elegir un estilo aleatorio para variedad visual
-        let blockStyles: [BlockStyle] = [
-            .defaultBlock,
-            .iceBlock,
-            .hardiceBlock,
-            .ghostBlock,
-            .changingBlock
-        ]
-        let blockStyle = blockStyles.randomElement() ?? .defaultBlock
+        // Obtener un estilo de bloque basado en los pesos definidos
+        let blockStyle = selectBlockStyleBasedOnWeights(from: currentLevel.blocks)
+        guard let blockConfig = currentLevel.blocks[blockStyle.name] else {
+            return createDefaultBlock()
+        }
         
-        // Crear el contenedor principal
+        // Crear contenedor y aplicar estilo visual
+        let container = createBlockContainer(with: blockStyle)
+        blockNode.addChild(container)
+        
+        // Generar una nota aleatoria de las disponibles para este tipo de bloque
+        let randomNote = selectRandomNote(from: blockConfig.notes)
+        if let note = MusicalNote.parse(randomNote) {
+            let contentNode = BlockContentGenerator.generateBlockContent(
+                with: blockStyle,
+                blockSize: blockSize,
+                desiredNote: note,
+                baseNoteX: 0,
+                baseNoteY: 0
+            )
+            contentNode.zPosition = 3
+            blockNode.addChild(contentNode)
+            
+            // Almacenar la nota y configuración en el nodo
+            blockNode.userData = NSMutableDictionary()
+            blockNode.userData?.setValue(note.fullName, forKey: "noteName")
+            blockNode.userData?.setValue(blockConfig.requiredHits, forKey: "requiredHits")
+            blockNode.userData?.setValue(blockConfig.requiredTime, forKey: "requiredTime")
+        }
+        
+        return blockNode
+    }
+    
+    private func selectBlockStyleBasedOnWeights(from blocks: [String: Block]) -> BlockStyle {
+        var weightedStyles: [(BlockStyle, Double)] = []
+        
+        // Crear pares de estilo y peso
+        for (styleName, blockConfig) in blocks {
+            if let style = getBlockStyle(for: styleName) {
+                weightedStyles.append((style, blockConfig.weight))
+            }
+        }
+        
+        // Si no hay estilos válidos, retornar el estilo por defecto
+        guard !weightedStyles.isEmpty else {
+            return .defaultBlock
+        }
+        
+        // Calcular peso total
+        let totalWeight = weightedStyles.reduce(0) { $0 + $1.1 }
+        let randomValue = Double.random(in: 0..<totalWeight)
+        
+        // Seleccionar estilo basado en el peso
+        var accumulatedWeight = 0.0
+        for (style, weight) in weightedStyles {
+            accumulatedWeight += weight
+            if randomValue < accumulatedWeight {
+                return style
+            }
+        }
+        
+        return weightedStyles[0].0
+    }
+    
+    private func getBlockStyle(for styleName: String) -> BlockStyle? {
+        switch styleName {
+        case "defaultBlock": return .defaultBlock
+        case "iceBlock": return .iceBlock
+        case "hardIceBlock": return .hardiceBlock
+        case "ghostBlock": return .ghostBlock
+        case "changingBlock": return .changingBlock
+        default: return nil
+        }
+    }
+    
+    private func selectRandomNote(from notes: [String]) -> String {
+        return notes.randomElement() ?? "DO4"
+    }
+    
+    private func createDefaultBlock() -> SKNode {
+        let blockNode = SKNode()
+        let style = BlockStyle.defaultBlock
+        let container = createBlockContainer(with: style)
+        blockNode.addChild(container)
+        return blockNode
+    }
+    
+    private func createBlockContainer(with style: BlockStyle) -> SKNode {
         let container = SKNode()
         container.zPosition = 0
         
-        // Crear el fondo del bloque con sombra
-        if let shadowColor = blockStyle.shadowColor,
-           let shadowOffset = blockStyle.shadowOffset,
-           let shadowBlur = blockStyle.shadowBlur {
-            let shadowNode = SKEffectNode()
-            shadowNode.shouldRasterize = true
-            shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": shadowBlur])
-            shadowNode.zPosition = 1
-            
-            let shadowShape = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
-            shadowShape.fillColor = shadowColor
-            shadowShape.strokeColor = .clear
-            shadowShape.alpha = 0.5
-            
-            shadowNode.addChild(shadowShape)
-            shadowNode.position = CGPoint(x: shadowOffset.width, y: shadowOffset.height)
+        // Crear sombra si está definida
+        if let shadowColor = style.shadowColor,
+           let shadowOffset = style.shadowOffset,
+           let shadowBlur = style.shadowBlur {
+            let shadowNode = createShadowNode(color: shadowColor, offset: shadowOffset, blur: shadowBlur)
             container.addChild(shadowNode)
         }
         
-        // Crear el fondo del bloque
-        let background = SKShapeNode(rectOf: blockSize, cornerRadius: blockStyle.cornerRadius)
-        background.fillColor = blockStyle.backgroundColor
-        background.strokeColor = blockStyle.borderColor
-        background.lineWidth = blockStyle.borderWidth
-        background.zPosition = 2
-        
-        // Añadir textura si está disponible
-        if let texture = blockStyle.fillTexture {
-            background.fillTexture = texture
-            background.alpha = blockStyle.textureOpacity
-        }
-        
+        // Crear fondo del bloque
+        let background = createBackground(with: style)
         container.addChild(background)
-        blockNode.addChild(container)
         
-        // Generar una nota y crear su contenido visual
-                let randomNote = generateNote()
-                let contentNode = BlockContentGenerator.generateBlockContent(
-                    with: blockStyle,
-                    blockSize: blockSize,
-                    desiredNote: randomNote,
-                    baseNoteX: 0,
-                    baseNoteY: 0
-                )
-                contentNode.zPosition = 3
-                blockNode.addChild(contentNode)
-                
-                // Almacenar la nota en los datos de usuario del nodo
-                blockNode.userData = NSMutableDictionary()
-                blockNode.userData?.setValue(randomNote.fullName, forKey: "noteName")
-                
-                return blockNode
-            }
+        return container
+    }
     
     // MARK: - Public Methods
+    
     func getCurrentNote() -> String? {
         return blocks.first?.userData?.value(forKey: "noteName") as? String
     }
@@ -167,7 +212,6 @@ class BlocksManager {
             block.removeFromParent()
         }
         blocks.removeAll()
-        totalBlocksAppeared = 0
     }
     
     // MARK: - Public Interface
