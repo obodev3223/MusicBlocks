@@ -93,7 +93,7 @@ class GameEngine: ObservableObject {
         generateNewNote()
     }
     
-    private func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
+    func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
         // No procesar nada si el juego no está activo o estamos en estado de éxito
         guard gameState == .playing && !isInSuccessState else { return }
         
