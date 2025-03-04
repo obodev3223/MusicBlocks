@@ -33,7 +33,7 @@ class TopBar: SKNode {
     private let levelLabel: SKLabelNode
     private var heartNodes: [SKLabelNode] = []
     private var score: Int = 0
-
+    
     
     // Propiedades para vidas
     private var maxLives: Int = 3 // Vidas base del nivel
@@ -41,41 +41,41 @@ class TopBar: SKNode {
     private var lives: Int = 3
     
     // MARK: - Initialization
-        private init(width: CGFloat, height: CGFloat, position: CGPoint) {
-            self.size = CGSize(width: width, height: height)
-            
-            // Inicializar estrella de puntuación
-            scoreIcon = SKLabelNode(text: "★")
-            scoreIcon.fontSize = Layout.scoreFontSize
-            scoreIcon.fontColor = .systemYellow
-            scoreIcon.verticalAlignmentMode = .center
-            
-            // Inicializar texto "Score:"
-            scoreText = SKLabelNode(fontNamed: "Helvetica")
-            scoreText.text = "Score:"
-            scoreText.fontSize = Layout.scoreFontSize * 0.8
-            scoreText.fontColor = .darkGray
-            scoreText.verticalAlignmentMode = .center
-            
-            // Inicializar etiqueta de puntuación
-            scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-            scoreLabel.fontSize = Layout.scoreFontSize
-            scoreLabel.verticalAlignmentMode = .center
-            scoreLabel.horizontalAlignmentMode = .left
-            scoreLabel.fontColor = .black
-            
-            // Inicializar etiqueta de nivel
-            levelLabel = SKLabelNode(fontNamed: "Helvetica")
-            levelLabel.fontSize = Layout.levelFontSize
-            levelLabel.verticalAlignmentMode = .center
-            levelLabel.horizontalAlignmentMode = .center
-            levelLabel.fontColor = .purple
-            
-            super.init()
-            
-            self.position = position
-            setupNodes()
-        }
+    private init(width: CGFloat, height: CGFloat, position: CGPoint) {
+        self.size = CGSize(width: width, height: height)
+        
+        // Inicializar estrella de puntuación
+        scoreIcon = SKLabelNode(text: "★")
+        scoreIcon.fontSize = Layout.scoreFontSize
+        scoreIcon.fontColor = .systemYellow
+        scoreIcon.verticalAlignmentMode = .center
+        
+        // Inicializar texto "Score:"
+        scoreText = SKLabelNode(fontNamed: "Helvetica")
+        scoreText.text = "Score:"
+        scoreText.fontSize = Layout.scoreFontSize * 0.8
+        scoreText.fontColor = .darkGray
+        scoreText.verticalAlignmentMode = .center
+        
+        // Inicializar etiqueta de puntuación
+        scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        scoreLabel.fontSize = Layout.scoreFontSize
+        scoreLabel.verticalAlignmentMode = .center
+        scoreLabel.horizontalAlignmentMode = .left
+        scoreLabel.fontColor = .black
+        
+        // Inicializar etiqueta de nivel
+        levelLabel = SKLabelNode(fontNamed: "Helvetica")
+        levelLabel.fontSize = Layout.levelFontSize
+        levelLabel.verticalAlignmentMode = .center
+        levelLabel.horizontalAlignmentMode = .center
+        levelLabel.fontColor = .purple
+        
+        super.init()
+        
+        self.position = position
+        setupNodes()
+    }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -99,146 +99,150 @@ class TopBar: SKNode {
         shadowNode.position = Layout.shadowOffset
         shadowNode.alpha = CGFloat(Layout.shadowOpacity)
         
-        // Crear fondo principal
+        // Crear contenedor principal
         let backgroundNode = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
         backgroundNode.zPosition = 2
         backgroundNode.fillColor = .white
         backgroundNode.strokeColor = .clear
         backgroundNode.alpha = Layout.backgroundAlpha
-        
-        // Añadir nodos en orden
-        addChild(shadowNode)
         addChild(backgroundNode)
         
-        // Configurar elementos del score (a la derecha)
-        let rightMargin = size.width/2 - Layout.horizontalMargin
+        // Crear el área izquierda para nivel y vidas
+        let leftAreaNode = SKNode()
+        leftAreaNode.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: 0)
+        addChild(leftAreaNode)
         
-        // Posicionar estrella
-        scoreIcon.zPosition = 3
-        scoreIcon.position = CGPoint(x: rightMargin - 120, y: centerY)
-        addChild(scoreIcon)
+        // Título del nivel
+        levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        levelLabel.fontSize = Layout.levelFontSize
+        levelLabel.fontColor = .purple
+        levelLabel.horizontalAlignmentMode = .left
+        levelLabel.verticalAlignmentMode = .top
+        levelLabel.position = CGPoint(x: 0, y: 15)
+        leftAreaNode.addChild(levelLabel)
         
-        // Configurar nivel (en el centro)
-                levelLabel.zPosition = 3
-                levelLabel.position = CGPoint(x: 0, y: centerY)
-                addChild(levelLabel)
+        // Contenedor para los corazones
+        let heartsContainer = SKNode()
+        heartsContainer.position = CGPoint(x: 0, y: -15)
+        leftAreaNode.addChild(heartsContainer)
         
-        // Posicionar texto "Score:"
-        scoreText.zPosition = 3
-        scoreText.position = CGPoint(x: rightMargin - 85, y: centerY)
-        addChild(scoreText)
+        // Área de puntuación (derecha)
+        let scoreArea = SKNode()
+        scoreArea.position = CGPoint(x: size.width/2 - Layout.horizontalMargin, y: 0)
+        addChild(scoreArea)
         
-        // Posicionar número de puntuación
-        scoreLabel.zPosition = 3
-        scoreLabel.position = CGPoint(x: rightMargin - 30, y: centerY)
-        addChild(scoreLabel)
-        
-        // Crear corazones de vida (a la izquierda)
-        setupHearts()
+        // Estrella y puntuación
+        scoreIcon.position = CGPoint(x: -120, y: 0)
+        scoreText.position = CGPoint(x: -85, y: 0)
+        scoreLabel.position = CGPoint(x: -30, y: 0)
+        scoreArea.addChild(scoreIcon)
+        scoreArea.addChild(scoreText)
+        scoreArea.addChild(scoreLabel)
     }
-
+    
     private func setupHearts() {
-        // Eliminar corazones existentes
+        // Limpiar corazones existentes
         for heart in heartNodes {
             heart.removeFromParent()
         }
         heartNodes.removeAll()
         
-        // Calcular el número total de espacios para corazones (base + extra)
-        let totalHeartSpaces = maxLives + maxExtraLives
-        print("Configurando \(totalHeartSpaces) espacios para corazones (\(maxLives) base + \(maxExtraLives) extra)")
-        
-        // Ajustar tamaño de corazones si hay muchos
-        let adjustedHeartSize = totalHeartSpaces > 5 ? Layout.heartSize * 0.8 : Layout.heartSize
-        let adjustedSpacing = totalHeartSpaces > 5 ? Layout.heartSpacing * 0.7 : Layout.heartSpacing
-        
-        // Calcular posición inicial (izquierda)
-        let startX = -size.width/2 + Layout.horizontalMargin + adjustedHeartSize/2
-        let centerY: CGFloat = 0
-        
-        // Crear todos los corazones posibles
-        for i in 0..<totalHeartSpaces {
+        // Inicialmente solo mostrar las vidas base
+        for i in 0..<maxLives {
             let heart = SKLabelNode(text: "❤️")
-            heart.fontSize = adjustedHeartSize
+            heart.fontSize = Layout.heartSize
             heart.verticalAlignmentMode = .center
+            heart.horizontalAlignmentMode = .left
             heart.zPosition = 3
             heart.position = CGPoint(
-                x: startX + CGFloat(i) * (adjustedHeartSize + adjustedSpacing),
-                y: centerY
+                x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing),
+                y: -15
             )
-            
-            // Diferenciar visualmente entre corazones base y extra
-            if i >= maxLives {
-                heart.fontColor = .purple // Corazones extra en púrpura
-            } else {
-                heart.fontColor = .red // Corazones base en rojo
-            }
-            
+            heart.fontColor = .red
+            addChild(heart)
+            heartNodes.append(heart)
+        }
+        
+        // Preparar espacios para vidas extra (inicialmente ocultos)
+        for i in maxLives..<(maxLives + maxExtraLives) {
+            let heart = SKLabelNode(text: "")  // Inicialmente vacío
+            heart.fontSize = Layout.heartSize
+            heart.verticalAlignmentMode = .center
+            heart.horizontalAlignmentMode = .left
+            heart.zPosition = 3
+            heart.position = CGPoint(
+                x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing),
+                y: -15
+            )
+            heart.fontColor = .purple
+            heart.alpha = 0  // Inicialmente invisible
             addChild(heart)
             heartNodes.append(heart)
         }
     }
     
     // MARK: - Public Methods
-        static func create(width: CGFloat, height: CGFloat, position: CGPoint) -> TopBar {
-            return TopBar(width: width, height: height, position: position)
-        }
-        
-        // Método para configurar el nivel inicial
+    static func create(width: CGFloat, height: CGFloat, position: CGPoint) -> TopBar {
+        return TopBar(width: width, height: height, position: position)
+    }
+    
+    // Método para configurar el nivel inicial
     func configure(withLevel level: GameLevel) {
-        // Configurar vidas base y extras
         maxLives = level.lives.initial
         maxExtraLives = level.lives.extraLives.maxExtra
         lives = level.lives.initial
         
-        // Configurar etiqueta de nivel
         levelLabel.text = "Nivel \(level.levelId)"
         
-        // Actualizar visualización
-        setupHearts() // Esto creará el número total de corazones (base + extra)
-        updateLives(lives) // Esto actualizará el estado visual inicial
+        setupHearts()
+        updateLives(lives)
         updateScore(0)
         
-        print("TopBar configurada con: nivel \(level.levelId), vidas iniciales: \(maxLives), vidas extra máximas: \(maxExtraLives)")
+        print("TopBar configurada - Nivel: \(level.levelId), Vidas base: \(maxLives), Vidas extra posibles: \(maxExtraLives)")
     }
+    
+    func updateScore(_ newScore: Int) {
+        score = newScore
+        scoreLabel.text = "\(score)"
         
-        func updateScore(_ newScore: Int) {
-            score = newScore
-            scoreLabel.text = "\(score)"
-            
-            // Animar actualización
-            let scaleUp = SKAction.scale(to: 1.1, duration: 0.1)
-            let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
-            scoreLabel.run(SKAction.sequence([scaleUp, scaleDown]))
-        }
+        // Animar actualización
+        let scaleUp = SKAction.scale(to: 1.1, duration: 0.1)
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
+        scoreLabel.run(SKAction.sequence([scaleUp, scaleDown]))
+    }
+    
+    func updateLives(_ newLives: Int) {
+        self.lives = newLives
         
-        func updateLives(_ newLives: Int) {
-            self.lives = newLives
-            
-            // Actualizar la visualización de los corazones
-            for (index, heart) in heartNodes.enumerated() {
+        for (index, heart) in heartNodes.enumerated() {
+            if index < maxLives {
+                // Vidas base
+                heart.alpha = 1.0
                 if index < lives {
-                    // Corazón lleno
-                    heart.text = "❤️"
-                    heart.fontColor = index < maxLives ? .red : .purple // Corazones extra en púrpura
-                    heart.alpha = 1.0
+                    heart.text = "❤️"  // Corazón lleno
                 } else {
-                    // Corazón vacío
-                    heart.text = "♡"
-                    heart.fontColor = index < maxLives ? .red : .purple
-                    heart.alpha = 0.5
+                    heart.text = "♡"   // Corazón vacío
+                }
+            } else {
+                // Vidas extra
+                if index < lives {
+                    heart.text = "❤️"
+                    heart.alpha = 1.0  // Mostrar vida extra ganada
+                } else {
+                    heart.alpha = 0    // Mantener oculta
                 }
             }
         }
-        
-        // Método para actualizar maxLives si es necesario
-        func updateMaxLives(_ newMaxLives: Int) {
-            if newMaxLives != maxLives {
-                maxLives = newMaxLives
-                setupHearts() // Recrear los corazones si cambia el máximo
-                updateLives(lives) // Actualizar el estado de los corazones
-            }
+    }
+    
+    // Método para actualizar maxLives si es necesario
+    func updateMaxLives(_ newMaxLives: Int) {
+        if newMaxLives != maxLives {
+            maxLives = newMaxLives
+            setupHearts() // Recrear los corazones si cambia el máximo
+            updateLives(lives) // Actualizar el estado de los corazones
         }
+    }
 }
 
 // MARK: - Previews
