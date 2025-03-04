@@ -35,11 +35,17 @@ class GameEngine: ObservableObject {
     private var currentDetectedNote: MusicalNote?
     private var isInSuccessState: Bool = false
     
+    // Propiedad para el nivel actual
+    private var currentLevel: GameLevel? {
+        gameManager.currentLevel
+    }
     
     // MARK: - Types
+    // En GameEngine
     enum GameState {
-        case playing
-        case gameOver
+        case countdown     // Cuenta atrás inicial
+        case playing      // Jugando
+        case gameOver     // Fin del juego
     }
     
     enum NoteState: Equatable {
@@ -57,11 +63,23 @@ class GameEngine: ObservableObject {
     
     // MARK: - Public Methods
     func startNewGame() {
-        guard let currentLevel = gameManager.currentLevel else { return }
+        // Cargar el nivel guardado en el perfil
+        let userProfile = UserProfile.load()
+        if let level = gameManager.gameConfig?.levels.first(where: { $0.levelId == userProfile.statistics.currentLevel }) {
+            gameManager.currentLevel = level
+        } else {
+            // Si no hay nivel guardado o es inválido, empezar desde el nivel 0
+            gameManager.currentLevel = gameManager.gameConfig?.levels.first
+        }
+        
+        guard let currentLevel = currentLevel else { return }
         
         // Resetear todo al empezar un nuevo juego
         score = 0
         lives = currentLevel.lives.initial
+        maxExtraLives = currentLevel.lives.extraLives.maxExtra
+        scoreThresholdsForExtraLives = currentLevel.lives.extraLives.scoreThresholds
+        
         resetNoteDetection()
         isShowingError = false
         lastErrorTime = nil
@@ -70,7 +88,8 @@ class GameEngine: ObservableObject {
         currentDetectedNote = nil
         currentNoteStartTime = nil
         
-        gameState = .playing
+        // Comenzar en estado de cuenta atrás
+        gameState = .countdown
     }
     
     func checkNote(currentNote: String, deviation: Double, isActive: Bool, currentBlockNote: String?, currentBlockConfig: Block?) {

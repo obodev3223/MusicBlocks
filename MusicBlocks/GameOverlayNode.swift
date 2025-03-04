@@ -92,6 +92,82 @@ class GameOverlayNode: SKNode {
     }
 }
 
+// MARK: - Inicio de Nivel
+class LevelStartOverlayNode: GameOverlayNode {
+    private var countdownLabel: SKLabelNode?
+    private var countdownTimer: Timer?
+    private var secondsRemaining: Int = 5
+    private var startAction: (() -> Void)?
+    
+    init(size: CGSize, levelId: Int, levelName: String, startAction: @escaping () -> Void) {
+        super.init(size: size)
+        self.startAction = startAction
+        
+        // Título del nivel
+        let titleNode = SKLabelNode(text: "Nivel \(levelId)")
+        titleNode.fontSize = 36
+        titleNode.fontName = "Helvetica-Bold"
+        titleNode.fontColor = .purple
+        titleNode.position = CGPoint(x: 0, y: 40)
+        contentNode.addChild(titleNode)
+        
+        // Nombre del nivel
+        let nameNode = SKLabelNode(text: levelName)
+        nameNode.fontSize = 24
+        nameNode.fontName = "Helvetica"
+        nameNode.fontColor = .darkGray
+        nameNode.position = CGPoint(x: 0, y: 0)
+        contentNode.addChild(nameNode)
+        
+        // Etiqueta para la cuenta atrás
+        let countdownNode = SKLabelNode(text: "\(secondsRemaining)")
+        countdownNode.fontSize = 48
+        countdownNode.fontName = "Helvetica-Bold"
+        countdownNode.fontColor = .orange
+        countdownNode.position = CGPoint(x: 0, y: -50)
+        contentNode.addChild(countdownNode)
+        self.countdownLabel = countdownNode
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func show(in scene: SKScene, overlayPosition: OverlayPosition = .center, duration: TimeInterval = 0.3) {
+        super.show(in: scene, overlayPosition: overlayPosition, duration: duration)
+        startCountdown()
+    }
+    
+    private func startCountdown() {
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            
+            self.secondsRemaining -= 1
+            self.countdownLabel?.text = "\(self.secondsRemaining)"
+            
+            // Animar el cambio de número
+            let scaleUp = SKAction.scale(to: 1.2, duration: 0.1)
+            let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
+            self.countdownLabel?.run(SKAction.sequence([scaleUp, scaleDown]))
+            
+            if self.secondsRemaining <= 0 {
+                timer.invalidate()
+                self.hide()
+                self.startAction?()
+            }
+        }
+    }
+    
+    override func hide(duration: TimeInterval = 0.3) {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+        super.hide(duration: duration)
+    }
+}
+
 // MARK: - Success Overlay
 class SuccessOverlayNode: GameOverlayNode {
     init(size: CGSize, multiplier: Int, message: String) {

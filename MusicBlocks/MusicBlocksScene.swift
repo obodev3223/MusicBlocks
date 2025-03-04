@@ -18,6 +18,7 @@ class MusicBlocksScene: SKScene {
     private let tunerEngine = TunerEngine.shared
     private let gameEngine = GameEngine()
     private var blocksManager: BlocksManager!
+    private var levelStartOverlay: LevelStartOverlayNode?
     
     /// UI Elements
     private var backgroundPattern: BackgroundPatternNode!
@@ -36,6 +37,8 @@ class MusicBlocksScene: SKScene {
     /// Estado del juego
     private var lastUpdateTime: TimeInterval = 0
     private let acceptableDeviation: Double = 10.0
+    
+
     
     // MARK: - Layout Configuration
     private struct Layout {
@@ -261,14 +264,21 @@ class MusicBlocksScene: SKScene {
     // MARK: - Game Control Methods
     private func setupAndStart() {
         initializeUIElements()
-        
         audioController.start()
-        gameEngine.startNewGame()
         
-        // Iniciar secuencia de bloques cayendo
-        startBlockSequence()
-        
-        updateGameUI()
+        // Cargar el nivel actual desde UserProfile
+        let userProfile = UserProfile.load()
+        if let gameConfig = GameManager.shared.gameConfig,
+           let level = gameConfig.levels.first(where: { $0.levelId == userProfile.statistics.currentLevel }) {
+            GameManager.shared.currentLevel = level
+            showLevelStartOverlay(for: level)
+        } else {
+            // Si no hay nivel, comenzar desde el nivel 0
+            if let firstLevel = GameManager.shared.gameConfig?.levels.first {
+                GameManager.shared.currentLevel = firstLevel
+                showLevelStartOverlay(for: firstLevel)
+            }
+        }
     }
     
     private func startBlockSequence() {
@@ -318,6 +328,39 @@ class MusicBlocksScene: SKScene {
         updateGameUI()
     }
     
+    private func showLevelStartOverlay(for level: GameLevel) {
+            // Ocultar overlay anterior si existe
+            currentOverlay?.removeFromParent()
+            
+            // Crear y mostrar el overlay de inicio de nivel
+            let overlaySize = CGSize(width: 400, height: 300)
+            let overlay = LevelStartOverlayNode(
+                size: overlaySize,
+                levelId: level.levelId,
+                levelName: level.name
+            ) { [weak self] in
+                // Esta closure se ejecuta cuando termina la cuenta atrás
+                self?.startGameplay()
+            }
+            
+            addChild(overlay)
+            levelStartOverlay = overlay
+            currentOverlay = overlay
+            
+            overlay.show(in: self, overlayPosition: .center)
+        }
+        
+    private func startGameplay() {
+        // Iniciar el juego
+        gameEngine.startNewGame()
+        
+        // Iniciar secuencia de bloques cayendo
+        startBlockSequence()
+        
+        // Actualizar UI
+        updateGameUI()
+    }
+    
     // MARK: - Update Methods
     override func update(_ currentTime: TimeInterval) {
         let deltaTime = lastUpdateTime > 0 ? currentTime - lastUpdateTime : 0
@@ -360,13 +403,16 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Game State Handling
     private func handleGameState() {
-        switch gameEngine.gameState {
-        case .gameOver:
-            handleGameOver()
-        case .playing:
-            handleGameplayState()
+            switch gameEngine.gameState {
+            case .countdown:
+                // No hacer nada, el overlay maneja la cuenta atrás
+                break
+            case .playing:
+                handleGameplayState()
+            case .gameOver:
+                handleGameOver()
+            }
         }
-    }
     
     private func handleGameplayState() {
         switch gameEngine.noteState {
