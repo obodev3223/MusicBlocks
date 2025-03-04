@@ -30,7 +30,7 @@ class TopBar: SKNode {
     private let scoreLabel: SKLabelNode
     private let scoreIcon: SKLabelNode
     private let scoreText: SKLabelNode
-    private let levelLabel: SKLabelNode
+    private var levelLabel: SKLabelNode
     private var heartNodes: [SKLabelNode] = []
     private var score: Int = 0
     
