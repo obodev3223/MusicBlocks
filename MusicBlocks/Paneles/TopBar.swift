@@ -138,36 +138,46 @@ class TopBar: SKNode {
     }
 
     private func setupHearts() {
-            // Eliminar corazones existentes
-            for heart in heartNodes {
-                heart.removeFromParent()
-            }
-            heartNodes.removeAll()
-            
-            // Calcular el número total de espacios para corazones (base + extra)
-            let totalHeartSpaces = maxLives + maxExtraLives
-            
-            // Calcular posición inicial (izquierda)
-            let startX = -size.width/2 + Layout.horizontalMargin + Layout.heartSize/2
-            let centerY: CGFloat = 0
-            
-            // Crear todos los corazones posibles
-            for i in 0..<totalHeartSpaces {
-                let heart = SKLabelNode(text: "❤️")
-                heart.fontSize = Layout.heartSize
-                heart.verticalAlignmentMode = .center
-                heart.zPosition = 3
-                heart.position = CGPoint(
-                    x: startX + CGFloat(i) * (Layout.heartSize + Layout.heartSpacing),
-                    y: centerY
-                )
-                addChild(heart)
-                heartNodes.append(heart)
-            }
-            
-            // Actualizar visualización inicial
-            updateLives(lives)
+        // Eliminar corazones existentes
+        for heart in heartNodes {
+            heart.removeFromParent()
         }
+        heartNodes.removeAll()
+        
+        // Calcular el número total de espacios para corazones (base + extra)
+        let totalHeartSpaces = maxLives + maxExtraLives
+        print("Configurando \(totalHeartSpaces) espacios para corazones (\(maxLives) base + \(maxExtraLives) extra)")
+        
+        // Ajustar tamaño de corazones si hay muchos
+        let adjustedHeartSize = totalHeartSpaces > 5 ? Layout.heartSize * 0.8 : Layout.heartSize
+        let adjustedSpacing = totalHeartSpaces > 5 ? Layout.heartSpacing * 0.7 : Layout.heartSpacing
+        
+        // Calcular posición inicial (izquierda)
+        let startX = -size.width/2 + Layout.horizontalMargin + adjustedHeartSize/2
+        let centerY: CGFloat = 0
+        
+        // Crear todos los corazones posibles
+        for i in 0..<totalHeartSpaces {
+            let heart = SKLabelNode(text: "❤️")
+            heart.fontSize = adjustedHeartSize
+            heart.verticalAlignmentMode = .center
+            heart.zPosition = 3
+            heart.position = CGPoint(
+                x: startX + CGFloat(i) * (adjustedHeartSize + adjustedSpacing),
+                y: centerY
+            )
+            
+            // Diferenciar visualmente entre corazones base y extra
+            if i >= maxLives {
+                heart.fontColor = .purple // Corazones extra en púrpura
+            } else {
+                heart.fontColor = .red // Corazones base en rojo
+            }
+            
+            addChild(heart)
+            heartNodes.append(heart)
+        }
+    }
     
     // MARK: - Public Methods
         static func create(width: CGFloat, height: CGFloat, position: CGPoint) -> TopBar {
@@ -175,16 +185,22 @@ class TopBar: SKNode {
         }
         
         // Método para configurar el nivel inicial
-        func configure(withLevel level: GameLevel) {
-            maxLives = level.lives.initial
-            maxExtraLives = level.lives.extraLives.maxExtra
-            lives = level.lives.initial
-            
-            levelLabel.text = "Nivel \(level.levelId)"
-            
-            setupHearts()
-            updateScore(0)
-        }
+    func configure(withLevel level: GameLevel) {
+        // Configurar vidas base y extras
+        maxLives = level.lives.initial
+        maxExtraLives = level.lives.extraLives.maxExtra
+        lives = level.lives.initial
+        
+        // Configurar etiqueta de nivel
+        levelLabel.text = "Nivel \(level.levelId)"
+        
+        // Actualizar visualización
+        setupHearts() // Esto creará el número total de corazones (base + extra)
+        updateLives(lives) // Esto actualizará el estado visual inicial
+        updateScore(0)
+        
+        print("TopBar configurada con: nivel \(level.levelId), vidas iniciales: \(maxLives), vidas extra máximas: \(maxExtraLives)")
+    }
         
         func updateScore(_ newScore: Int) {
             score = newScore
@@ -235,33 +251,116 @@ extension TopBar {
         let scene = SKScene(size: CGSize(width: 400, height: 300))
         scene.backgroundColor = .lightGray
         
-        // Crear un TopBar con puntuación 0 y 3 vidas
-        let defaultTopBar = TopBar.create(
+        // Crear niveles de ejemplo que simulan la configuración del JSON
+        let level0 = GameLevel(
+            levelId: 0,
+            name: "Nivel 0. Tutorial",
+            allowedStyles: ["default"],
+            fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
+            lives: Lives(
+                initial: 3,
+                extraLives: ExtraLives(
+                    scoreThresholds: [500, 1000],
+                    maxExtra: 2
+                )
+            ),
+            objectives: Objectives(
+                primary: Objective(
+                    type: "score",
+                    target: 100,
+                    timeLimit: 180,
+                    minimumAccuracy: nil,
+                    details: nil,
+                    requireAll: nil
+                ),
+                secondary: nil
+            ),
+            blocks: [:]
+        )
+        
+        let level1 = GameLevel(
+            levelId: 1,
+            name: "Nivel 1",
+            allowedStyles: ["defaultBlock", "iceBlock"],
+            fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
+            lives: Lives(
+                initial: 4,
+                extraLives: ExtraLives(
+                    scoreThresholds: [500, 1000, 1500],
+                    maxExtra: 3
+                )
+            ),
+            objectives: Objectives(
+                primary: Objective(
+                    type: "note_accuracy",
+                    target: 10,
+                    timeLimit: 0,
+                    minimumAccuracy: 0.8,
+                    details: nil,
+                    requireAll: nil
+                ),
+                secondary: nil
+            ),
+            blocks: [:]
+        )
+        
+        let level2 = GameLevel(
+            levelId: 2,
+            name: "Nivel 2",
+            allowedStyles: ["defaultBlock", "hardIceBlock", "ghostBlock"],
+            fallingSpeed: FallingSpeed(initial: 7.0, increment: 0.0),
+            lives: Lives(
+                initial: 5,
+                extraLives: ExtraLives(
+                    scoreThresholds: [500, 1000, 1500, 2000],
+                    maxExtra: 4
+                )
+            ),
+            objectives: Objectives(
+                primary: Objective(
+                    type: "total_blocks",
+                    target: 15,
+                    timeLimit: 240,
+                    minimumAccuracy: nil,
+                    details: nil,
+                    requireAll: nil
+                ),
+                secondary: nil
+            ),
+            blocks: [:]
+        )
+        
+        // Crear un TopBar con nivel tutorial (3 vidas + 2 extra)
+        let tutorialBar = TopBar.create(
             width: 350,
             height: 60,
             position: CGPoint(x: 200, y: 250)
         )
-        scene.addChild(defaultTopBar)
+        tutorialBar.configure(withLevel: level0)
+        tutorialBar.updateScore(0)
+        scene.addChild(tutorialBar)
         
-        // Crear un TopBar con puntuación alta y 2 vidas
-        let highScoreTopBar = TopBar.create(
+        // Crear un TopBar con nivel 1 (4 vidas + 3 extra, algunas perdidas)
+        let level1Bar = TopBar.create(
             width: 350,
             height: 60,
             position: CGPoint(x: 200, y: 150)
         )
-        highScoreTopBar.updateScore(1250)
-        highScoreTopBar.updateLives(2)
-        scene.addChild(highScoreTopBar)
+        level1Bar.configure(withLevel: level1)
+        level1Bar.updateScore(750)
+        level1Bar.updateLives(5) // 4 base + 1 extra ganada, 2 perdidas
+        scene.addChild(level1Bar)
         
-        // Crear un TopBar con puntuación muy alta y 0 vidas
-        let veryHighScoreTopBar = TopBar.create(
+        // Crear un TopBar con nivel 2 (5 vidas + 4 extra, todas las extra ganadas)
+        let level2Bar = TopBar.create(
             width: 350,
             height: 60,
             position: CGPoint(x: 200, y: 50)
         )
-        veryHighScoreTopBar.updateScore(9999)
-        veryHighScoreTopBar.updateLives(0)
-        scene.addChild(veryHighScoreTopBar)
+        level2Bar.configure(withLevel: level2)
+        level2Bar.updateScore(2500)
+        level2Bar.updateLives(9) // Todas las vidas disponibles (5 base + 4 extra)
+        scene.addChild(level2Bar)
         
         return scene
     }
@@ -269,9 +368,34 @@ extension TopBar {
 
 struct TopBarPreview: PreviewProvider {
     static var previews: some View {
-        SpriteView(scene: TopBar.createPreviewScene())
-            .frame(width: 400, height: 300)
-            .previewLayout(.fixed(width: 400, height: 300))
+        VStack {
+            // Vista previa de la TopBar
+            SpriteView(scene: TopBar.createPreviewScene())
+                .frame(width: 400, height: 300)
+                .previewLayout(.fixed(width: 400, height: 300))
+            
+            // Leyenda explicativa
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Leyenda:")
+                    .font(.headline)
+                HStack {
+                    Text("❤️").foregroundColor(.red)
+                    Text("Vidas base")
+                }
+                HStack {
+                    Text("❤️").foregroundColor(.purple)
+                    Text("Vidas extra")
+                }
+                Text("♡ Vida perdida")
+                    .foregroundColor(.gray)
+            }
+            .padding()
+            .background(Color.white)
+            .cornerRadius(10)
+            .shadow(radius: 5)
+        }
+        .background(Color.gray.opacity(0.2))
+        .previewDisplayName("TopBar Estados")
     }
 }
 #endif

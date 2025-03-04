@@ -11,8 +11,8 @@ class GameManager {
     static let shared = GameManager()
     
     // Configuración general del juego
-    private(set) var gameConfig: GameConfig?
-    private(set) var currentLevel: GameLevel?
+    var gameConfig: GameConfig?
+    var currentLevel: GameLevel?
     
     private init() {
         loadGameConfig()

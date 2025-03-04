@@ -178,9 +178,11 @@ class GameEngine: ObservableObject {
     
     private func checkForExtraLife(currentScore: Int) {
         for threshold in scoreThresholdsForExtraLives {
-            if currentScore >= threshold && lives < (gameManager.currentLevel?.lives.initial ?? 3) + maxExtraLives {
+            if currentScore >= threshold && lives < (currentLevel?.lives.initial ?? 3) + maxExtraLives {
                 lives += 1
-                // Eliminar el threshold usado para no dar vidas extra repetidas
+                print("¡Vida extra ganada! Vidas actuales: \(lives)")
+                
+                // Eliminar el threshold usado
                 if let index = scoreThresholdsForExtraLives.firstIndex(of: threshold) {
                     scoreThresholdsForExtraLives.remove(at: index)
                 }

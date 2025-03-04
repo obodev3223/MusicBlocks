@@ -280,14 +280,23 @@ class MusicBlocksScene: SKScene {
         
         // Cargar el nivel actual desde UserProfile
         let userProfile = UserProfile.load()
+        print("Cargando nivel \(userProfile.statistics.currentLevel) desde UserProfile")
+        
         if GameManager.shared.loadLevel(userProfile.statistics.currentLevel) {
             if let currentLevel = GameManager.shared.currentLevel {
+                // Configurar TopBar con el nivel actual
+                topBarNode?.configure(withLevel: currentLevel)
+                print("TopBar configurada con nivel \(currentLevel.levelId)")
+                
+                // Mostrar overlay de inicio de nivel
                 showLevelStartOverlay(for: currentLevel)
             }
         } else {
             // Si no hay nivel, comenzar desde el nivel 0
+            print("No se pudo cargar el nivel actual, comenzando desde nivel 0")
             if GameManager.shared.loadLevel(0) {
                 if let firstLevel = GameManager.shared.currentLevel {
+                    topBarNode?.configure(withLevel: firstLevel)
                     showLevelStartOverlay(for: firstLevel)
                 }
             }
