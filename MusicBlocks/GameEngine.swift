@@ -63,16 +63,7 @@ class GameEngine: ObservableObject {
     
     // MARK: - Public Methods
     func startNewGame() {
-        // Cargar el nivel guardado en el perfil
-        let userProfile = UserProfile.load()
-        if let level = gameManager.gameConfig?.levels.first(where: { $0.levelId == userProfile.statistics.currentLevel }) {
-            gameManager.currentLevel = level
-        } else {
-            // Si no hay nivel guardado o es inválido, empezar desde el nivel 0
-            gameManager.currentLevel = gameManager.gameConfig?.levels.first
-        }
-        
-        guard let currentLevel = currentLevel else { return }
+        guard let currentLevel = gameManager.currentLevel else { return }
         
         // Resetear todo al empezar un nuevo juego
         score = 0
@@ -88,8 +79,8 @@ class GameEngine: ObservableObject {
         currentDetectedNote = nil
         currentNoteStartTime = nil
         
-        // Comenzar en estado de cuenta atrás
-        gameState = .countdown
+        // Iniciar en estado de cuenta atrás
+        gameState = .playing // Cambiamos a playing después de la cuenta atrás
     }
     
     func checkNote(currentNote: String, deviation: Double, isActive: Bool, currentBlockNote: String?, currentBlockConfig: Block?) {
