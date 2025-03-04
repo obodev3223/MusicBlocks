@@ -17,6 +17,11 @@ class BlocksManager {
     private var mainAreaHeight: CGFloat = 0
     private let gameManager = GameManager.shared
     
+    struct CurrentBlock {
+        let note: String
+        let config: Block
+    }
+    
     // MARK: - Initialization
     init(blockSize: CGSize = CGSize(width: 270, height: 110),
          blockSpacing: CGFloat = 2.0,
@@ -251,6 +256,17 @@ class BlocksManager {
         }
         blocks.removeAll()
     }
+    
+    func getCurrentBlock() -> CurrentBlock? {
+            guard let bottomBlock = blocks.last,
+                  let noteData = bottomBlock.userData?.value(forKey: "noteName") as? String,
+                  let blockStyle = bottomBlock.userData?.value(forKey: "blockStyle") as? String,
+                  let blockConfig = GameManager.shared.getBlockConfig(for: blockStyle) else {
+                return nil
+            }
+            
+            return CurrentBlock(note: noteData, config: blockConfig)
+        }
     
     // MARK: - Public Interface
     var currentBlocks: [SKNode] { blocks }

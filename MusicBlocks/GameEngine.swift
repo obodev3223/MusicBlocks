@@ -36,7 +36,7 @@ class GameEngine: ObservableObject {
     private var isInSuccessState: Bool = false
     
     // Propiedad para el nivel actual
-    private var currentLevel: GameLevel? {
+    var currentLevel: GameLevel? {
         gameManager.currentLevel
     }
     

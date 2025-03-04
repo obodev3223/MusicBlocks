@@ -129,16 +129,28 @@ class MusicBlocksScene: SKScene {
             y: size.height - safeAreaTop - height / 2
         )
         
-        // Ya no necesitamos crear un contenedor de sombra aquí porque TopBar maneja su propio fondo
+        // Crear la TopBar
         topBarNode = TopBar.create(width: width, height: height, position: position)
+        
         if let topBar = topBarNode {
             // Asegurarnos de que la TopBar tenga una zPosition adecuada
             topBar.zPosition = 100 // Un valor alto para asegurar que esté por encima de otros elementos
+            
+            // Configurar con el nivel actual si existe
+            if let currentLevel = GameManager.shared.currentLevel {
+                topBar.configure(withLevel: currentLevel)
+            }
+            
+            // IMPORTANTE: Añadir el nodo a la escena
             addChild(topBar)
             
-            // Inicializar con valores por defecto
-            topBar.updateScore(0)
-            topBar.updateLives(3) // O el número inicial de vidas que quieras mostrar
+            // Imprimir información de depuración
+            print("TopBar configurada en posición: \(position)")
+            print("TopBar frame: \(topBar.frame)")
+            print("Scene size: \(size)")
+            print("Safe area top: \(safeAreaTop)")
+        } else {
+            print("Error: No se pudo crear la TopBar")
         }
     }
     
@@ -268,15 +280,16 @@ class MusicBlocksScene: SKScene {
         
         // Cargar el nivel actual desde UserProfile
         let userProfile = UserProfile.load()
-        if let gameConfig = GameManager.shared.gameConfig,
-           let level = gameConfig.levels.first(where: { $0.levelId == userProfile.statistics.currentLevel }) {
-            GameManager.shared.currentLevel = level
-            showLevelStartOverlay(for: level)
+        if GameManager.shared.loadLevel(userProfile.statistics.currentLevel) {
+            if let currentLevel = GameManager.shared.currentLevel {
+                showLevelStartOverlay(for: currentLevel)
+            }
         } else {
             // Si no hay nivel, comenzar desde el nivel 0
-            if let firstLevel = GameManager.shared.gameConfig?.levels.first {
-                GameManager.shared.currentLevel = firstLevel
-                showLevelStartOverlay(for: firstLevel)
+            if GameManager.shared.loadLevel(0) {
+                if let firstLevel = GameManager.shared.currentLevel {
+                    showLevelStartOverlay(for: firstLevel)
+                }
             }
         }
     }
@@ -392,10 +405,16 @@ class MusicBlocksScene: SKScene {
     
     private func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
         let tunerData = audioController.tunerData
+        
+        // Obtener la nota y configuración del bloque inferior actual
+        let currentBlock = blocksManager.getCurrentBlock()
+        
         gameEngine.checkNote(
             currentNote: tunerData.note,
             deviation: tunerData.deviation,
-            isActive: tunerData.isActive
+            isActive: tunerData.isActive,
+            currentBlockNote: currentBlock?.note,
+            currentBlockConfig: currentBlock?.config
         )
         
         updateGameUI()
