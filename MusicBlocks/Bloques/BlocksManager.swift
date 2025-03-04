@@ -55,7 +55,7 @@ class BlocksManager {
             return
         }
         
-        print("Spawning new block. Current count: \(blocks.count)")
+        print("Generando nuevo bloque. Bloques actuales: \(blocks.count)")
         
         let moveDuration = 0.5
         let moveDistance = blockSize.height + blockSpacing
@@ -67,29 +67,31 @@ class BlocksManager {
             block.run(moveDown)
         }
         
-        // Crear nuevo bloque
+        // Crear y configurar el nuevo bloque
         let newBlock = createBlock()
         
-        // Calcular la posición inicial
-        let startY = (mainAreaHeight/2) - (blockSize.height/2) - blockSpacing
-        newBlock.position = CGPoint(
-            x: 0,
-            y: startY + 10
-        )
+        // Verificar que el bloque se creó correctamente
+        if let noteData = newBlock.userData?.value(forKey: "noteName") as? String {
+            print("Bloque creado correctamente con nota: \(noteData)")
+        } else {
+            print("¡Advertencia! Bloque creado sin nota")
+        }
         
-        print("Adding block at position: \(newBlock.position)")
+        // Posicionar el bloque
+        let startY = (mainAreaHeight/2) - (blockSize.height/2) - blockSpacing
+        newBlock.position = CGPoint(x: 0, y: startY + 10)
         
         // Añadir al área principal
         mainAreaNode.addChild(newBlock)
         
-        // Animar la entrada del bloque
+        // Animar entrada
         let moveToSlot = SKAction.moveTo(y: startY, duration: moveDuration)
         moveToSlot.timingMode = .easeInEaseOut
         newBlock.run(moveToSlot)
         
         blocks.insert(newBlock, at: 0)
         
-        print("Block added successfully. New count: \(blocks.count)")
+        print("Bloque añadido. Total de bloques: \(blocks.count)")
     }
     
     private func createBlock() -> SKNode {
@@ -113,6 +115,7 @@ class BlocksManager {
         // Generar una nota aleatoria de las disponibles para este tipo de bloque
         let randomNote = selectRandomNote(from: blockConfig.notes)
         if let note = MusicalNote.parse(randomNote) {
+            // Crear el contenido visual del bloque
             let contentNode = BlockContentGenerator.generateBlockContent(
                 with: blockStyle,
                 blockSize: blockSize,
@@ -123,14 +126,25 @@ class BlocksManager {
             contentNode.zPosition = 3
             blockNode.addChild(contentNode)
             
-            // Almacenar la nota y configuración en el nodo
+            // Almacenar TODOS los datos necesarios en el userData
             blockNode.userData = NSMutableDictionary()
             blockNode.userData?.setValue(note.fullName, forKey: "noteName")
+            blockNode.userData?.setValue(blockStyle.name, forKey: "blockStyle") // Añadir el estilo
             blockNode.userData?.setValue(blockConfig.requiredHits, forKey: "requiredHits")
             blockNode.userData?.setValue(blockConfig.requiredTime, forKey: "requiredTime")
+            blockNode.userData?.setValue(blockConfig.basePoints, forKey: "basePoints")
+            
+            print("Bloque creado - Nota: \(note.fullName), Estilo: \(blockStyle.name)")
         }
         
         return blockNode
+    }
+    
+    // Añadir este método auxiliar para ayudar en el debugging
+    private func selectRandomNote(from notes: [String]) -> String {
+        let selectedNote = notes.randomElement() ?? "DO4"
+        print("Nota seleccionada: \(selectedNote) de opciones: \(notes)")
+        return selectedNote
     }
     
     private func selectBlockStyleBasedOnWeights(from blocks: [String: Block]) -> BlockStyle {
@@ -173,10 +187,6 @@ class BlocksManager {
         case "changingBlock": return .changingBlock
         default: return nil
         }
-    }
-    
-    private func selectRandomNote(from notes: [String]) -> String {
-        return notes.randomElement() ?? "DO4"
     }
     
     private func createDefaultBlock() -> SKNode {
@@ -258,15 +268,22 @@ class BlocksManager {
     }
     
     func getCurrentBlock() -> CurrentBlock? {
-            guard let bottomBlock = blocks.last,
-                  let noteData = bottomBlock.userData?.value(forKey: "noteName") as? String,
-                  let blockStyle = bottomBlock.userData?.value(forKey: "blockStyle") as? String,
-                  let blockConfig = GameManager.shared.getBlockConfig(for: blockStyle) else {
-                return nil
+        guard let bottomBlock = blocks.last,
+              let noteData = bottomBlock.userData?.value(forKey: "noteName") as? String,
+              let blockStyle = bottomBlock.userData?.value(forKey: "blockStyle") as? String,
+              let blockConfig = GameManager.shared.getBlockConfig(for: blockStyle) else {
+            print("Error obteniendo datos del bloque actual:")
+            if let bottomBlock = blocks.last {
+                print("- Nota: \(bottomBlock.userData?.value(forKey: "noteName") as? String ?? "nil")")
+                print("- Estilo: \(bottomBlock.userData?.value(forKey: "blockStyle") as? String ?? "nil")")
+            } else {
+                print("No hay bloque actual")
             }
-            
-            return CurrentBlock(note: noteData, config: blockConfig)
+            return nil
         }
+        
+        return CurrentBlock(note: noteData, config: blockConfig)
+    }
     
     // MARK: - Public Interface
     var currentBlocks: [SKNode] { blocks }

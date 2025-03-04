@@ -105,10 +105,10 @@ class TopBar: SKNode {
             backgroundNode.alpha = Layout.backgroundAlpha
             addChild(backgroundNode)
             
-            // Crear el área izquierda para nivel y vidas
+            // Área izquierda (nivel y vidas)
             let leftAreaNode = SKNode()
-            leftAreaNode.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: size.height/4)
-            leftAreaNode.zPosition = 2
+            leftAreaNode.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: 0)
+            leftAreaNode.zPosition = 3
             addChild(leftAreaNode)
             
             // Título del nivel
@@ -116,28 +116,22 @@ class TopBar: SKNode {
             levelLabel.fontSize = Layout.levelFontSize
             levelLabel.fontColor = .purple
             levelLabel.horizontalAlignmentMode = .left
-            levelLabel.verticalAlignmentMode = .top
-            levelLabel.position = CGPoint(x: 0, y: 0)
-            levelLabel.zPosition = 3
+            levelLabel.verticalAlignmentMode = .center
+            levelLabel.position = CGPoint(x: 0, y: size.height/4)
             leftAreaNode.addChild(levelLabel)
             
-            // Contenedor para los corazones
+            // Contenedor para los corazones (justo debajo del nivel)
             let heartsContainer = SKNode()
-            heartsContainer.position = CGPoint(x: 0, y: -Layout.verticalSpacing - Layout.heartSize)
-            heartsContainer.zPosition = 3
+            heartsContainer.position = CGPoint(x: 0, y: levelLabel.position.y - Layout.heartSize - Layout.verticalSpacing)
             leftAreaNode.addChild(heartsContainer)
             
             // Área de puntuación (derecha)
             let scoreArea = SKNode()
             scoreArea.position = CGPoint(x: size.width/2 - Layout.horizontalMargin, y: 0)
-            scoreArea.zPosition = 2
+            scoreArea.zPosition = 3
             addChild(scoreArea)
             
-            // Estrella y puntuación con zPosition ajustada
-            scoreIcon.zPosition = 3
-            scoreText.zPosition = 3
-            scoreLabel.zPosition = 3
-            
+            // Configurar puntuación
             scoreIcon.position = CGPoint(x: -120, y: 0)
             scoreText.position = CGPoint(x: -85, y: 0)
             scoreLabel.position = CGPoint(x: -30, y: 0)
@@ -145,13 +139,13 @@ class TopBar: SKNode {
             scoreArea.addChild(scoreIcon)
             scoreArea.addChild(scoreText)
             scoreArea.addChild(scoreLabel)
+            
+            setupHearts(in: heartsContainer)
         }
     
-    private func setupHearts() {
+    private func setupHearts(in container: SKNode) {
         // Limpiar corazones existentes
-        for heart in heartNodes {
-            heart.removeFromParent()
-        }
+        heartNodes.forEach { $0.removeFromParent() }
         heartNodes.removeAll()
         
         // Inicialmente solo mostrar las vidas base
@@ -160,30 +154,28 @@ class TopBar: SKNode {
             heart.fontSize = Layout.heartSize
             heart.verticalAlignmentMode = .center
             heart.horizontalAlignmentMode = .left
-            heart.zPosition = 3
             heart.position = CGPoint(
                 x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing),
-                y: -15
+                y: 0
             )
             heart.fontColor = .red
-            addChild(heart)
+            container.addChild(heart)
             heartNodes.append(heart)
         }
         
         // Preparar espacios para vidas extra (inicialmente ocultos)
         for i in maxLives..<(maxLives + maxExtraLives) {
-            let heart = SKLabelNode(text: "")  // Inicialmente vacío
+            let heart = SKLabelNode(text: "")
             heart.fontSize = Layout.heartSize
             heart.verticalAlignmentMode = .center
             heart.horizontalAlignmentMode = .left
-            heart.zPosition = 3
             heart.position = CGPoint(
                 x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing),
-                y: -15
+                y: 0
             )
             heart.fontColor = .purple
-            heart.alpha = 0  // Inicialmente invisible
-            addChild(heart)
+            heart.alpha = 0
+            container.addChild(heart)
             heartNodes.append(heart)
         }
     }
