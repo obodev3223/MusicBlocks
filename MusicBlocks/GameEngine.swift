@@ -58,7 +58,7 @@ class GameEngine: ObservableObject {
     // MARK: - Initialization
     init(tunerEngine: TunerEngine = .shared) {
         self.tunerEngine = tunerEngine
-        setupGame()
+        gameState = .countdown // Empezamos en estado de cuenta atrás
     }
     
     // MARK: - Public Methods
@@ -82,6 +82,18 @@ class GameEngine: ObservableObject {
         // Iniciar en estado de cuenta atrás
         gameState = .playing // Cambiamos a playing después de la cuenta atrás
     }
+    
+    // Método para inicializar el juego
+    func initialize(withLevel level: GameLevel) {
+            // Inicializar vidas desde la configuración del nivel
+            lives = level.lives.initial
+            
+            // Configurar vidas extra
+            maxExtraLives = level.lives.extraLives.maxExtra
+            scoreThresholdsForExtraLives = level.lives.extraLives.scoreThresholds
+            
+            startNewGame()
+        }
     
     func checkNote(currentNote: String, deviation: Double, isActive: Bool, currentBlockNote: String?, currentBlockConfig: Block?) {
         // No procesar nada si el juego no está activo o estamos en estado de éxito

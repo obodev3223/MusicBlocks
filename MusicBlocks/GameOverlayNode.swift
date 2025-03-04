@@ -103,28 +103,48 @@ class LevelStartOverlayNode: GameOverlayNode {
         super.init(size: size)
         self.startAction = startAction
         
-        // Título del nivel
+        // Contenedor para el título y nombre del nivel
+        let headerContainer = SKNode()
+        
+        // Título del nivel con estilo mejorado
         let titleNode = SKLabelNode(text: "Nivel \(levelId)")
-        titleNode.fontSize = 36
+        titleNode.fontSize = 40
         titleNode.fontName = "Helvetica-Bold"
         titleNode.fontColor = .purple
-        titleNode.position = CGPoint(x: 0, y: 40)
-        contentNode.addChild(titleNode)
+        titleNode.position = CGPoint(x: 0, y: 60)
+        headerContainer.addChild(titleNode)
         
-        // Nombre del nivel
+        // Nombre del nivel con estilo mejorado
         let nameNode = SKLabelNode(text: levelName)
         nameNode.fontSize = 24
         nameNode.fontName = "Helvetica"
         nameNode.fontColor = .darkGray
-        nameNode.position = CGPoint(x: 0, y: 0)
-        contentNode.addChild(nameNode)
+        nameNode.position = CGPoint(x: 0, y: 20)
+        headerContainer.addChild(nameNode)
         
-        // Etiqueta para la cuenta atrás
+        // Línea separadora
+        let separatorLine = SKShapeNode(rectOf: CGSize(width: size.width * 0.8, height: 1))
+        separatorLine.fillColor = .lightGray
+        separatorLine.strokeColor = .clear
+        separatorLine.position = CGPoint(x: 0, y: -10)
+        headerContainer.addChild(separatorLine)
+        
+        contentNode.addChild(headerContainer)
+        
+        // Mensaje "Preparado"
+        let readyNode = SKLabelNode(text: "¡Prepárate!")
+        readyNode.fontSize = 28
+        readyNode.fontName = "Helvetica-Bold"
+        readyNode.fontColor = .orange
+        readyNode.position = CGPoint(x: 0, y: -40)
+        contentNode.addChild(readyNode)
+        
+        // Etiqueta para la cuenta atrás con estilo mejorado
         let countdownNode = SKLabelNode(text: "\(secondsRemaining)")
-        countdownNode.fontSize = 48
+        countdownNode.fontSize = 64
         countdownNode.fontName = "Helvetica-Bold"
         countdownNode.fontColor = .orange
-        countdownNode.position = CGPoint(x: 0, y: -50)
+        countdownNode.position = CGPoint(x: 0, y: -100)
         contentNode.addChild(countdownNode)
         self.countdownLabel = countdownNode
     }
@@ -301,40 +321,63 @@ import SwiftUI
 
 struct GameOverlayPreview: PreviewProvider {
     static var previews: some View {
-        SpriteView(scene: {
-            // Crear la escena directamente
-            let scene = SKScene(size: CGSize(width: 400, height: 600))
-            scene.backgroundColor = .white
+        VStack(spacing: 20) {
+            // Vista del LevelStartOverlay
+            SpriteView(scene: {
+                let scene = SKScene(size: CGSize(width: 400, height: 300))
+                scene.backgroundColor = .white
+                
+                let levelStartNode = LevelStartOverlayNode(
+                    size: CGSize(width: 350, height: 250),
+                    levelId: 1,
+                    levelName: "¡Comienza la aventura!",
+                    startAction: {}
+                )
+                levelStartNode.position = CGPoint(x: 200, y: 150)
+                scene.addChild(levelStartNode)
+                
+                return scene
+            }())
+            .frame(width: 400, height: 300)
+            .previewDisplayName("Level Start Overlay")
             
-            // Agregar el Success Overlay
-            let successNode = SuccessOverlayNode(
-                size: CGSize(width: 300, height: 200),
-                multiplier: 2,
-                message: "¡Perfecto!"
-            )
-            successNode.position = CGPoint(x: 200, y: 450)
-            scene.addChild(successNode)
-            
-            // Agregar el Failure Overlay
-            let failureNode = FailureOverlayNode(
-                size: CGSize(width: 300, height: 200)
-            )
-            failureNode.position = CGPoint(x: 200, y: 300)
-            scene.addChild(failureNode)
-            
-            // Agregar el Game Over Overlay
-            let gameOverNode = GameOverOverlayNode(
-                size: CGSize(width: 300, height: 200),
-                score: 1500,
-                restartAction: {}
-            )
-            gameOverNode.position = CGPoint(x: 200, y: 150)
-            scene.addChild(gameOverNode)
-            
-            return scene
-        }())
-        .frame(width: 400, height: 600)
-        .previewLayout(.fixed(width: 400, height: 600))
+            // Vista de los otros overlays
+            SpriteView(scene: {
+                let scene = SKScene(size: CGSize(width: 400, height: 600))
+                scene.backgroundColor = .white
+                
+                // Success Overlay
+                let successNode = SuccessOverlayNode(
+                    size: CGSize(width: 300, height: 80),
+                    multiplier: 2,
+                    message: "¡Perfecto!"
+                )
+                successNode.position = CGPoint(x: 200, y: 450)
+                scene.addChild(successNode)
+                
+                // Failure Overlay
+                let failureNode = FailureOverlayNode(
+                    size: CGSize(width: 300, height: 80)
+                )
+                failureNode.position = CGPoint(x: 200, y: 300)
+                scene.addChild(failureNode)
+                
+                // Game Over Overlay
+                let gameOverNode = GameOverOverlayNode(
+                    size: CGSize(width: 300, height: 200),
+                    score: 1500,
+                    restartAction: {}
+                )
+                gameOverNode.position = CGPoint(x: 200, y: 150)
+                scene.addChild(gameOverNode)
+                
+                return scene
+            }())
+            .frame(width: 400, height: 600)
+            .previewDisplayName("Game State Overlays")
+        }
+        .previewLayout(.fixed(width: 400, height: 920))
+        .background(Color.gray.opacity(0.1))
     }
 }
 #endif

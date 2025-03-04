@@ -276,28 +276,40 @@ class MusicBlocksScene: SKScene {
     // MARK: - Game Control Methods
     private func setupAndStart() {
         initializeUIElements()
-        audioController.start()
+        audioController.stop() // Asegurarnos de que el audio está detenido
         
         // Cargar el nivel actual desde UserProfile
         let userProfile = UserProfile.load()
-        print("Cargando nivel \(userProfile.statistics.currentLevel) desde UserProfile")
+        print("Intentando cargar nivel \(userProfile.statistics.currentLevel)")
         
         if GameManager.shared.loadLevel(userProfile.statistics.currentLevel) {
             if let currentLevel = GameManager.shared.currentLevel {
-                // Configurar TopBar con el nivel actual
+                print("Nivel \(currentLevel.levelId) cargado: \(currentLevel.name)")
+                
+                // Configurar TopBar
                 topBarNode?.configure(withLevel: currentLevel)
-                print("TopBar configurada con nivel \(currentLevel.levelId)")
+                
+                // Inicializar GameEngine con el nivel
+                gameEngine.initialize(withLevel: currentLevel)
                 
                 // Mostrar overlay de inicio de nivel
                 showLevelStartOverlay(for: currentLevel)
             }
         } else {
-            // Si no hay nivel, comenzar desde el nivel 0
-            print("No se pudo cargar el nivel actual, comenzando desde nivel 0")
+            print("Error al cargar el nivel, intentando cargar tutorial")
+            // Intentar cargar el nivel tutorial
             if GameManager.shared.loadLevel(0) {
-                if let firstLevel = GameManager.shared.currentLevel {
-                    topBarNode?.configure(withLevel: firstLevel)
-                    showLevelStartOverlay(for: firstLevel)
+                if let tutorialLevel = GameManager.shared.currentLevel {
+                    print("Tutorial cargado correctamente")
+                    
+                    // Configurar TopBar
+                    topBarNode?.configure(withLevel: tutorialLevel)
+                    
+                    // Inicializar GameEngine con el tutorial
+                    gameEngine.initialize(withLevel: tutorialLevel)
+                    
+                    // Mostrar overlay de inicio de nivel
+                    showLevelStartOverlay(for: tutorialLevel)
                 }
             }
         }

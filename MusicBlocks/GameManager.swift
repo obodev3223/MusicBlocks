@@ -25,13 +25,28 @@ class GameManager {
     
     // MARK: - Level Management
     func loadLevel(_ levelId: Int) -> Bool {
-        guard let config = gameConfig,
-              let level = GameLevelProcessor.getLevel(from: config, withId: levelId) else {
+            guard let config = gameConfig else {
+                print("Error: No se pudo cargar la configuración del juego")
+                return false
+            }
+            
+            // Intentar cargar el nivel solicitado
+            if let level = GameLevelProcessor.getLevel(from: config, withId: levelId) {
+                currentLevel = level
+                print("Nivel \(levelId) cargado correctamente")
+                return true
+            }
+            
+            // Si no se encuentra el nivel solicitado, cargar el tutorial
+            if let tutorialLevel = GameLevelProcessor.getLevel(from: config, withId: 0) {
+                currentLevel = tutorialLevel
+                print("Cargando nivel tutorial por defecto")
+                return true
+            }
+            
+            print("Error: No se pudo cargar ningún nivel")
             return false
         }
-        currentLevel = level
-        return true
-    }
     
     // MARK: - Game Configuration Accessors
     var accuracyThresholds: AccuracyThresholds? {
