@@ -170,15 +170,21 @@ class MusicBlocksScene: SKScene {
         )
         
         let mainContent = SKNode()
-        mainContent.zPosition = 2
-        mainContent.position = .zero
-        
-        containerNode.addChild(mainContent)
-        mainAreaNode = mainContent
-        addChild(containerNode)
-        
-        print("MainAreaNode configured with position: \(mainContent.position)")
-    }
+            mainContent.zPosition = 2
+            mainContent.position = .zero
+            
+            containerNode.addChild(mainContent)
+            mainAreaNode = mainContent
+            addChild(containerNode)
+            
+            // Inicializar BlocksManager aquí después de crear mainAreaNode
+            blocksManager = BlocksManager(
+                mainAreaNode: mainContent,
+                mainAreaHeight: height
+            )
+            
+            print("MainAreaNode configured with position: \(mainContent.position)")
+        }
     
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
         setupLeftSideBar(width: width, height: height)
@@ -315,24 +321,26 @@ class MusicBlocksScene: SKScene {
         }
     }
     
-    private func startBlockSequence() {
         // Detener cualquier secuencia anterior si existe
-        removeAction(forKey: "spawnSequence")
-        
-        let spawnSequence = SKAction.sequence([
-            SKAction.wait(forDuration: 1.0), // Esperar un poco antes de empezar
-            SKAction.repeatForever(
-                SKAction.sequence([
-                    SKAction.run { [weak self] in
-                        self?.blocksManager.spawnBlock()
-                    },
-                    SKAction.wait(forDuration: 4.0)
-                ])
-            )
-        ])
-        
-        run(spawnSequence, withKey: "spawnSequence")
-    }
+        private func startBlockSequence() {
+            removeAction(forKey: "spawnSequence")
+            
+            let spawnSequence = SKAction.sequence([
+                SKAction.wait(forDuration: 1.0),
+                SKAction.repeatForever(
+                    SKAction.sequence([
+                        SKAction.run { [weak self] in
+                            guard let self = self else { return }
+                            self.blocksManager.spawnBlock()
+                            print("Bloque generado")  // Debug
+                        },
+                        SKAction.wait(forDuration: 4.0)
+                    ])
+                )
+            ])
+            
+            run(spawnSequence, withKey: "spawnSequence")
+        }
     
     private func initializeUIElements() {
         if detectedNoteCounterNode == nil {

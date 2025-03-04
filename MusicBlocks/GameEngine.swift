@@ -85,14 +85,31 @@ class GameEngine: ObservableObject {
     
     // Método para inicializar el juego
     func initialize(withLevel level: GameLevel) {
-            // Inicializar vidas desde la configuración del nivel
-            lives = level.lives.initial
+            print("Inicializando GameEngine con nivel: \(level.levelId)")
+
+            // Asegurarnos de que GameManager tiene el nivel correcto
+            if gameManager.currentLevel?.levelId != level.levelId {
+                _ = gameManager.loadLevel(level.levelId)
+            }
             
-            // Configurar vidas extra
+            // Inicializar el resto de propiedades
+            lives = level.lives.initial
             maxExtraLives = level.lives.extraLives.maxExtra
             scoreThresholdsForExtraLives = level.lives.extraLives.scoreThresholds
+            gameState = .countdown
             
-            startNewGame()
+            // Reset de estado
+            score = 0
+            isShowingError = false
+            lastErrorTime = nil
+            lastSilenceTime = nil
+            noteMatchTime = 0
+            currentDetectedNote = nil
+            currentNoteStartTime = nil
+            
+            print("GameEngine inicializado con nivel \(level.levelId)")
+            print("Vidas iniciales: \(lives)")
+            print("Vidas extra máximas: \(maxExtraLives)")
         }
     
     func checkNote(currentNote: String, deviation: Double, isActive: Bool, currentBlockNote: String?, currentBlockConfig: Block?) {

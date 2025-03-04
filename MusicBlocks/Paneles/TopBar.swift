@@ -18,11 +18,12 @@ class TopBar: SKNode {
         static let shadowOpacity: Float = 0.2
         static let padding: CGFloat = 20
         static let scoreFontSize: CGFloat = 20
-        static let heartSize: CGFloat = 18
-        static let heartSpacing: CGFloat = 6
+        static let heartSize: CGFloat = 14
+        static let heartSpacing: CGFloat = 4
         static let horizontalMargin: CGFloat = 25
-        static let levelFontSize: CGFloat = 18
+        static let levelFontSize: CGFloat = 16
         static let levelSpacing: CGFloat = 10
+        static let verticalSpacing: CGFloat = 8
     }
     
     // MARK: - Properties
@@ -33,7 +34,6 @@ class TopBar: SKNode {
     private var levelLabel: SKLabelNode
     private var heartNodes: [SKLabelNode] = []
     private var score: Int = 0
-    
     
     // Propiedades para vidas
     private var maxLives: Int = 3 // Vidas base del nivel
@@ -83,8 +83,6 @@ class TopBar: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Configurar posiciones relativas al centro de la TopBar
-        let centerY: CGFloat = 0
         
         // Crear nodo de sombra
         let shadowNode = SKEffectNode()
@@ -100,45 +98,54 @@ class TopBar: SKNode {
         shadowNode.alpha = CGFloat(Layout.shadowOpacity)
         
         // Crear contenedor principal
-        let backgroundNode = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
-        backgroundNode.zPosition = 2
-        backgroundNode.fillColor = .white
-        backgroundNode.strokeColor = .clear
-        backgroundNode.alpha = Layout.backgroundAlpha
-        addChild(backgroundNode)
-        
-        // Crear el área izquierda para nivel y vidas
-        let leftAreaNode = SKNode()
-        leftAreaNode.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: 0)
-        addChild(leftAreaNode)
-        
-        // Título del nivel
-        levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        levelLabel.fontSize = Layout.levelFontSize
-        levelLabel.fontColor = .purple
-        levelLabel.horizontalAlignmentMode = .left
-        levelLabel.verticalAlignmentMode = .top
-        levelLabel.position = CGPoint(x: 0, y: 15)
-        leftAreaNode.addChild(levelLabel)
-        
-        // Contenedor para los corazones
-        let heartsContainer = SKNode()
-        heartsContainer.position = CGPoint(x: 0, y: -15)
-        leftAreaNode.addChild(heartsContainer)
-        
-        // Área de puntuación (derecha)
-        let scoreArea = SKNode()
-        scoreArea.position = CGPoint(x: size.width/2 - Layout.horizontalMargin, y: 0)
-        addChild(scoreArea)
-        
-        // Estrella y puntuación
-        scoreIcon.position = CGPoint(x: -120, y: 0)
-        scoreText.position = CGPoint(x: -85, y: 0)
-        scoreLabel.position = CGPoint(x: -30, y: 0)
-        scoreArea.addChild(scoreIcon)
-        scoreArea.addChild(scoreText)
-        scoreArea.addChild(scoreLabel)
-    }
+            let backgroundNode = SKShapeNode(rectOf: size, cornerRadius: Layout.cornerRadius)
+            backgroundNode.zPosition = 1
+            backgroundNode.fillColor = .white
+            backgroundNode.strokeColor = .clear
+            backgroundNode.alpha = Layout.backgroundAlpha
+            addChild(backgroundNode)
+            
+            // Crear el área izquierda para nivel y vidas
+            let leftAreaNode = SKNode()
+            leftAreaNode.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: size.height/4)
+            leftAreaNode.zPosition = 2
+            addChild(leftAreaNode)
+            
+            // Título del nivel
+            levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+            levelLabel.fontSize = Layout.levelFontSize
+            levelLabel.fontColor = .purple
+            levelLabel.horizontalAlignmentMode = .left
+            levelLabel.verticalAlignmentMode = .top
+            levelLabel.position = CGPoint(x: 0, y: 0)
+            levelLabel.zPosition = 3
+            leftAreaNode.addChild(levelLabel)
+            
+            // Contenedor para los corazones
+            let heartsContainer = SKNode()
+            heartsContainer.position = CGPoint(x: 0, y: -Layout.verticalSpacing - Layout.heartSize)
+            heartsContainer.zPosition = 3
+            leftAreaNode.addChild(heartsContainer)
+            
+            // Área de puntuación (derecha)
+            let scoreArea = SKNode()
+            scoreArea.position = CGPoint(x: size.width/2 - Layout.horizontalMargin, y: 0)
+            scoreArea.zPosition = 2
+            addChild(scoreArea)
+            
+            // Estrella y puntuación con zPosition ajustada
+            scoreIcon.zPosition = 3
+            scoreText.zPosition = 3
+            scoreLabel.zPosition = 3
+            
+            scoreIcon.position = CGPoint(x: -120, y: 0)
+            scoreText.position = CGPoint(x: -85, y: 0)
+            scoreLabel.position = CGPoint(x: -30, y: 0)
+            
+            scoreArea.addChild(scoreIcon)
+            scoreArea.addChild(scoreText)
+            scoreArea.addChild(scoreLabel)
+        }
     
     private func setupHearts() {
         // Limpiar corazones existentes
