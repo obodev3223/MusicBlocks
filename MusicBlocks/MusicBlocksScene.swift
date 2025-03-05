@@ -114,12 +114,6 @@ class MusicBlocksScene: SKScene {
         setupTopBar(width: safeWidth, height: topBarHeight)
         setupMainArea(width: mainAreaWidth, height: mainAreaHeight, topBarHeight: topBarHeight)
         setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
-        
-        // Inicializar BlocksManager después de crear mainAreaNode
-        blocksManager = BlocksManager(
-            mainAreaNode: mainAreaNode,
-            mainAreaHeight: mainAreaHeight
-        )
     }
     
     private func setupTopBar(width: CGFloat, height: CGFloat) {
@@ -170,20 +164,20 @@ class MusicBlocksScene: SKScene {
         
         let mainContent = SKNode()
         mainContent.zPosition = 2
-        mainContent.position = .zero
         containerNode.addChild(mainContent)
         mainAreaNode = mainContent
         addChild(containerNode)
         
-        // Inicializar BlocksManager
+        // Inicializar BlocksManager con dimensiones ajustadas
         blocksManager = BlocksManager(
-            blockSize: CGSize(width: width * 0.8, height: height * 0.15),
-            blockSpacing: 10,
+            blockSize: CGSize(width: width * 0.85, height: height * 0.13),
+            blockSpacing: height * 0.02,
             mainAreaNode: mainContent,
             mainAreaHeight: height
         )
         
         print("MainArea configurada - Tamaño: \(width)x\(height)")
+        print("Tamaño de bloques: \(width * 0.85)x\(height * 0.13)")
     }
     
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {

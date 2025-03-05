@@ -57,41 +57,21 @@ class BlocksManager {
         
         print("Generando nuevo bloque. Bloques actuales: \(blocks.count)")
         
-        let moveDuration = 0.5
-        let moveDistance = blockSize.height + blockSpacing
-        
-        // Mover los bloques existentes hacia abajo
-        for block in blocks {
-            let moveDown = SKAction.moveBy(x: 0, y: -moveDistance, duration: moveDuration)
-            moveDown.timingMode = .easeInEaseOut
-            block.run(moveDown)
-        }
-        
         // Crear y configurar el nuevo bloque
         let newBlock = createBlock()
         
-        // Verificar que el bloque se creó correctamente
-        if let noteData = newBlock.userData?.value(forKey: "noteName") as? String {
-            print("Bloque creado correctamente con nota: \(noteData)")
-        } else {
-            print("¡Advertencia! Bloque creado sin nota")
-        }
-        
-        // Posicionar el bloque
-        let startY = (mainAreaHeight/2) - (blockSize.height/2) - blockSpacing
-        newBlock.position = CGPoint(x: 0, y: startY + 10)
+        // Calcular posición inicial (centrada horizontalmente, en la parte superior del área)
+        let startY = mainAreaHeight/2 - blockSize.height/2
+        newBlock.position = CGPoint(x: 0, y: startY)
         
         // Añadir al área principal
         mainAreaNode.addChild(newBlock)
-        
-        // Animar entrada
-        let moveToSlot = SKAction.moveTo(y: startY, duration: moveDuration)
-        moveToSlot.timingMode = .easeInEaseOut
-        newBlock.run(moveToSlot)
-        
         blocks.insert(newBlock, at: 0)
         
-        print("Bloque añadido. Total de bloques: \(blocks.count)")
+        print("Bloque añadido en posición Y: \(startY)")
+        
+        // Mover los bloques existentes
+        updateBlockPositions()
     }
     
     private func createBlock() -> SKNode {
@@ -101,9 +81,8 @@ class BlocksManager {
         }
         
         let blockNode = SKNode()
-        blockNode.zPosition = 2
         
-        // Seleccionar un estilo permitido del nivel actual
+        // Obtener un estilo permitido del nivel actual
         let allowedStyles = currentLevel.allowedStyles
         guard let randomStyle = allowedStyles.randomElement(),
               let blockConfig = currentLevel.blocks[randomStyle] else {
@@ -111,48 +90,62 @@ class BlocksManager {
             return createDefaultBlock()
         }
         
+        print("Creando bloque con estilo: \(randomStyle)")
+        
         // Obtener el BlockStyle correspondiente
         guard let blockStyle = getBlockStyle(for: randomStyle) else {
             print("Error: Estilo de bloque no válido")
             return createDefaultBlock()
         }
         
+        // Generar una nota aleatoria
+        guard let randomNoteString = blockConfig.notes.randomElement(),
+              let note = MusicalNote.parse(randomNoteString) else {
+            print("Error: No se pudo generar la nota")
+            return createDefaultBlock()
+        }
+        
+        print("Nota seleccionada: \(note.fullName)")
+        
         // Crear el contenedor del bloque
         let container = createBlockContainer(with: blockStyle)
         blockNode.addChild(container)
         
-        // Generar una nota aleatoria
-        if let randomNoteString = blockConfig.notes.randomElement(),
-           let note = MusicalNote.parse(randomNoteString) {
-            print("Generando bloque con nota: \(note.fullName)")
-            
-            // Crear el contenido visual (pentagrama, nota, etc.)
-            let contentNode = BlockContentGenerator.generateBlockContent(
-                with: blockStyle,
-                blockSize: blockSize,
-                desiredNote: note,
-                baseNoteX: blockSize.width/4, // Ajustar posición X de la nota
-                baseNoteY: 0,
-                leftMargin: 40,
-                rightMargin: 40
-            )
-            contentNode.zPosition = 3
-            blockNode.addChild(contentNode)
-            
-            // Guardar información del bloque
-            blockNode.userData = NSMutableDictionary()
-            blockNode.userData?.setValue(note.fullName, forKey: "noteName")
-            blockNode.userData?.setValue(randomStyle, forKey: "blockStyle")
-            blockNode.userData?.setValue(blockConfig.requiredHits, forKey: "requiredHits")
-            blockNode.userData?.setValue(blockConfig.requiredTime, forKey: "requiredTime")
-            blockNode.userData?.setValue(blockConfig.basePoints, forKey: "basePoints")
-            
-            print("Bloque creado exitosamente - Nota: \(note.fullName), Estilo: \(randomStyle)")
-        } else {
-            print("Error: No se pudo generar la nota")
-        }
+        // Crear el contenido visual
+        let contentNode = BlockContentGenerator.generateBlockContent(
+            with: blockStyle,
+            blockSize: blockSize,
+            desiredNote: note,
+            baseNoteX: 0,
+            baseNoteY: 0
+        )
+        contentNode.position = CGPoint(x: 0, y: 0)
+        contentNode.zPosition = 3
+        blockNode.addChild(contentNode)
+        
+        // Guardar información del bloque
+        blockNode.userData = NSMutableDictionary()
+        blockNode.userData?.setValue(note.fullName, forKey: "noteName")
+        blockNode.userData?.setValue(randomStyle, forKey: "blockStyle")
+        blockNode.userData?.setValue(blockConfig.requiredHits, forKey: "requiredHits")
+        blockNode.userData?.setValue(blockConfig.requiredTime, forKey: "requiredTime")
+        
+        print("Bloque creado exitosamente - Nota: \(note.fullName), Estilo: \(randomStyle)")
         
         return blockNode
+    }
+    
+    private func updateBlockPositions() {
+        let moveDistance = blockSize.height + blockSpacing
+        let moveDuration = 0.5
+        
+        // Actualizar posición de todos los bloques
+        for (index, block) in blocks.enumerated() {
+            let targetY = (mainAreaHeight/2) - (blockSize.height/2) - (moveDistance * CGFloat(index))
+            let moveAction = SKAction.moveTo(y: targetY, duration: moveDuration)
+            moveAction.timingMode = .easeInEaseOut
+            block.run(moveAction)
+        }
     }
     
     // Añadir este método auxiliar para ayudar en el debugging
