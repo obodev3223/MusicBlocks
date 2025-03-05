@@ -18,8 +18,8 @@ struct BlockContentGenerator {
         desiredNote: MusicalNote,
         baseNoteX: CGFloat,
         baseNoteY: CGFloat,
-        leftMargin: CGFloat = 40,
-        rightMargin: CGFloat = 40
+        leftMargin: CGFloat = 30,
+        rightMargin: CGFloat = 30
     ) -> SKNode {
         let contentNode = SKNode()
         
@@ -40,7 +40,7 @@ struct BlockContentGenerator {
         // MARK: CLAVE DE SOL
         let trebleClef = SKSpriteNode(imageNamed: "trebleClef")
         trebleClef.size = CGSize(width: 50, height: 90)
-        trebleClef.position = CGPoint(x: -blockSize.width/2 + leftMargin + 30, y: 0)
+        trebleClef.position = CGPoint(x: -blockSize.width/2 + leftMargin + 25, y: -2)
         trebleClef.zPosition = 2
         contentNode.addChild(trebleClef)
         
@@ -60,8 +60,8 @@ struct BlockContentGenerator {
         // MARK: ALTERACIONES
         if desiredNote.alteration != .natural {
             let accidentalImage = SKSpriteNode(imageNamed: getAccidentalImageName(for: desiredNote.alteration))
-            accidentalImage.size = CGSize(width: 25, height: 45)
-            accidentalImage.position = CGPoint(x: notePosition.x - 25, y: notePosition.y)
+            accidentalImage.size = CGSize(width: 45, height: 70)
+            accidentalImage.position = CGPoint(x: notePosition.x - 23, y: notePosition.y)
             accidentalImage.zPosition = 3
             contentNode.addChild(accidentalImage)
         }
@@ -148,3 +148,119 @@ struct BlockContentGenerator {
             }
         }
 
+#if DEBUG
+import SwiftUI
+
+// Vista previa del contenido de un bloque
+struct BlockPreview: PreviewProvider {
+    static var previews: some View {
+        BlockPreviewView()
+            .frame(width: 300, height: 200)
+            .previewLayout(.fixed(width: 300, height: 200))
+            .preferredColorScheme(.light)
+    }
+}
+
+// Vista del bloque para la preview
+struct BlockPreviewView: View {
+    var body: some View {
+        SpriteView(scene: createPreviewScene())
+    }
+    
+    private func createPreviewScene() -> SKScene {
+        let scene = SKScene(size: CGSize(width: 300, height: 200))
+        scene.backgroundColor = .white
+        
+        // Crear un bloque de ejemplo
+        let blockSize = CGSize(width: 270, height: 110)
+        let exampleNote = MusicalNote(name: "LA", alteration: .sharp, octave: 4)
+        
+        // Crear el contenedor del bloque
+        let blockNode = SKNode()
+        blockNode.position = CGPoint(x: scene.size.width/2, y: scene.size.height/2)
+        
+        // Crear el fondo del bloque
+        let background = SKShapeNode(rectOf: blockSize, cornerRadius: 15)
+        background.fillColor = .white
+        background.strokeColor = .black
+        background.lineWidth = 2
+        blockNode.addChild(background)
+        
+        // Generar el contenido (pentagrama, nota, etc.)
+        let content = BlockContentGenerator.generateBlockContent(
+            with: .defaultBlock,
+            blockSize: blockSize,
+            desiredNote: exampleNote,
+            baseNoteX: 0,
+            baseNoteY: 0
+        )
+        blockNode.addChild(content)
+        
+        scene.addChild(blockNode)
+        return scene
+    }
+}
+
+// Vista previa de diferentes notas
+struct BlockNotesPreview: PreviewProvider {
+    static var previews: some View {
+        VStack(spacing: 20) {
+            Text("Ejemplos de Bloques Musicales")
+                .font(.headline)
+            
+            VStack(spacing: 20) {
+                BlockNoteView(note: MusicalNote(name: "DO", alteration: .natural, octave: 6))
+                    .frame(width: 270, height: 110)
+                BlockNoteView(note: MusicalNote(name: "FA", alteration: .sharp, octave: 4))
+                    .frame(width: 270, height: 110)
+            }
+            
+            VStack(spacing: 20) {
+                BlockNoteView(note: MusicalNote(name: "LA", alteration: .flat, octave: 4))
+                    .frame(width: 270, height: 110)
+                BlockNoteView(note: MusicalNote(name: "LA", alteration: .natural, octave: 3))
+                    .frame(width: 270, height: 110)
+            }
+        }
+        .padding()
+        .background(Color.white.opacity(0.1))
+        .previewLayout(.fixed(width: 600, height: 400))
+    }
+}
+
+// Vista individual de un bloque con una nota específica
+struct BlockNoteView: View {
+    let note: MusicalNote
+    
+    var body: some View {
+        SpriteView(scene: createNoteScene())
+            .border(Color.gray, width: 1)
+    }
+    
+    private func createNoteScene() -> SKScene {
+        let scene = SKScene(size: CGSize(width: 270, height: 110))
+        scene.backgroundColor = .white
+        
+        let blockNode = SKNode()
+        blockNode.position = CGPoint(x: scene.size.width/2, y: scene.size.height/2)
+        
+        let background = SKShapeNode(rectOf: scene.size, cornerRadius: 15)
+        background.fillColor = .white
+        background.strokeColor = .black
+        background.lineWidth = 2
+        blockNode.addChild(background)
+        
+        let content = BlockContentGenerator.generateBlockContent(
+            with: .iceBlock,
+            blockSize: scene.size,
+            desiredNote: note,
+            baseNoteX: 0,
+            baseNoteY: 0
+        )
+        blockNode.addChild(content)
+        
+        scene.addChild(blockNode)
+        return scene
+    }
+}
+#endif
