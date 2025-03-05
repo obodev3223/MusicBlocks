@@ -155,7 +155,6 @@ class MusicBlocksScene: SKScene {
     }
     
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-        // Guardar dimensiones para usarlas después
         mainAreaWidth = width
         mainAreaHeight = height
         
@@ -164,27 +163,28 @@ class MusicBlocksScene: SKScene {
             cornerRadius: Layout.cornerRadius,
             position: CGPoint(
                 x: size.width/2,
-                y: size.height/2 - (Layout.verticalSpacing/2)
+                y: size.height/2 - topBarHeight - Layout.verticalSpacing
             ),
             zPosition: 1
         )
         
         let mainContent = SKNode()
-            mainContent.zPosition = 2
-            mainContent.position = .zero
-            
-            containerNode.addChild(mainContent)
-            mainAreaNode = mainContent
-            addChild(containerNode)
-            
-            // Inicializar BlocksManager aquí después de crear mainAreaNode
-            blocksManager = BlocksManager(
-                mainAreaNode: mainContent,
-                mainAreaHeight: height
-            )
-            
-            print("MainAreaNode configured with position: \(mainContent.position)")
-        }
+        mainContent.zPosition = 2
+        mainContent.position = .zero
+        containerNode.addChild(mainContent)
+        mainAreaNode = mainContent
+        addChild(containerNode)
+        
+        // Inicializar BlocksManager
+        blocksManager = BlocksManager(
+            blockSize: CGSize(width: width * 0.8, height: height * 0.15),
+            blockSpacing: 10,
+            mainAreaNode: mainContent,
+            mainAreaHeight: height
+        )
+        
+        print("MainArea configurada - Tamaño: \(width)x\(height)")
+    }
     
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
         setupLeftSideBar(width: width, height: height)

@@ -96,45 +96,60 @@ class BlocksManager {
     
     private func createBlock() -> SKNode {
         guard let currentLevel = gameManager.currentLevel else {
+            print("Error: No hay nivel actual")
             return createDefaultBlock()
         }
         
         let blockNode = SKNode()
         blockNode.zPosition = 2
         
-        // Obtener un estilo de bloque basado en los pesos definidos
-        let blockStyle = selectBlockStyleBasedOnWeights(from: currentLevel.blocks)
-        guard let blockConfig = currentLevel.blocks[blockStyle.name] else {
+        // Seleccionar un estilo permitido del nivel actual
+        let allowedStyles = currentLevel.allowedStyles
+        guard let randomStyle = allowedStyles.randomElement(),
+              let blockConfig = currentLevel.blocks[randomStyle] else {
+            print("Error: No se encontró configuración para el bloque")
             return createDefaultBlock()
         }
         
-        // Crear contenedor y aplicar estilo visual
+        // Obtener el BlockStyle correspondiente
+        guard let blockStyle = getBlockStyle(for: randomStyle) else {
+            print("Error: Estilo de bloque no válido")
+            return createDefaultBlock()
+        }
+        
+        // Crear el contenedor del bloque
         let container = createBlockContainer(with: blockStyle)
         blockNode.addChild(container)
         
-        // Generar una nota aleatoria de las disponibles para este tipo de bloque
-        let randomNote = selectRandomNote(from: blockConfig.notes)
-        if let note = MusicalNote.parse(randomNote) {
-            // Crear el contenido visual del bloque
+        // Generar una nota aleatoria
+        if let randomNoteString = blockConfig.notes.randomElement(),
+           let note = MusicalNote.parse(randomNoteString) {
+            print("Generando bloque con nota: \(note.fullName)")
+            
+            // Crear el contenido visual (pentagrama, nota, etc.)
             let contentNode = BlockContentGenerator.generateBlockContent(
                 with: blockStyle,
                 blockSize: blockSize,
                 desiredNote: note,
-                baseNoteX: 0,
-                baseNoteY: 0
+                baseNoteX: blockSize.width/4, // Ajustar posición X de la nota
+                baseNoteY: 0,
+                leftMargin: 40,
+                rightMargin: 40
             )
             contentNode.zPosition = 3
             blockNode.addChild(contentNode)
             
-            // Almacenar TODOS los datos necesarios en el userData
+            // Guardar información del bloque
             blockNode.userData = NSMutableDictionary()
             blockNode.userData?.setValue(note.fullName, forKey: "noteName")
-            blockNode.userData?.setValue(blockStyle.name, forKey: "blockStyle") // Añadir el estilo
+            blockNode.userData?.setValue(randomStyle, forKey: "blockStyle")
             blockNode.userData?.setValue(blockConfig.requiredHits, forKey: "requiredHits")
             blockNode.userData?.setValue(blockConfig.requiredTime, forKey: "requiredTime")
             blockNode.userData?.setValue(blockConfig.basePoints, forKey: "basePoints")
             
-            print("Bloque creado - Nota: \(note.fullName), Estilo: \(blockStyle.name)")
+            print("Bloque creado exitosamente - Nota: \(note.fullName), Estilo: \(randomStyle)")
+        } else {
+            print("Error: No se pudo generar la nota")
         }
         
         return blockNode

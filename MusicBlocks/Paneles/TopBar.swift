@@ -14,7 +14,7 @@ class TopBar: SKNode {
         static let cornerRadius: CGFloat = 15
         static let backgroundAlpha: CGFloat = 0.95
         static let shadowOpacity: Float = 0.2
-        static let padding: CGFloat = 20
+        static let padding: CGFloat = 10
         static let scoreFontSize: CGFloat = 20
         static let heartSize: CGFloat = 14
         static let heartSpacing: CGFloat = 4
@@ -31,6 +31,9 @@ class TopBar: SKNode {
     private var levelLabel: SKLabelNode
     private var heartNodes: [SKLabelNode] = []
     private var score: Int = 0
+    
+    // Propiedad para mantener referencia al contenedor de corazones
+        private var heartsContainer: SKNode?
     
     // Propiedades para vidas
     private var maxLives: Int = 3 // Vidas base del nivel
@@ -69,7 +72,6 @@ class TopBar: SKNode {
         levelLabel.fontColor = .purple
         
         super.init()
-        
         self.position = position
         setupNodes()
     }
@@ -117,9 +119,10 @@ class TopBar: SKNode {
         leftAreaNode.addChild(levelLabel)
         
         // Contenedor para los corazones
-        let heartsContainer = SKNode()
-        heartsContainer.position = CGPoint(x: 0, y: levelLabel.position.y - Layout.heartSize - Layout.verticalSpacing)
-        leftAreaNode.addChild(heartsContainer)
+                let heartsNode = SKNode()
+                heartsNode.position = CGPoint(x: 0, y: levelLabel.position.y - Layout.heartSize - Layout.verticalSpacing)
+                leftAreaNode.addChild(heartsNode)
+                self.heartsContainer = heartsNode // Guardar la referencia
         
         // Área de puntuación (derecha)
         let scoreArea = SKNode()
@@ -128,8 +131,8 @@ class TopBar: SKNode {
         addChild(scoreArea)
         
         // Configurar puntuación
-        scoreIcon.position = CGPoint(x: -120, y: 0)
-        scoreText.position = CGPoint(x: -85, y: 0)
+        scoreIcon.position = CGPoint(x: -95, y: 0)
+        scoreText.position = CGPoint(x: -60, y: 0)
         scoreLabel.position = CGPoint(x: -30, y: 0)
         
         scoreArea.addChild(scoreIcon)
@@ -137,7 +140,9 @@ class TopBar: SKNode {
         scoreArea.addChild(scoreLabel)
         
         // Configurar corazones iniciales
-        setupHearts(in: heartsContainer)
+        if let container = heartsContainer {
+                    setupHearts(in: container)
+                }
     }
     
     private func setupHearts(in container: SKNode) {
@@ -190,14 +195,13 @@ class TopBar: SKNode {
         
         levelLabel.text = "Nivel \(level.levelId)"
         
-        // Buscar el contenedor de corazones
-        if let leftArea = self.children.first(where: { $0.position.x == -size.width/2 + Layout.horizontalMargin }),
-           let heartsContainer = leftArea.children.first(where: { $0.position.y < 0 }) {
-            setupHearts(in: heartsContainer)
+        if let container = heartsContainer {
+            setupHearts(in: container)
         }
-        
         updateLives(lives)
         updateScore(0)
+        
+        print("TopBar configurada - Nivel: \(level.levelId), Vidas base: \(maxLives), Vidas extra posibles: \(maxExtraLives)")
     }
     
     func updateScore(_ newScore: Int) {
@@ -236,17 +240,14 @@ class TopBar: SKNode {
     
     // Método para actualizar maxLives si es necesario
     func updateMaxLives(_ newMaxLives: Int) {
-        if newMaxLives != maxLives {
-            maxLives = newMaxLives
-            
-            // Buscar el contenedor de corazones
-            if let leftArea = self.children.first(where: { $0.position.x == -size.width/2 + Layout.horizontalMargin }),
-               let heartsContainer = leftArea.children.first(where: { $0.position.y < 0 }) {
-                setupHearts(in: heartsContainer)
-                updateLives(lives) // Actualizar el estado de los corazones
+            if newMaxLives != maxLives {
+                maxLives = newMaxLives
+                if let container = heartsContainer {
+                    setupHearts(in: container)
+                    updateLives(lives)
+                }
             }
         }
-    }
 }
 
 // MARK: - Previews
@@ -318,7 +319,7 @@ extension TopBar {
             allowedStyles: ["defaultBlock", "hardIceBlock", "ghostBlock"],
             fallingSpeed: FallingSpeed(initial: 7.0, increment: 0.0),
             lives: Lives(
-                initial: 5,
+                initial: 3,
                 extraLives: ExtraLives(
                     scoreThresholds: [500, 1000, 1500, 2000],
                     maxExtra: 4
