@@ -81,9 +81,12 @@ class BlocksManager {
         }
         
         let blockNode = SKNode()
+        blockNode.zPosition = 2
         
         // Obtener un estilo permitido del nivel actual
         let allowedStyles = currentLevel.allowedStyles
+        print("Estilos permitidos: \(allowedStyles)")
+        
         guard let randomStyle = allowedStyles.randomElement(),
               let blockConfig = currentLevel.blocks[randomStyle] else {
             print("Error: No se encontró configuración para el bloque")
@@ -98,7 +101,7 @@ class BlocksManager {
             return createDefaultBlock()
         }
         
-        // Generar una nota aleatoria
+        // Generar una nota aleatoria y validar
         guard let randomNoteString = blockConfig.notes.randomElement(),
               let note = MusicalNote.parse(randomNoteString) else {
             print("Error: No se pudo generar la nota")
@@ -111,24 +114,27 @@ class BlocksManager {
         let container = createBlockContainer(with: blockStyle)
         blockNode.addChild(container)
         
-        // Crear el contenido visual
+        // Crear el contenido visual con posiciones ajustadas
         let contentNode = BlockContentGenerator.generateBlockContent(
             with: blockStyle,
             blockSize: blockSize,
             desiredNote: note,
-            baseNoteX: 0,
-            baseNoteY: 0
+            baseNoteX: blockSize.width/4,  // Centrar la nota horizontalmente
+            baseNoteY: 0,
+            leftMargin: 30,
+            rightMargin: 30
         )
-        contentNode.position = CGPoint(x: 0, y: 0)
+        contentNode.position = .zero  // El contenido se centra en el bloque
         contentNode.zPosition = 3
         blockNode.addChild(contentNode)
         
         // Guardar información del bloque
-        blockNode.userData = NSMutableDictionary()
-        blockNode.userData?.setValue(note.fullName, forKey: "noteName")
-        blockNode.userData?.setValue(randomStyle, forKey: "blockStyle")
-        blockNode.userData?.setValue(blockConfig.requiredHits, forKey: "requiredHits")
-        blockNode.userData?.setValue(blockConfig.requiredTime, forKey: "requiredTime")
+        let userData = NSMutableDictionary()
+        userData.setValue(note.fullName, forKey: "noteName")
+        userData.setValue(randomStyle, forKey: "blockStyle")
+        userData.setValue(blockConfig.requiredHits, forKey: "requiredHits")
+        userData.setValue(blockConfig.requiredTime, forKey: "requiredTime")
+        blockNode.userData = userData
         
         print("Bloque creado exitosamente - Nota: \(note.fullName), Estilo: \(randomStyle)")
         
@@ -276,20 +282,25 @@ class BlocksManager {
     }
     
     func getCurrentBlock() -> CurrentBlock? {
-        guard let bottomBlock = blocks.last,
-              let noteData = bottomBlock.userData?.value(forKey: "noteName") as? String,
-              let blockStyle = bottomBlock.userData?.value(forKey: "blockStyle") as? String,
-              let blockConfig = GameManager.shared.getBlockConfig(for: blockStyle) else {
-            print("Error obteniendo datos del bloque actual:")
-            if let bottomBlock = blocks.last {
-                print("- Nota: \(bottomBlock.userData?.value(forKey: "noteName") as? String ?? "nil")")
-                print("- Estilo: \(bottomBlock.userData?.value(forKey: "blockStyle") as? String ?? "nil")")
-            } else {
-                print("No hay bloque actual")
-            }
+        guard let bottomBlock = blocks.last else {
+            print("No hay bloques en el área de juego")
             return nil
         }
         
+        guard let userData = bottomBlock.userData,
+              let noteData = userData.value(forKey: "noteName") as? String,
+              let blockStyle = userData.value(forKey: "blockStyle") as? String else {
+            print("Error: Datos del bloque incompletos")
+            print("userData: \(String(describing: bottomBlock.userData))")
+            return nil
+        }
+        
+        guard let blockConfig = GameManager.shared.getBlockConfig(for: blockStyle) else {
+            print("Error: No se encontró configuración para el estilo: \(blockStyle)")
+            return nil
+        }
+        
+        print("Bloque actual encontrado - Nota: \(noteData), Estilo: \(blockStyle)")
         return CurrentBlock(note: noteData, config: blockConfig)
     }
     

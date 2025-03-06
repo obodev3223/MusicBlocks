@@ -49,7 +49,7 @@ class MusicBlocksScene: SKScene {
             right: 20
         )
         static let cornerRadius: CGFloat = 15
-        static let verticalSpacing: CGFloat = 20
+        static let verticalSpacing: CGFloat = 5
         
         // Proporciones de las áreas principales
         static let topBarHeightRatio: CGFloat = 0.08
@@ -157,7 +157,7 @@ class MusicBlocksScene: SKScene {
             cornerRadius: Layout.cornerRadius,
             position: CGPoint(
                 x: size.width/2,
-                y: size.height/2 - topBarHeight - Layout.verticalSpacing
+                y: size.height/2 - Layout.verticalSpacing
             ),
             zPosition: 1
         )
@@ -168,16 +168,20 @@ class MusicBlocksScene: SKScene {
         mainAreaNode = mainContent
         addChild(containerNode)
         
+        // Ajustar tamaño de los bloques para que sean más visibles
+            let blockWidth = width * 0.9  // 90% del ancho del área
+            let blockHeight = height * 0.15  // 15% de la altura del área
+        
         // Inicializar BlocksManager con dimensiones ajustadas
         blocksManager = BlocksManager(
-            blockSize: CGSize(width: width * 0.85, height: height * 0.13),
-            blockSpacing: height * 0.02,
-            mainAreaNode: mainContent,
-            mainAreaHeight: height
-        )
+                blockSize: CGSize(width: blockWidth, height: blockHeight),
+                blockSpacing: height * 0.02,
+                mainAreaNode: mainContent,
+                mainAreaHeight: height
+            )
         
         print("MainArea configurada - Tamaño: \(width)x\(height)")
-        print("Tamaño de bloques: \(width * 0.85)x\(height * 0.13)")
+         print("Tamaño de bloques: \(blockWidth)x\(blockHeight)")
     }
     
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
@@ -387,14 +391,33 @@ class MusicBlocksScene: SKScene {
         }
         
     private func startGameplay() {
+        print("Iniciando gameplay")
+        
+        // Limpiar bloques existentes
+        blocksManager.clearBlocks()
+        
         // Iniciar el juego
         gameEngine.startNewGame()
         
-        // Iniciar secuencia de bloques cayendo
-        startBlockSequence()
+        // Iniciar secuencia de bloques cayendo con más logging
+        let spawnSequence = SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.repeatForever(
+                SKAction.sequence([
+                    SKAction.run { [weak self] in
+                        guard let self = self else { return }
+                        print("Generando nuevo bloque...")
+                        self.blocksManager.spawnBlock()
+                    },
+                    SKAction.wait(forDuration: 4.0)
+                ])
+            )
+        ])
         
-        // Actualizar UI
+        run(spawnSequence, withKey: "spawnSequence")
         updateGameUI()
+        
+        print("Gameplay iniciado")
     }
     
     // MARK: - Update Methods
