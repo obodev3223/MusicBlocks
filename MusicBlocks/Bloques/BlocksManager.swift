@@ -342,6 +342,13 @@ class BlocksManager {
         blockInfos.removeAll()
     }
     
+    func hasBlocksBelowLimit(_ limit: CGFloat) -> Bool {
+        for block in blocks where block.position.y <= limit {
+            return true
+        }
+        return false
+    }
+    
     /// Elimina el bloque más bajo (el último) cuando se acierta
     func removeLastBlock() {
         guard let lastBlock = blocks.last,

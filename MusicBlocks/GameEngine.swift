@@ -64,6 +64,31 @@ class GameEngine: ObservableObject {
         case success(multiplier: Int, message: String)
     }
     
+    // Nuevo enum para razones de Game Over
+        enum GameOverReason {
+            case noLives
+            case blocksOverflow
+            
+            var message: String {
+                switch self {
+                case .noLives:
+                    return "¡Te has quedado sin vidas!"
+                case .blocksOverflow:
+                    return "¡Los bloques han llegado demasiado abajo!"
+                }
+            }
+        }
+        
+        // Nuevo protocolo para delegado
+    protocol GameEngineDelegate: AnyObject {
+        func gameEngine(_ engine: GameEngine, didEndGameWith reason: GameOverReason)
+        func gameEngine(_ engine: GameEngine, didAchieveSuccess multiplier: Int, message: String)
+        func gameEngine(_ engine: GameEngine, didFailWithMessage message: String)
+        func gameEngine(_ engine: GameEngine, didUpdateState state: NoteState)
+    }
+        
+        weak var delegate: GameEngineDelegate?
+    
     // MARK: - Initialization
     init(tunerEngine: TunerEngine = .shared, blockManager: BlocksManager?) {
             self.tunerEngine = tunerEngine
@@ -221,57 +246,77 @@ class GameEngine: ObservableObject {
     }
     
     private func handleSuccess(deviation: Double, blockConfig: Block) {
-            isInSuccessState = true
+        isInSuccessState = true
+        
+        // Calcular puntuación y mensaje
+        let accuracy = calculateAccuracy(deviation: deviation)
+        let (scorePoints, message) = calculateScore(accuracy: accuracy, blockBasePoints: blockConfig.basePoints)
+        
+        // Actualizar puntuación
+        score += scorePoints
+        
+        // Comprobar vidas extra basadas en la puntuación
+        checkForExtraLife(currentScore: score)
+        
+        // Notificar al delegado
+        delegate?.gameEngine(self, didAchieveSuccess: scorePoints / blockConfig.basePoints, message: message)
+        
+        // Resetear tracking después de un breve delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            self.isInSuccessState = false
+            self.resetNoteTracking()
+            self.currentTargetNote = nil
+            self.currentTargetConfig = nil
+            self.noteState = .waiting
             
-            // Calcular puntuación
-            let accuracy = calculateAccuracy(deviation: deviation)
-            let (scorePoints, message) = calculateScore(accuracy: accuracy, blockBasePoints: blockConfig.basePoints)
-            
-            // Actualizar puntuación
-            score += scorePoints
-            
-            // Comprobar vidas extra
-            checkForExtraLife(currentScore: score)
-            
-            // Notificar éxito
-            noteState = .success(multiplier: scorePoints / blockConfig.basePoints, message: message)
-            
-            // Eliminar el bloque
-            blockManager?.removeLastBlock()
-            
-            // Resetear tracking después de un breve delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self = self else { return }
-                self.isInSuccessState = false
-                self.resetNoteTracking()
-                self.currentTargetNote = nil
-                self.currentTargetConfig = nil
-                self.noteState = .waiting
+            // Comprobar si el juego debe continuar
+            if self.gameState == .playing {
+                self.delegate?.gameEngine(self, didUpdateState: .waiting)
             }
         }
+    }
     
     private func handleWrongNote() {
-            guard !isShowingError else { return }
+        guard !isShowingError else { return }
+        
+        isShowingError = true
+        lives -= 1
+        noteState = .wrong
+        
+        // Comprobar game over por vidas
+        if lives <= 0 {
+            handleGameOver(reason: .noLives)
+            return
+        }
+        
+        // Notificar al delegado del error
+        delegate?.gameEngine(self, didFailWithMessage: "¡Nota incorrecta!")
+        
+        // Resetear estado de error después de un tiempo
+        DispatchQueue.main.asyncAfter(deadline: .now() + errorDisplayTime) { [weak self] in
+            guard let self = self else { return }
+            self.isShowingError = false
+            self.resetNoteTracking()
+            self.noteState = .waiting
             
-            isShowingError = true
-            lives -= 1
-            noteState = .wrong
-            
-            // Verificar game over
-            if lives <= 0 {
-                gameState = .gameOver
-                stopGame()
-                return
+            // Comprobar si el juego debe continuar
+            if self.gameState == .playing {
+                self.delegate?.gameEngine(self, didUpdateState: .waiting)
             }
-            
-            // Resetear estado de error después de un tiempo
-            DispatchQueue.main.asyncAfter(deadline: .now() + errorDisplayTime) { [weak self] in
-                guard let self = self else { return }
-                self.isShowingError = false
-                self.resetNoteTracking()
-                self.noteState = .waiting
-            }
-        }   
+        }
+    }
+
+    // Método auxiliar para resetear el tracking de notas
+    private func resetNoteTracking() {
+        noteHoldStartTime = nil
+        currentHits = 0
+        currentTargetNote = nil
+        currentTargetConfig = nil
+        if !isShowingError && !isInSuccessState {
+            noteState = .waiting
+        }
+    }
     
     
     private func resetNoteDetection() {
@@ -301,6 +346,14 @@ class GameEngine: ObservableObject {
             self.noteState = .waiting
         }
     }
+    
+    func handleGameOver(reason: GameOverReason) {
+            print("⏹️ Finalizando juego: \(reason.message)")
+            gameState = .gameOver
+            delegate?.gameEngine(self, didEndGameWith: reason)
+        }
+    
+    
     
     private func stopGame() {
         // Limpiar todos los estados
