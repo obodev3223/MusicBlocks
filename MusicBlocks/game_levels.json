@@ -102,9 +102,9 @@
             "blocks": {
                 "defaultBlock": {
                     "notes": [      // Notas disponibles del bloque
-                        "sol4",
-                        "la4",
-                        "si4"
+                        "SOL4",
+                        "LA4",
+                        "SI4"
                     ],
                     "requiredHits": 1, // Aciertos necesarios para destruir bloque
                     "requiredTime": 0.8, // Tiempo necesarios aguantando la nota para destruir bloque
@@ -147,9 +147,9 @@
             "blocks": {
                 "defaultBlock": {
                     "notes": [
-                        "sol4",
-                        "la4",
-                        "si4"
+                        "SOL4",
+                        "LA4",
+                        "SI4"
                     ],
                     "requiredHits": 1,
                     "requiredTime": 0.8,
@@ -159,8 +159,8 @@
                 },
                 "iceBlock": {
                     "notes": [
-                        "fa#4",
-                        "do5"
+                        "FA#4",
+                        "DO5"
                     ],
                     "requiredHits": 2,
                     "requiredTime": 1.2,
@@ -203,9 +203,9 @@
             "blocks": {
                 "defaultBlock": {
                     "notes": [
-                        "sol4",
-                        "la4",
-                        "si4"
+                        "SOL4",
+                        "LA4",
+                        "SI4"
                     ],
                     "requiredHits": 1,
                     "requiredTime": 0.8,
@@ -215,9 +215,9 @@
                 },
                 "hardIceBlock": {
                     "notes": [
-                        "do6",
-                        "la5",
-                        "si5"
+                        "DO6",
+                        "LA5",
+                        "SI5"
                     ],
                     "requiredHits": 3,
                     "requiredTime": 1.6,
@@ -227,9 +227,9 @@
                 },
                 "ghostBlock": {
                     "notes": [
-                        "sol5",
-                        "fa5",
-                        "mi4"
+                        "SOL5",
+                        "FA5",
+                        "MI4"
                     ],
                     "requiredHits": 1,
                     "requiredTime": 1,

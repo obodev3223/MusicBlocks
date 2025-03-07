@@ -122,59 +122,27 @@ class GameEngine: ObservableObject {
             print("Vidas extra máximas: \(maxExtraLives)")
         }
     
-    func checkNote(currentNote: String, deviation: Double, isActive: Bool, currentBlockNote: String?, currentBlockConfig: Block?) {
-        // No procesar si no estamos jugando o hay una animación en curso
-        guard gameState == .playing && !isInSuccessState && !isShowingError else {
-            return
-        }
+    
+    func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
+        guard let currentBlock = blockManager?.getCurrentBlock(),
+              isActive else { return }
         
-        // Actualizar el bloque objetivo si es necesario
-        if currentBlockNote != currentTargetNote {
-            currentTargetNote = currentBlockNote
-            currentTargetConfig = currentBlockConfig
-            currentHits = 0
-            if let config = currentBlockConfig {
-                requiredHits = config.requiredHits
-                requiredHoldTime = config.requiredTime
-            }
-        }
+        print("Comparando - Detectada: \(currentNote), Objetivo: \(currentBlock.note)")
         
-        // Si no hay bloque objetivo o no está activo el audio, resetear
-        guard let targetNote = currentTargetNote,
-              let config = currentTargetConfig,
-              isActive else {
-            resetNoteTracking()
-            return
-        }
-        
-        // Procesar la nota detectada
-        if currentNote == targetNote {
-            // La nota es correcta
-            if noteHoldStartTime == nil {
-                noteHoldStartTime = Date()
-            }
-            
-            let holdDuration = Date().timeIntervalSince(noteHoldStartTime ?? Date())
-            
-            // Verificar si se ha mantenido el tiempo suficiente
-            if holdDuration >= requiredHoldTime {
-                currentHits += 1
-                
-                // Verificar si se han alcanzado los hits necesarios
-                if currentHits >= requiredHits {
-                    // Éxito completo
-                    handleSuccess(deviation: deviation, blockConfig: config)
-                } else {
-                    // Hit parcial, resetear el tiempo de mantenimiento
-                    noteHoldStartTime = nil
-                    noteState = .correct(deviation: deviation)
-                }
+        if currentNote == currentBlock.note {
+            // Nota correcta, actualizar progreso
+            if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
+                // Bloque completado
+                handleSuccess(deviation: deviation, blockConfig: currentBlock.config)
+                print("¡Bloque completado!")
             } else {
-                // Mostrar que la nota es correcta pero aún necesita mantenerse
+                // Progreso parcial
                 noteState = .correct(deviation: deviation)
             }
         } else {
-            // La nota es incorrecta
+            // Nota incorrecta
+            blockManager?.resetCurrentBlockProgress()
+            print("Nota incorrecta")
             handleWrongNote()
         }
     }
