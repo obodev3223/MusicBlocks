@@ -16,7 +16,7 @@ class MusicBlocksScene: SKScene {
     /// Managers y Controllers
     let audioController = AudioController.sharedInstance
     private let tunerEngine = TunerEngine.shared
-    private let gameEngine = GameEngine()
+    private var gameEngine = GameEngine(blockManager: nil)
     private var blocksManager: BlocksManager!
     private var levelStartOverlay: LevelStartOverlayNode?
     
@@ -429,7 +429,7 @@ class MusicBlocksScene: SKScene {
     
     private func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
         // No procesar si estamos en cuenta atrás o hay un overlay activo
-        guard gameEngine.gameState == .playing && currentOverlay == nil else {
+        guard gameEngine.gameState == GameEngine.GameState.playing && currentOverlay == nil else {
             return
         }
         
