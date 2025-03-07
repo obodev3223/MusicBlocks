@@ -39,7 +39,7 @@ struct BlockContentGenerator {
         
         // MARK: CLAVE DE SOL
         let trebleClef = SKSpriteNode(imageNamed: "trebleClef")
-        trebleClef.size = CGSize(width: 50, height: 90)
+        trebleClef.size = CGSize(width: 50, height: 95)
         trebleClef.position = CGPoint(x: -blockSize.width/2 + leftMargin + 25, y: -2)
         trebleClef.zPosition = 2
         contentNode.addChild(trebleClef)
@@ -60,7 +60,7 @@ struct BlockContentGenerator {
         // MARK: ALTERACIONES
         if desiredNote.alteration != .natural {
             let accidentalImage = SKSpriteNode(imageNamed: getAccidentalImageName(for: desiredNote.alteration))
-            accidentalImage.size = CGSize(width: 45, height: 70)
+            accidentalImage.size = CGSize(width: 45, height: 80)
             accidentalImage.position = CGPoint(x: notePosition.x - 23, y: notePosition.y)
             accidentalImage.zPosition = 3
             contentNode.addChild(accidentalImage)

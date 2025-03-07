@@ -79,7 +79,7 @@
     "levels": [
         {
             "level_id": 0,
-            "name": "Nivel 0. Tutorial",
+            "name": "Tutorial",
             "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
             "falling_speed": {
                 "initial": 8.0,  // Velocidad de caida inicial
@@ -89,7 +89,7 @@
                 "initial": 3,  // Número de vidas al inicio del nivel
                 "extra_lives": {
                     "score_thresholds": [500, 1000],  // Puntuaciones necesarias para ganar vidas extra
-                    "max_extra": 2  // Máximo de vidas extra en el nivel
+                    "max_extra": 1  // Máximo de vidas extra en el nivel
                 }
             },
             "objectives": {
@@ -109,14 +109,14 @@
                     "requiredHits": 1, // Aciertos necesarios para destruir bloque
                     "requiredTime": 0.8, // Tiempo necesarios aguantando la nota para destruir bloque
                     "style": "default",  // Nombre del estilo del bloque
-                    "weight": 0.8, // Peso para probabilidad en generarse el bloque
+                    "weight": 1, // Peso para probabilidad en generarse el bloque
                     "base_points": 5  // Puntos base al destruirlo
                 }
             }
         },
         {
             "level_id": 1,
-            "name": "Nivel 1",
+            "name": "Avanzando",
             "allowed_styles": ["defaultBlock", "iceBlock"],
             "falling_speed": {
                 "initial": 8.0,  // Velocidad de caida inicial
@@ -172,7 +172,7 @@
         },
         {
             "level_id": 2,
-            "name": "Nivel 2",
+            "name": "Depurando",
             "allowed_styles": ["defaultBlock", "hardIceBlock", "ghostBlock"],
             "falling_speed": {
                 "initial": 7.0,  // Velocidad de caida inicial

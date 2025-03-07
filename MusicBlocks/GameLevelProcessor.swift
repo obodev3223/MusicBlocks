@@ -388,7 +388,19 @@ class GameLevelProcessor {
     ///   - id: ID del nivel
     /// - Returns: El nivel solicitado o nil si no existe
     static func getLevel(from gameConfig: GameConfig, withId id: Int) -> GameLevel? {
-        return gameConfig.levels.first { $0.levelId == id }
+        if let level = gameConfig.levels.first(where: { $0.levelId == id }) {
+            print("Nivel \(id) encontrado:")
+            print("- Estilos permitidos: \(level.allowedStyles)")
+            print("- Bloques configurados:")
+            for (style, block) in level.blocks {
+                print("  • \(style):")
+                print("    - Notas: \(block.notes)")
+                print("    - Estilo: \(block.style)")
+                print("    - Peso: \(block.weight)")
+            }
+            return level
+        }
+        return nil
     }
     
     /// Obtiene los bloques disponibles en un nivel específico

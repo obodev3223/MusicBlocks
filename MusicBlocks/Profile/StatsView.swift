@@ -81,10 +81,11 @@ class StatsView: UIView {
             resetButton.addTarget(self, action: #selector(resetButtonTapped), for: .touchUpInside)
         }
         
-        @objc private func resetButtonTapped() {
-            // Notificar al delegado que se ha pulsado el botón de reset
-            delegate?.statsViewDidTapResetButton(self)
-        }
+    @objc private func resetButtonTapped() {
+        print("Botón de reset tocado") // Añadir para depuración
+        // Notificar al delegado que se ha pulsado el botón de reset
+        delegate?.statsViewDidTapResetButton(self)
+    }
     
     private func configure(with statistics: Statistics) {
         // Limpiar vista previa

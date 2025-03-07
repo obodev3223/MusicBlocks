@@ -20,7 +20,13 @@ class GameManager {
     
     // MARK: - Configuration Loading
     private func loadGameConfig() {
-        gameConfig = GameLevelProcessor.loadGameLevelsFromFile()
+        if let config = GameLevelProcessor.loadGameLevelsFromFile() {
+            print("Configuración del juego cargada correctamente")
+            print("Número de niveles: \(config.levels.count)")
+            gameConfig = config
+        } else {
+            print("❌ Error al cargar la configuración del juego")
+        }
     }
     
     // MARK: - Level Management

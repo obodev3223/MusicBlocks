@@ -23,8 +23,8 @@ class BlocksManager {
     }
     
     // MARK: - Initialization
-    init(blockSize: CGSize = CGSize(width: 270, height: 110),
-         blockSpacing: CGFloat = 2.0,
+    init(blockSize: CGSize = CGSize(width: 280, height: 120),
+         blockSpacing: CGFloat = 1.0,
          mainAreaNode: SKNode?,
          mainAreaHeight: CGFloat) {
         self.blockSize = blockSize
@@ -100,13 +100,37 @@ class BlocksManager {
         let allowedStyles = currentLevel.allowedStyles
         print("Estilos permitidos: \(allowedStyles)")
         
-        guard let randomStyle = allowedStyles.randomElement(),
-              let blockConfig = currentLevel.blocks[randomStyle] else {
-            print("Error: No se encontró configuración para el bloque")
+        guard let randomStyle = allowedStyles.randomElement() else {
+            print("Error: No hay estilos permitidos")
+            return createDefaultBlock()
+        }
+        
+        // Obtener la configuración del bloque
+        let blockConfig = currentLevel.blocks[randomStyle]
+        guard let config = blockConfig else {
+            print("Error: No se encontró configuración para el bloque \(randomStyle)")
+            print("Bloques disponibles en el nivel: \(currentLevel.blocks.keys)")
             return createDefaultBlock()
         }
         
         print("Creando bloque con estilo: \(randomStyle)")
+        print("Notas disponibles para el bloque: \(config.notes)")
+        
+        // Generar una nota aleatoria
+        guard let randomNoteString = config.notes.randomElement() else {
+            print("Error: No hay notas disponibles en la configuración")
+            return createDefaultBlock()
+        }
+        
+        print("Nota seleccionada del bloque: \(randomNoteString)")
+        
+        // Intentar parsear la nota
+        guard let note = MusicalNote.parseSpanishFormat(randomNoteString) else {
+            print("Error: No se pudo parsear la nota: \(randomNoteString)")
+            return createDefaultBlock()
+        }
+        
+        print("Nota parseada correctamente: \(note.fullName)")
         
         // Obtener el BlockStyle correspondiente
         guard let blockStyle = getBlockStyle(for: randomStyle) else {
@@ -114,30 +138,21 @@ class BlocksManager {
             return createDefaultBlock()
         }
         
-        // Generar una nota aleatoria y validar
-        guard let randomNoteString = blockConfig.notes.randomElement(),
-              let note = MusicalNote.parse(randomNoteString) else {
-            print("Error: No se pudo generar la nota")
-            return createDefaultBlock()
-        }
-        
-        print("Nota seleccionada: \(note.fullName)")
-        
         // Crear el contenedor del bloque
         let container = createBlockContainer(with: blockStyle)
         blockNode.addChild(container)
         
-        // Crear el contenido visual con posiciones ajustadas
+        // Crear el contenido visual
         let contentNode = BlockContentGenerator.generateBlockContent(
             with: blockStyle,
             blockSize: blockSize,
             desiredNote: note,
-            baseNoteX: blockSize.width/4,  // Centrar la nota horizontalmente
+            baseNoteX: blockSize.width/4,
             baseNoteY: 0,
             leftMargin: 30,
             rightMargin: 30
         )
-        contentNode.position = .zero  // El contenido se centra en el bloque
+        contentNode.position = .zero
         contentNode.zPosition = 3
         blockNode.addChild(contentNode)
         
@@ -145,11 +160,11 @@ class BlocksManager {
         let userData = NSMutableDictionary()
         userData.setValue(note.fullName, forKey: "noteName")
         userData.setValue(randomStyle, forKey: "blockStyle")
-        userData.setValue(blockConfig.requiredHits, forKey: "requiredHits")
-        userData.setValue(blockConfig.requiredTime, forKey: "requiredTime")
+        userData.setValue(config.requiredHits, forKey: "requiredHits")
+        userData.setValue(config.requiredTime, forKey: "requiredTime")
         blockNode.userData = userData
         
-        print("Bloque creado exitosamente - Nota: \(note.fullName), Estilo: \(randomStyle)")
+        print("✅ Bloque creado exitosamente - Nota: \(note.fullName), Estilo: \(randomStyle)")
         
         return blockNode
     }

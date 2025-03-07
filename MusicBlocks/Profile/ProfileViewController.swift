@@ -156,6 +156,7 @@ class ProfileViewController: UIViewController {
     /// Actualiza la vista de estadísticas con los datos actuales
     private func updateStats() {
         let statsView = StatsView(statistics: profile.statistics)
+        statsView.delegate = self  // Esta línea es la que falta
         statsSection.setContentView(statsView)
     }
     

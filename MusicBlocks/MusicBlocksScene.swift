@@ -38,8 +38,6 @@ class MusicBlocksScene: SKScene {
     private var lastUpdateTime: TimeInterval = 0
     private let acceptableDeviation: Double = 10.0
     
-
-    
     // MARK: - Layout Configuration
     private struct Layout {
         static let margins = UIEdgeInsets(
@@ -169,19 +167,19 @@ class MusicBlocksScene: SKScene {
         addChild(containerNode)
         
         // Ajustar tamaño de los bloques para que sean más visibles
-            let blockWidth = width * 0.9  // 90% del ancho del área
-            let blockHeight = height * 0.15  // 15% de la altura del área
+        let blockWidth = width * 0.9  // 90% del ancho del área
+        let blockHeight = height * 0.15  // 15% de la altura del área
         
         // Inicializar BlocksManager con dimensiones ajustadas
         blocksManager = BlocksManager(
-                blockSize: CGSize(width: blockWidth, height: blockHeight),
-                blockSpacing: height * 0.02,
-                mainAreaNode: mainContent,
-                mainAreaHeight: height
-            )
+            blockSize: CGSize(width: blockWidth, height: blockHeight),
+            blockSpacing: height * 0.02,
+            mainAreaNode: mainContent,
+            mainAreaHeight: height
+        )
         
         print("MainArea configurada - Tamaño: \(width)x\(height)")
-         print("Tamaño de bloques: \(blockWidth)x\(blockHeight)")
+        print("Tamaño de bloques: \(blockWidth)x\(blockHeight)")
     }
     
     private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
@@ -319,26 +317,26 @@ class MusicBlocksScene: SKScene {
         }
     }
     
-        // Detener cualquier secuencia anterior si existe
-        private func startBlockSequence() {
-            removeAction(forKey: "spawnSequence")
-            
-            let spawnSequence = SKAction.sequence([
-                SKAction.wait(forDuration: 1.0),
-                SKAction.repeatForever(
-                    SKAction.sequence([
-                        SKAction.run { [weak self] in
-                            guard let self = self else { return }
-                            self.blocksManager.spawnBlock()
-                            print("Bloque generado")  // Debug
-                        },
-                        SKAction.wait(forDuration: 4.0)
-                    ])
-                )
-            ])
-            
-            run(spawnSequence, withKey: "spawnSequence")
-        }
+    // Detener cualquier secuencia anterior si existe
+    private func startBlockSequence() {
+        removeAction(forKey: "spawnSequence")
+        
+        let spawnSequence = SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.repeatForever(
+                SKAction.sequence([
+                    SKAction.run { [weak self] in
+                        guard let self = self else { return }
+                        self.blocksManager.spawnBlock()
+                        print("Bloque generado")  // Debug
+                    },
+                    SKAction.wait(forDuration: 4.0)
+                ])
+            )
+        ])
+        
+        run(spawnSequence, withKey: "spawnSequence")
+    }
     
     private func initializeUIElements() {
         if detectedNoteCounterNode == nil {
@@ -369,27 +367,27 @@ class MusicBlocksScene: SKScene {
     }
     
     private func showLevelStartOverlay(for level: GameLevel) {
-            // Ocultar overlay anterior si existe
-            currentOverlay?.removeFromParent()
-            
-            // Crear y mostrar el overlay de inicio de nivel
-            let overlaySize = CGSize(width: 400, height: 300)
-            let overlay = LevelStartOverlayNode(
-                size: overlaySize,
-                levelId: level.levelId,
-                levelName: level.name
-            ) { [weak self] in
-                // Esta closure se ejecuta cuando termina la cuenta atrás
-                self?.startGameplay()
-            }
-            
-            addChild(overlay)
-            levelStartOverlay = overlay
-            currentOverlay = overlay
-            
-            overlay.show(in: self, overlayPosition: .center)
+        // Ocultar overlay anterior si existe
+        currentOverlay?.removeFromParent()
+        
+        // Crear y mostrar el overlay de inicio de nivel
+        let overlaySize = CGSize(width: 400, height: 300)
+        let overlay = LevelStartOverlayNode(
+            size: overlaySize,
+            levelId: level.levelId,
+            levelName: level.name
+        ) { [weak self] in
+            // Esta closure se ejecuta cuando termina la cuenta atrás
+            self?.startGameplay()
         }
         
+        addChild(overlay)
+        levelStartOverlay = overlay
+        currentOverlay = overlay
+        
+        overlay.show(in: self, overlayPosition: .center)
+    }
+    
     private func startGameplay() {
         print("Iniciando gameplay")
         
@@ -473,16 +471,16 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Game State Handling
     private func handleGameState() {
-            switch gameEngine.gameState {
-            case .countdown:
-                // No hacer nada, el overlay maneja la cuenta atrás
-                break
-            case .playing:
-                handleGameplayState()
-            case .gameOver:
-                handleGameOver()
-            }
+        switch gameEngine.gameState {
+        case .countdown:
+            // No hacer nada, el overlay maneja la cuenta atrás
+            break
+        case .playing:
+            handleGameplayState()
+        case .gameOver:
+            handleGameOver()
         }
+    }
     
     private func handleGameplayState() {
         switch gameEngine.noteState {
