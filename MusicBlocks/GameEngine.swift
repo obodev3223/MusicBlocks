@@ -181,13 +181,6 @@ class GameEngine: ObservableObject {
         }
     }
     
-    private func resetNoteTracking() {
-            noteHoldStartTime = nil
-            currentHits = 0
-            if !isShowingError && !isInSuccessState {
-                noteState = .waiting
-            }
-        }
     
     // MARK: - Game Setup
     private func setupGame() {
