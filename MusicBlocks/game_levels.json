@@ -80,7 +80,7 @@
         {
             "level_id": 0,
             "name": "Nivel 0. Tutorial",
-            "allowed_styles": ["default"], // Estilos de bloque en el nivel
+            "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
             "falling_speed": {
                 "initial": 8.0,  // Velocidad de caida inicial
                 "increment": 0.0 // Incremento de velocidad de caida

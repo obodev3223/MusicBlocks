@@ -7,7 +7,15 @@
 
 import UIKit
 
+protocol StatsViewDelegate: AnyObject {
+    func statsViewDidTapResetButton(_ statsView: StatsView)
+}
+
 class StatsView: UIView {
+    
+    // MARK: - Properties
+    weak var delegate: StatsViewDelegate?
+    
     private let stackView: UIStackView = {
         let stack = UIStackView()
         stack.axis = .vertical
@@ -43,6 +51,7 @@ class StatsView: UIView {
         super.init(frame: .zero)
         setupViews()
         configure(with: statistics)
+        setupActions()
     }
     
     required init?(coder: NSCoder) {
@@ -66,6 +75,16 @@ class StatsView: UIView {
             resetButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
         ])
     }
+    
+    private func setupActions() {
+            // Añadir acción al botón de reset
+            resetButton.addTarget(self, action: #selector(resetButtonTapped), for: .touchUpInside)
+        }
+        
+        @objc private func resetButtonTapped() {
+            // Notificar al delegado que se ha pulsado el botón de reset
+            delegate?.statsViewDidTapResetButton(self)
+        }
     
     private func configure(with statistics: Statistics) {
         // Limpiar vista previa

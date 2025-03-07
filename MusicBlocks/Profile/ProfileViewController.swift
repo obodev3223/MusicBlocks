@@ -275,6 +275,75 @@ extension ProfileViewController: ExpandableSectionViewDelegate {
     }
 }
 
+// Añadir conformidad al protocolo StatsViewDelegate en la clase ProfileViewController
+extension ProfileViewController: StatsViewDelegate {
+    func statsViewDidTapResetButton(_ statsView: StatsView) {
+        // Mostrar alerta de confirmación
+        let alert = UIAlertController(
+            title: "Borrar datos",
+            message: "¿Estás seguro de que deseas borrar todas tus estadísticas? Esta acción no se puede deshacer.",
+            preferredStyle: .alert
+        )
+        
+        // Acción para confirmar el borrado
+        let resetAction = UIAlertAction(title: "Borrar", style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            
+            // Crear estadísticas nuevas (resetear todo a valores iniciales)
+            self.profile.statistics = Statistics()
+            self.profile.save()
+            
+            // Actualizar la vista con las estadísticas reseteadas
+            self.updateStats()
+            
+            // Mostrar mensaje de confirmación
+            self.showToast(message: "Estadísticas restablecidas")
+        }
+        
+        // Acción para cancelar
+        let cancelAction = UIAlertAction(title: "Cancelar", style: .cancel)
+        
+        alert.addAction(resetAction)
+        alert.addAction(cancelAction)
+        
+        // Presentar la alerta
+        present(alert, animated: true)
+    }
+    
+    // Método auxiliar para mostrar un mensaje toast
+    private func showToast(message: String) {
+        let toastLabel = UILabel()
+        toastLabel.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        toastLabel.textColor = .white
+        toastLabel.textAlignment = .center
+        toastLabel.font = UIFont.systemFont(ofSize: 14)
+        toastLabel.text = message
+        toastLabel.alpha = 0
+        toastLabel.layer.cornerRadius = 10
+        toastLabel.clipsToBounds = true
+        
+        view.addSubview(toastLabel)
+        toastLabel.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.activate([
+            toastLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            toastLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+            toastLabel.widthAnchor.constraint(lessThanOrEqualTo: view.widthAnchor, multiplier: 0.7),
+            toastLabel.heightAnchor.constraint(equalToConstant: 40)
+        ])
+        
+        UIView.animate(withDuration: 0.5, animations: {
+            toastLabel.alpha = 1
+        }, completion: { _ in
+            UIView.animate(withDuration: 0.5, delay: 1.5, options: .curveEaseOut, animations: {
+                toastLabel.alpha = 0
+            }, completion: { _ in
+                toastLabel.removeFromSuperview()
+            })
+        })
+    }
+}
+
 #if DEBUG
 // MARK: - SwiftUI Preview
 import SwiftUI

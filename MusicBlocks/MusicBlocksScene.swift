@@ -450,20 +450,25 @@ class MusicBlocksScene: SKScene {
     }
     
     private func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
+        // No procesar si estamos en cuenta atrás o hay un overlay activo
+        guard gameEngine.gameState == .playing && currentOverlay == nil else {
+            return
+        }
+        
         let tunerData = audioController.tunerData
         
         // Obtener la nota y configuración del bloque inferior actual
-        let currentBlock = blocksManager.getCurrentBlock()
-        
-        gameEngine.checkNote(
-            currentNote: tunerData.note,
-            deviation: tunerData.deviation,
-            isActive: tunerData.isActive,
-            currentBlockNote: currentBlock?.note,
-            currentBlockConfig: currentBlock?.config
-        )
-        
-        updateGameUI()
+        if let currentBlock = blocksManager.getCurrentBlock() {
+            gameEngine.checkNote(
+                currentNote: tunerData.note,
+                deviation: tunerData.deviation,
+                isActive: tunerData.isActive,
+                currentBlockNote: currentBlock.note,
+                currentBlockConfig: currentBlock.config
+            )
+            
+            updateGameUI()
+        }
     }
     
     // MARK: - Game State Handling

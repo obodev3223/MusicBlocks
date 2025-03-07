@@ -136,4 +136,56 @@ struct MusicalNote: Equatable, Identifiable {
     static func == (lhs: MusicalNote, rhs: MusicalNote) -> Bool {
         return lhs.fullName == rhs.fullName || lhs.isEnharmonicWith(rhs)
     }
+    
+    
+}
+
+// MARK: - Note Format Conversion
+extension MusicalNote {
+    private static let noteNameMap: [String: String] = [
+        "do": "DO", "DO": "DO",
+        "re": "RE", "RE": "RE",
+        "mi": "MI", "MI": "MI",
+        "fa": "FA", "FA": "FA",
+        "sol": "SOL", "SOL": "SOL",
+        "la": "LA", "LA": "LA",
+        "si": "SI", "SI": "SI"
+    ]
+    
+    /// Parsea una nota desde un string en formato español (ej: "sol4", "la#4", "si♭3")
+    static func parseSpanishFormat(_ noteString: String) -> MusicalNote? {
+        // Patrón para capturar: nombre de nota (en minúsculas o mayúsculas),
+        // alteración opcional (#, b, ♭) y número de octava
+        let pattern = "([a-zA-Z]+)([#b♭]?)([0-9])"
+        let regex = try? NSRegularExpression(pattern: pattern, options: [])
+        
+        if let match = regex?.firstMatch(in: noteString, options: [], range: NSRange(noteString.startIndex..., in: noteString)) {
+            let noteName = String(noteString[Range(match.range(at: 1), in: noteString)!])
+            let alterationString = String(noteString[Range(match.range(at: 2), in: noteString)!])
+            let octave = Int(String(noteString[Range(match.range(at: 3), in: noteString)!]))!
+            
+            // Convertir el nombre de la nota al formato esperado
+            guard let standardName = noteNameMap[noteName.lowercased()] else {
+                print("❌ Nombre de nota no reconocido: \(noteName)")
+                return nil
+            }
+            
+            // Determinar la alteración
+            let alteration: Alteration
+            switch alterationString {
+            case "#":
+                alteration = .sharp
+            case "b", "♭":
+                alteration = .flat
+            default:
+                alteration = .natural
+            }
+            
+            print("✅ Nota parseada: \(standardName)\(alteration.rawValue)\(octave)")
+            return MusicalNote(name: standardName, alteration: alteration, octave: octave)
+        }
+        
+        print("❌ No se pudo parsear la nota: \(noteString)")
+        return nil
+    }
 }

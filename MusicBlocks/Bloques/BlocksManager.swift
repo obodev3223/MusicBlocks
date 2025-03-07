@@ -35,12 +35,19 @@ class BlocksManager {
     
     // MARK: - Note Generation
     private func generateNote(for blockConfig: Block) -> MusicalNote? {
-        // Seleccionar una nota aleatoria de las permitidas para este tipo de bloque
-        guard let randomNoteString = blockConfig.notes.randomElement(),
-              let note = MusicalNote.parse(randomNoteString) else {
+        guard let randomNoteString = blockConfig.notes.randomElement() else {
+            print("Error: No hay notas disponibles en la configuración del bloque")
             return nil
         }
-        return note
+        
+        print("Intentando parsear nota: \(randomNoteString)")
+        if let note = MusicalNote.parseSpanishFormat(randomNoteString) {
+            print("✅ Nota generada correctamente: \(note.fullName)")
+            return note
+        } else {
+            print("❌ Error al parsear la nota: \(randomNoteString)")
+            return nil
+        }
     }
     
     // MARK: - Block Management Methods
@@ -60,7 +67,15 @@ class BlocksManager {
         // Crear y configurar el nuevo bloque
         let newBlock = createBlock()
         
-        // Calcular posición inicial (centrada horizontalmente, en la parte superior del área)
+        // Verificar que el bloque se creó correctamente
+        if let noteData = newBlock.userData?.value(forKey: "noteName") as? String {
+            print("✅ Bloque creado con nota: \(noteData)")
+            print("✅ userData: \(String(describing: newBlock.userData))")
+        } else {
+            print("❌ Error: Bloque creado sin datos")
+        }
+        
+        // Calcular posición inicial
         let startY = mainAreaHeight/2 - blockSize.height/2
         newBlock.position = CGPoint(x: 0, y: startY)
         
@@ -69,8 +84,6 @@ class BlocksManager {
         blocks.insert(newBlock, at: 0)
         
         print("Bloque añadido en posición Y: \(startY)")
-        
-        // Mover los bloques existentes
         updateBlockPositions()
     }
     
@@ -193,13 +206,16 @@ class BlocksManager {
     }
     
     private func getBlockStyle(for styleName: String) -> BlockStyle? {
+        print("Buscando estilo: \(styleName)")  // Debug
         switch styleName {
         case "defaultBlock": return .defaultBlock
         case "iceBlock": return .iceBlock
         case "hardIceBlock": return .hardiceBlock
         case "ghostBlock": return .ghostBlock
         case "changingBlock": return .changingBlock
-        default: return nil
+        default:
+            print("⚠️ Estilo no reconocido: \(styleName)")
+            return nil
         }
     }
     
