@@ -70,7 +70,7 @@ class MusicBlocksScene: SKScene {
             print("🎬 Scene did move to view")
             
             // Configurar el delegado
-            audioController.delegate = self
+            audioController.delegate = self 
             
             Task {
                 audioController.stop()
@@ -90,7 +90,7 @@ class MusicBlocksScene: SKScene {
     }
         
         // MARK: - AudioControllerDelegate
-        func audioController(_ controller: AudioController, didDetectNote note: String, frequency: Float, amplitude: Float, deviation: Double) {
+    func audioController(_ controller: AudioController, didDetectNote note: String, frequency: Float, amplitude: Float, deviation: Double) {
             // Actualizar UI
             detectedNoteCounterNode?.currentNote = note
             detectedNoteCounterNode?.isActive = true

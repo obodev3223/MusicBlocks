@@ -70,9 +70,9 @@ class AudioController: ObservableObject {
     }
     
     private func processPitchData(frequency: Float, amplitude: Float) {
-            // Suavizar la amplitud
-            smoothedAmplitude = (amplitudeSmoothing * smoothedAmplitude) + ((1 - amplitudeSmoothing) * amplitude)
-            
+            /// Suavizar la amplitud
+        self.smoothedAmplitude = (self.amplitudeSmoothing * self.smoothedAmplitude) + ((1 - self.amplitudeSmoothing) * amplitude)
+        
             // Verificar si ha pasado suficiente tiempo desde el último procesamiento
             let currentTime = Date()
             guard currentTime.timeIntervalSince(lastProcessedTime) >= minimumProcessingInterval else {
