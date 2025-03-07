@@ -147,7 +147,7 @@ class BlocksManager {
             with: blockStyle,
             blockSize: blockSize,
             desiredNote: note,
-            baseNoteX: blockSize.width/4,
+            baseNoteX: 5,
             baseNoteY: 0,
             leftMargin: 30,
             rightMargin: 30

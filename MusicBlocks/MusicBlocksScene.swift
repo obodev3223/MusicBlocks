@@ -366,28 +366,6 @@ class MusicBlocksScene: SKScene {
         updateGameUI()
     }
     
-    private func showLevelStartOverlay(for level: GameLevel) {
-        // Ocultar overlay anterior si existe
-        currentOverlay?.removeFromParent()
-        
-        // Crear y mostrar el overlay de inicio de nivel
-        let overlaySize = CGSize(width: 400, height: 300)
-        let overlay = LevelStartOverlayNode(
-            size: overlaySize,
-            levelId: level.levelId,
-            levelName: level.name
-        ) { [weak self] in
-            // Esta closure se ejecuta cuando termina la cuenta atrás
-            self?.startGameplay()
-        }
-        
-        addChild(overlay)
-        levelStartOverlay = overlay
-        currentOverlay = overlay
-        
-        overlay.show(in: self, overlayPosition: .center)
-    }
-    
     private func startGameplay() {
         print("Iniciando gameplay")
         
@@ -501,6 +479,29 @@ class MusicBlocksScene: SKScene {
     }
     
     // MARK: - Overlay Methods
+    private func showLevelStartOverlay(for level: GameLevel) {
+        // Ocultar overlay anterior si existe
+        currentOverlay?.removeFromParent()
+        
+        // Crear y mostrar el overlay de inicio de nivel con tamaño más proporcionado
+        // Reducir el ancho para que no ocupe toda la pantalla lateralmente
+        let overlaySize = CGSize(width: size.width * 0.7, height: size.height * 0.45)
+        let overlay = LevelStartOverlayNode(
+            size: overlaySize,
+            levelId: level.levelId,
+            levelName: level.name
+        ) { [weak self] in
+            // Esta closure se ejecuta cuando termina la cuenta atrás
+            self?.startGameplay()
+        }
+        
+        addChild(overlay)
+        levelStartOverlay = overlay
+        currentOverlay = overlay
+        
+        overlay.show(in: self, overlayPosition: .center)
+    }
+    
     private func showSuccessOverlay(multiplier: Int, message: String) {
         currentOverlay?.removeFromParent()
         

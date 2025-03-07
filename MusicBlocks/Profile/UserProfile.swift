@@ -95,7 +95,7 @@ struct Statistics: Codable {
     
     /// Inicializador con valores por defecto para nuevas estadísticas
     init(totalScore: Int = 0,
-         currentLevel: Int = 1,
+         currentLevel: Int = 0,
          playTime: TimeInterval = 0,
          notesHit: Int = 0,
          currentStreak: Int = 0,

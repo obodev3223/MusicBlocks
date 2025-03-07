@@ -116,7 +116,7 @@
         },
         {
             "level_id": 1,
-            "name": "Avanzando",
+            "name": "¡Comienza la aventura!",
             "allowed_styles": ["defaultBlock", "iceBlock"],
             "falling_speed": {
                 "initial": 8.0,  // Velocidad de caida inicial
@@ -172,7 +172,7 @@
         },
         {
             "level_id": 2,
-            "name": "Depurando",
+            "name": "Más bloques...!",
             "allowed_styles": ["defaultBlock", "hardIceBlock", "ghostBlock"],
             "falling_speed": {
                 "initial": 7.0,  // Velocidad de caida inicial
