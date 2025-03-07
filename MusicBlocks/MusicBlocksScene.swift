@@ -9,7 +9,7 @@ import SpriteKit
 import UIKit
 import SwiftUI
 
-class MusicBlocksScene: SKScene, AudioControllerDelegate, GameEngine.GameEngineDelegate {
+class MusicBlocksScene: SKScene, AudioControllerDelegate {
     @Environment(\.screenSize) var screenSize
     
     // MARK: - Properties
@@ -148,34 +148,25 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate, GameEngine.GameEngineD
             }
         }
         
-    private func startBlockSequence() {
-        removeAction(forKey: "spawnSequence")
-        
-        let spawnSequence = SKAction.sequence([
-            SKAction.wait(forDuration: 1.0),
-            SKAction.repeatForever(
-                SKAction.sequence([
-                    SKAction.run { [weak self] in
-                        guard let self = self else { return }
-                        
-                        // Comprobar si algún bloque ha sobrepasado el límite inferior
-                        let bottomLimit = self.size.height * GameLimits.bottomMarginRatio
-                        if self.blocksManager.hasBlocksBelowLimit(bottomLimit) {
-                            print("⚠️ Bloques han sobrepasado el límite inferior")
-                            self.gameEngine.handleGameOver(reason: .blocksOverflow)
-                            return
-                        }
-                        
-                        print("Generando nuevo bloque...")
-                        self.blocksManager.spawnBlock()
-                    },
-                    SKAction.wait(forDuration: 4.0)
-                ])
-            )
-        ])
-        
-        run(spawnSequence, withKey: "spawnSequence")
-    }
+        private func startBlockSequence() {
+            removeAction(forKey: "spawnSequence")
+            
+            let spawnSequence = SKAction.sequence([
+                SKAction.wait(forDuration: 1.0),
+                SKAction.repeatForever(
+                    SKAction.sequence([
+                        SKAction.run { [weak self] in
+                            guard let self = self else { return }
+                            self.checkBlocksLimit()
+                            self.blocksManager.spawnBlock()
+                        },
+                        SKAction.wait(forDuration: 4.0)
+                    ])
+                )
+            ])
+            
+            run(spawnSequence, withKey: "spawnSequence")
+        }
     
     // MARK: - Setup Methods
     private func setupScene() {
@@ -410,6 +401,37 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate, GameEngine.GameEngineD
         }
     }
     
+    // Detener cualquier secuencia anterior si existe
+    private func startBlockSequence() {
+            removeAction(forKey: "spawnSequence")
+            
+            let spawnSequence = SKAction.sequence([
+                SKAction.wait(forDuration: 1.0),
+                SKAction.repeatForever(
+                    SKAction.sequence([
+                        SKAction.run { [weak self] in
+                            guard let self = self else { return }
+                            
+                            // Comprobar si algún bloque ha sobrepasado el límite inferior
+                            let bottomLimit = self.size.height * GameLimits.bottomMarginRatio
+                            if self.blocksManager.hasBlocksBelowLimit(bottomLimit) {
+                                print("⚠️ Bloques han sobrepasado el límite inferior")
+                                self.gameEngine.gameState = .gameOver
+                                self.handleGameOver()
+                                return
+                            }
+                            
+                            print("Generando nuevo bloque...")
+                            self.blocksManager.spawnBlock()
+                        },
+                        SKAction.wait(forDuration: 4.0)
+                    ])
+                )
+            ])
+            
+            run(spawnSequence, withKey: "spawnSequence")
+        }
+    
     private func initializeUIElements() {
         if detectedNoteCounterNode == nil {
             let safePosition = CGPoint(
@@ -609,40 +631,6 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate, GameEngine.GameEngineD
         currentOverlay = overlay
         
         overlay.show(in: self, overlayPosition: .center)
-    }
-}
-
-// MARK: - GameEngineDelegate Methods
-extension MusicBlocksScene {
-    func gameEngine(_ engine: GameEngine, didEndGameWith reason: GameEngine.GameOverReason) {
-        audioController.stop()
-        removeAction(forKey: "spawnSequence")
-        blocksManager.clearBlocks()
-        showGameOverOverlay(message: reason.message)
-    }
-    
-    func gameEngine(_ engine: GameEngine, didAchieveSuccess multiplier: Int, message: String) {
-        showSuccessOverlay(multiplier: multiplier, message: message)
-    }
-    
-    func gameEngine(_ engine: GameEngine, didFailWithMessage message: String) {
-        showFailureOverlay()
-    }
-    
-    func gameEngine(_ engine: GameEngine, didUpdateState state: NoteState) {
-        // Actualizar la UI según el nuevo estado si es necesario
-        switch state {
-        case .waiting:
-            currentOverlay?.hide()
-        case .correct(let deviation):
-            tuningIndicatorNode.deviation = deviation
-        case .wrong:
-            // Ya manejado por didFailWithMessage
-            break
-        case .success:
-            // Ya manejado por didAchieveSuccess
-            break
-        }
     }
 }
 
