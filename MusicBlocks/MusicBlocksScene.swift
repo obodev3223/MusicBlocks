@@ -9,7 +9,7 @@ import SpriteKit
 import UIKit
 import SwiftUI
 
-class MusicBlocksScene: SKScene {
+class MusicBlocksScene: SKScene, AudioControllerDelegate {
     @Environment(\.screenSize) var screenSize
     
     // MARK: - Properties
@@ -65,27 +65,18 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
-            super.didMove(to: view)
-            
-            print("🎬 Scene did move to view")
-            
-            // Configurar el delegado
-            audioController.delegate = self 
-            
-            Task {
-                audioController.stop()
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                await MainActor.run {
-                    audioController.start()
-                    print("✅ Motor de audio iniciado")
-                }
-            }
-            
-            setupScene()
-        }
+        super.didMove(to: view)
+        print("🎬 Scene did move to view")
+        
+        // Configurar el delegado pero NO iniciar el audio todavía
+        audioController.delegate = self
+        
+        setupScene()
+    }
     
     override func willMove(from view: SKView) {
         super.willMove(from: view)
+        print("⏹️ Deteniendo audio al salir de la escena")
         audioController.stop()
     }
         
@@ -111,18 +102,24 @@ class MusicBlocksScene: SKScene {
             }
         }
         
-        func audioControllerDidDetectSilence(_ controller: AudioController) {
-            detectedNoteCounterNode?.isActive = false
-            tuningIndicatorNode.isActive = false
-            
-            if let currentBlock = blocksManager.getCurrentBlock() {
-                gameEngine.checkNote(
-                    currentNote: "-",
-                    deviation: 0,
-                    isActive: false
-                )
-            }
+    func audioControllerDidDetectSilence(_ controller: AudioController) {
+        // Actualizar estado visual
+        detectedNoteCounterNode?.isActive = false
+        tuningIndicatorNode.isActive = false
+        
+        // Comprobar si hay un bloque activo que necesita ser evaluado
+        let hasActiveBlock = blocksManager.getCurrentBlock() != nil
+        if hasActiveBlock {
+            print("🔇 Silencio detectado con bloque activo")
+            gameEngine.checkNote(
+                currentNote: "-",
+                deviation: 0,
+                isActive: false
+            )
+        } else {
+            print("🔇 Silencio detectado sin bloque activo")
         }
+    }
     
 
     
@@ -414,8 +411,17 @@ class MusicBlocksScene: SKScene {
         // Limpiar bloques existentes
         blocksManager.clearBlocks()
         
-        // Iniciar el juego
+        // Iniciar el juego y el audio
         gameEngine.startNewGame()
+        
+        // Iniciar el audio aquí, cuando realmente comienza el juego
+        Task {
+            print("🎤 Iniciando motor de audio...")
+            await MainActor.run {
+                audioController.start()
+                print("✅ Motor de audio iniciado")
+            }
+        }
         
         // Iniciar secuencia de bloques cayendo con más logging
         let spawnSequence = SKAction.sequence([
@@ -440,7 +446,6 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Update Methods
     override func update(_ currentTime: TimeInterval) {
-        let deltaTime = lastUpdateTime > 0 ? currentTime - lastUpdateTime : 0
         lastUpdateTime = currentTime
         
         // Solo actualizar la UI que no depende del audio
@@ -518,9 +523,9 @@ class MusicBlocksScene: SKScene {
     }
     
     private func handleGameOver() {
+        print("⏹️ Deteniendo juego")
         audioController.stop()
         blocksManager.clearBlocks()
-        
         showGameOverOverlay()
     }
     

@@ -70,47 +70,47 @@ class AudioController: ObservableObject {
     }
     
     private func processPitchData(frequency: Float, amplitude: Float) {
-            /// Suavizar la amplitud
+        // Suavizar la amplitud
         self.smoothedAmplitude = (self.amplitudeSmoothing * self.smoothedAmplitude) + ((1 - self.amplitudeSmoothing) * amplitude)
         
-            // Verificar si ha pasado suficiente tiempo desde el último procesamiento
-            let currentTime = Date()
-            guard currentTime.timeIntervalSince(lastProcessedTime) >= minimumProcessingInterval else {
-                return
-            }
-            lastProcessedTime = currentTime
-            
-            print("🎤 Procesando audio - Freq: \(frequency), Amp: \(smoothedAmplitude)")
-            
-            // Verificar condiciones para procesar el pitch
-            if smoothedAmplitude > minimumAmplitude {
-                if frequency >= minimumFrequency && frequency <= maximumFrequency {
-                    let tunerData = tunerEngine.processPitch(
-                        frequency: frequency,
-                        amplitude: smoothedAmplitude
-                    )
-                    DispatchQueue.main.async {
-                        self.tunerData = tunerData
-                        print("🎵 Nota detectada: \(tunerData.note)")
-                        self.delegate?.audioController(
-                            self,
-                            didDetectNote: tunerData.note,
-                            frequency: frequency,
-                            amplitude: smoothedAmplitude,
-                            deviation: tunerData.deviation
-                        )
-                    }
-                    updateStability(frequency: frequency)
-                }
-            } else {
+        // Verificar si ha pasado suficiente tiempo desde el último procesamiento
+        let currentTime = Date()
+        guard currentTime.timeIntervalSince(lastProcessedTime) >= minimumProcessingInterval else {
+            return
+        }
+        lastProcessedTime = currentTime
+        
+        print("🎤 Procesando audio - Freq: \(frequency), Amp: \(self.smoothedAmplitude)") // Aquí también necesita self
+        
+        // Verificar condiciones para procesar el pitch
+        if self.smoothedAmplitude > minimumAmplitude { // Aquí está el error, necesitamos self
+            if frequency >= minimumFrequency && frequency <= maximumFrequency {
+                let tunerData = tunerEngine.processPitch(
+                    frequency: frequency,
+                    amplitude: self.smoothedAmplitude
+                )
                 DispatchQueue.main.async {
-                    self.tunerData = .inactive
-                    self.stabilityDuration = 0
-                    print("🔇 Silencio detectado")
-                    self.delegate?.audioControllerDidDetectSilence(self)
+                    self.tunerData = tunerData
+                    print("🎵 Nota detectada: \(tunerData.note)")
+                    self.delegate?.audioController(
+                        self,
+                        didDetectNote: tunerData.note,
+                        frequency: frequency,
+                        amplitude: self.smoothedAmplitude,
+                        deviation: tunerData.deviation
+                    )
                 }
+                updateStability(frequency: frequency)
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.tunerData = .inactive
+                self.stabilityDuration = 0
+                print("🔇 Silencio detectado")
+                self.delegate?.audioControllerDidDetectSilence(self)
             }
         }
+    }
     
     private init() {
         do {
