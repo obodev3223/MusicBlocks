@@ -8,17 +8,6 @@
 import SpriteKit
 
 class BlocksManager {
-    // MARK: - Types
-    struct BlockInfo {
-        let node: SKNode
-        let note: String
-        let style: String
-        let config: Block
-        let requiredHits: Int
-        let requiredTime: TimeInterval
-        var currentHits: Int = 0
-        var holdStartTime: Date?
-    }
     
     // MARK: - Properties
     private var blockInfos: [BlockInfo] = []

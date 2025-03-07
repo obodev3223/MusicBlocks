@@ -6,36 +6,9 @@
 //
 
 import Foundation
+import SpriteKit
 
 class GameEngine: ObservableObject {
-    // MARK: - Types
-        enum GameState {
-            case countdown
-            case playing
-            case paused
-            case gameOver(reason: GameOverReason)
-        }
-        
-        enum GameOverReason {
-            case noLives
-            case blocksOverflow
-            
-            var message: String {
-                switch self {
-                case .noLives:
-                    return "¡Te has quedado sin vidas!"
-                case .blocksOverflow:
-                    return "¡Los bloques han llegado demasiado abajo!"
-                }
-            }
-        }
-        
-        enum NoteState: Equatable {
-            case waiting
-            case correct(deviation: Double)
-            case wrong
-            case success(multiplier: Int, message: String)
-        }
         
         // MARK: - Published Properties
         @Published var score: Int = 0
@@ -137,16 +110,15 @@ class GameEngine: ObservableObject {
         }
         
         // MARK: - Note Handling
-        private func handleCorrectNote(deviation: Double, block: BlockInfo) {
-            if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
-                handleSuccess(deviation: deviation, blockConfig: block.config)
-            } else {
-                noteState = .correct(deviation: deviation)
-            }
-            
-            // Incrementar combo
-            combo += 1
-        }
+    private func handleCorrectNote(deviation: Double, block: BlockInfo) {
+           if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
+               handleSuccess(deviation: deviation, blockConfig: block.config)
+           } else {
+               noteState = .correct(deviation: deviation)
+           }
+           
+           combo += 1
+       }
         
         private func handleWrongNote() {
             guard !isShowingError else { return }
