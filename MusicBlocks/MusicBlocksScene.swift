@@ -65,26 +65,66 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
-        super.didMove(to: view)
-        
-        print("Scene did move to view")
-        
-        // Reiniciar el audio cuando la escena se carga
-        Task {
-            audioController.stop()
-            try? await Task.sleep(nanoseconds: 100_000_000)
-            await MainActor.run {
-                audioController.start()
+            super.didMove(to: view)
+            
+            print("🎬 Scene did move to view")
+            
+            // Configurar el delegado
+            audioController.delegate = self
+            
+            Task {
+                audioController.stop()
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                await MainActor.run {
+                    audioController.start()
+                    print("✅ Motor de audio iniciado")
+                }
             }
+            
+            setupScene()
         }
-        
-        setupScene()
-    }
     
     override func willMove(from view: SKView) {
         super.willMove(from: view)
         audioController.stop()
     }
+        
+        // MARK: - AudioControllerDelegate
+        func audioController(_ controller: AudioController, didDetectNote note: String, frequency: Float, amplitude: Float, deviation: Double) {
+            // Actualizar UI
+            detectedNoteCounterNode?.currentNote = note
+            detectedNoteCounterNode?.isActive = true
+            tuningIndicatorNode.deviation = deviation
+            tuningIndicatorNode.isActive = true
+            
+            // Comprobar nota con el bloque actual
+            if let currentBlock = blocksManager.getCurrentBlock() {
+                print("🎯 Comparando - Detectada: \(note), Objetivo: \(currentBlock.note)")
+                
+                gameEngine.checkNote(
+                    currentNote: note,
+                    deviation: deviation,
+                    isActive: true
+                )
+                
+                updateGameUI()
+            }
+        }
+        
+        func audioControllerDidDetectSilence(_ controller: AudioController) {
+            detectedNoteCounterNode?.isActive = false
+            tuningIndicatorNode.isActive = false
+            
+            if let currentBlock = blocksManager.getCurrentBlock() {
+                gameEngine.checkNote(
+                    currentNote: "-",
+                    deviation: 0,
+                    isActive: false
+                )
+            }
+        }
+    
+
     
     // MARK: - Setup Methods
     private func setupScene() {
@@ -403,12 +443,14 @@ class MusicBlocksScene: SKScene {
         let deltaTime = lastUpdateTime > 0 ? currentTime - lastUpdateTime : 0
         lastUpdateTime = currentTime
         
-        updateUI()
-        checkNoteAndUpdateScore(deltaTime: deltaTime)
+        // Solo actualizar la UI que no depende del audio
+        stabilityIndicatorNode.duration = audioController.stabilityDuration
+        stabilityCounterNode.duration = audioController.stabilityDuration
     }
-    
+
     private func updateUI() {
         let tunerData = audioController.tunerData
+        print("🎵 Audio data - Note: \(tunerData.note), Active: \(tunerData.isActive), Deviation: \(tunerData.deviation)")
         
         detectedNoteCounterNode?.currentNote = tunerData.note
         detectedNoteCounterNode?.isActive = tunerData.isActive
@@ -419,6 +461,7 @@ class MusicBlocksScene: SKScene {
         tuningIndicatorNode.deviation = tunerData.deviation
         tuningIndicatorNode.isActive = tunerData.isActive
     }
+
     
     private func updateGameUI() {
         topBarNode?.updateScore(gameEngine.score)
@@ -428,24 +471,25 @@ class MusicBlocksScene: SKScene {
     }
     
     private func checkNoteAndUpdateScore(deltaTime: TimeInterval) {
-        // No procesar si estamos en cuenta atrás o hay un overlay activo
         guard gameEngine.gameState == GameEngine.GameState.playing && currentOverlay == nil else {
+            print("⚠️ No procesando notas - Estado: \(gameEngine.gameState), Overlay: \(currentOverlay != nil)")
             return
         }
         
         let tunerData = audioController.tunerData
         
-        // Obtener la nota y configuración del bloque inferior actual
         if let currentBlock = blocksManager.getCurrentBlock() {
+            print("🎯 Comparando notas - Detectada: \(tunerData.note), Objetivo: \(currentBlock.note)")
+            
             gameEngine.checkNote(
                 currentNote: tunerData.note,
                 deviation: tunerData.deviation,
-                isActive: tunerData.isActive,
-                currentBlockNote: currentBlock.note,
-                currentBlockConfig: currentBlock.config
+                isActive: tunerData.isActive
             )
             
             updateGameUI()
+        } else {
+            print("❌ No hay bloque actual para comparar")
         }
     }
     

@@ -124,25 +124,34 @@ class GameEngine: ObservableObject {
     
     
     func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
-        guard let currentBlock = blockManager?.getCurrentBlock(),
-              isActive else { return }
+        guard gameState == .playing && !isInSuccessState && !isShowingError else {
+            print("🔒 GameEngine - No procesando: playing=\(gameState == .playing), success=\(isInSuccessState), error=\(isShowingError)")
+            return
+        }
         
-        print("Comparando - Detectada: \(currentNote), Objetivo: \(currentBlock.note)")
+        guard let currentBlock = blockManager?.getCurrentBlock(),
+              isActive else {
+            print("⚠️ GameEngine - Sin bloque actual o audio inactivo")
+            return
+        }
+        
+        print("🎯 GameEngine - Comparando notas:")
+        print("   Detectada: \(currentNote)")
+        print("   Objetivo: \(currentBlock.note)")
+        print("   Desviación: \(deviation)")
         
         if currentNote == currentBlock.note {
-            // Nota correcta, actualizar progreso
+            print("✅ Nota correcta")
             if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
-                // Bloque completado
+                print("🎉 Bloque completado")
                 handleSuccess(deviation: deviation, blockConfig: currentBlock.config)
-                print("¡Bloque completado!")
             } else {
-                // Progreso parcial
+                print("⏳ Manteniendo nota correcta")
                 noteState = .correct(deviation: deviation)
             }
         } else {
-            // Nota incorrecta
+            print("❌ Nota incorrecta")
             blockManager?.resetCurrentBlockProgress()
-            print("Nota incorrecta")
             handleWrongNote()
         }
     }

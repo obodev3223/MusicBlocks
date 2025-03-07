@@ -9,19 +9,6 @@ import SpriteKit
 
 class BlocksManager {
     
-    // MARK: - Properties
-    private let blockSize: CGSize
-    private let blockSpacing: CGFloat
-    private var blocks: [BlockInfo] = []
-    private weak var mainAreaNode: SKNode?
-    private var mainAreaHeight: CGFloat = 0
-    private let gameManager = GameManager.shared
-    
-    struct CurrentBlock {
-        let note: String
-        let config: Block
-    }
-    
     // Estructura para mantener la información del bloque
     struct BlockInfo {
         let node: SKNode
@@ -33,6 +20,21 @@ class BlocksManager {
         var currentHits: Int = 0
         var holdStartTime: Date?
     }
+    
+    // MARK: - Properties
+    private var blockInfos: [BlockInfo] = []  // Array con la información de los bloques
+    private var blocks: [SKNode] = []         // Array con los nodos (mantenido para compatibilidad)
+    private let blockSize: CGSize
+    private let blockSpacing: CGFloat
+    private weak var mainAreaNode: SKNode?
+    private var mainAreaHeight: CGFloat = 0
+    private let gameManager = GameManager.shared
+    
+    struct CurrentBlock {
+        let note: String
+        let config: Block
+    }
+    
     
     // MARK: - Initialization
     init(blockSize: CGSize = CGSize(width: 280, height: 120),
@@ -79,26 +81,40 @@ class BlocksManager {
         // Crear y configurar el nuevo bloque
         let newBlock = createBlock()
         
-        // Verificar que el bloque se creó correctamente
-        if let noteData = newBlock.userData?.value(forKey: "noteName") as? String,
-                   let styleData = newBlock.userData?.value(forKey: "blockStyle") as? String,
-                   let config = GameManager.shared.getBlockConfig(for: styleData),
-                   let requiredHits = newBlock.userData?.value(forKey: "requiredHits") as? Int,
-                   let requiredTime = newBlock.userData?.value(forKey: "requiredTime") as? TimeInterval {
-                    
-                    let blockInfo = BlockInfo(
-                        node: newBlock,
-                        note: noteData,
-                        style: styleData,
-                        config: config,
-                        requiredHits: requiredHits,
-                        requiredTime: requiredTime
-                    )
-                    
-                    blocks.insert(blockInfo, at: 0)
-                    print("Bloque añadido: \(noteData) - Total bloques: \(blocks.count)")
-                }
-            }
+        // Verificar y guardar la información del bloque
+        if let userData = newBlock.userData,
+           let noteData = userData.value(forKey: "noteName") as? String,
+           let styleData = userData.value(forKey: "blockStyle") as? String,
+           let config = gameManager.getBlockConfig(for: styleData),
+           let requiredHits = userData.value(forKey: "requiredHits") as? Int,
+           let requiredTime = userData.value(forKey: "requiredTime") as? TimeInterval {
+            
+            let blockInfo = BlockInfo(
+                node: newBlock,
+                note: noteData,
+                style: styleData,
+                config: config,
+                requiredHits: requiredHits,
+                requiredTime: requiredTime
+            )
+            
+            // Calcular posición inicial
+            let startY = mainAreaHeight/2 - blockSize.height/2
+            newBlock.position = CGPoint(x: 0, y: startY)
+            
+            // Añadir al área principal
+            mainAreaNode.addChild(newBlock)
+            
+            // Guardar tanto el nodo como la información
+            blocks.insert(newBlock, at: 0)
+            blockInfos.insert(blockInfo, at: 0)
+            
+            print("Bloque añadido en posición Y: \(startY)")
+            updateBlockPositions()
+        } else {
+            print("❌ Error: Bloque creado sin datos válidos")
+        }
+    }
     
     private func createBlock() -> SKNode {
         guard let currentLevel = gameManager.currentLevel else {
@@ -295,7 +311,7 @@ class BlocksManager {
         
         return shadowNode
     }
-
+    
     private func createBackground(with style: BlockStyle) -> SKNode {
         let background = SKShapeNode(rectOf: blockSize, cornerRadius: style.cornerRadius)
         background.fillColor = style.backgroundColor
@@ -323,65 +339,69 @@ class BlocksManager {
             block.removeFromParent()
         }
         blocks.removeAll()
+        blockInfos.removeAll()
     }
     
     /// Elimina el bloque más bajo (el último) cuando se acierta
-        func removeLastBlock() {
-            guard let lastBlock = blocks.last else {
-                print("No hay bloques para eliminar")
-                return
-            }
-            
-            // Crear la animación de desaparición
-            let fadeOut = SKAction.fadeOut(withDuration: 0.3)
-            let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
-            let group = SKAction.group([fadeOut, scaleDown])
-            let remove = SKAction.removeFromParent()
-            let sequence = SKAction.sequence([group, remove])
-            
-            lastBlock.run(sequence) { [weak self] in
-                guard let self = self else { return }
-                self.blocks.removeLast()
-                
-                // Actualizar posiciones de los bloques restantes
-                self.updateBlockPositions()
-            }
+    func removeLastBlock() {
+        guard let lastBlock = blocks.last,
+              !blockInfos.isEmpty else { return }
+        
+        // Crear la animación de desaparición
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+        let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
+        let group = SKAction.group([fadeOut, scaleDown])
+        let remove = SKAction.removeFromParent()
+        let sequence = SKAction.sequence([group, remove])
+        
+        lastBlock.run(sequence) { [weak self] in
+            guard let self = self else { return }
+            // Eliminar tanto el nodo como la información
+            self.blocks.removeLast()
+            self.blockInfos.removeLast()
+            self.updateBlockPositions()
         }
+    }
     
     // Obtener el bloque actual y su estado
     func getCurrentBlock() -> BlockInfo? {
-        return blocks.last
+        return blockInfos.last
     }
     
     // Actualizar el progreso de un hit en el bloque actual
-        func updateCurrentBlockProgress(hitTime: Date) -> Bool {
-            guard var currentBlock = blocks.last else { return false }
-            
-            if currentBlock.holdStartTime == nil {
-                currentBlock.holdStartTime = hitTime
-            }
-            
-            let holdDuration = Date().timeIntervalSince(currentBlock.holdStartTime ?? Date())
-            
-            if holdDuration >= currentBlock.requiredTime {
-                currentBlock.currentHits += 1
-                currentBlock.holdStartTime = nil
-                
-                if currentBlock.currentHits >= currentBlock.requiredHits {
-                    // Bloque completado
-                    removeLastBlock()
-                    return true
-                }
-            }
-            
-            return false
+    func updateCurrentBlockProgress(hitTime: Date) -> Bool {
+        guard let index = blockInfos.indices.last else { return false }
+        
+        var currentInfo = blockInfos[index]
+        
+        if currentInfo.holdStartTime == nil {
+            currentInfo.holdStartTime = hitTime
+            blockInfos[index] = currentInfo
         }
+        
+        let holdDuration = Date().timeIntervalSince(currentInfo.holdStartTime ?? Date())
+        
+        if holdDuration >= currentInfo.requiredTime {
+            currentInfo.currentHits += 1
+            currentInfo.holdStartTime = nil
+            blockInfos[index] = currentInfo
+            
+            if currentInfo.currentHits >= currentInfo.requiredHits {
+                removeLastBlock()
+                return true
+            }
+        }
+        
+        return false
+    }
     // Resetear el progreso del bloque actual
-        func resetCurrentBlockProgress() {
-            guard var currentBlock = blocks.last else { return }
-            currentBlock.currentHits = 0
-            currentBlock.holdStartTime = nil
-        }
+    func resetCurrentBlockProgress() {
+        guard let index = blockInfos.indices.last else { return }
+        var currentInfo = blockInfos[index]
+        currentInfo.currentHits = 0
+        currentInfo.holdStartTime = nil
+        blockInfos[index] = currentInfo
+    }
     
     // MARK: - Public Interface
     var currentBlocks: [SKNode] { blocks }

@@ -23,8 +23,14 @@ import AudioKitEX
 import AVFoundation
 import SoundpipeAudioKit
 
+protocol AudioControllerDelegate: AnyObject {
+    func audioController(_ controller: AudioController, didDetectNote note: String, frequency: Float, amplitude: Float, deviation: Double)
+    func audioControllerDidDetectSilence(_ controller: AudioController)
+}
+
 class AudioController: ObservableObject {
     static let sharedInstance = AudioController()
+    weak var delegate: AudioControllerDelegate?
     
     @Published var tunerData: TunerEngine.TunerData = .inactive
     @Published var stabilityDuration: TimeInterval = 0
@@ -64,35 +70,47 @@ class AudioController: ObservableObject {
     }
     
     private func processPitchData(frequency: Float, amplitude: Float) {
-        // Suavizar la amplitud
-        smoothedAmplitude = (amplitudeSmoothing * smoothedAmplitude) + ((1 - amplitudeSmoothing) * amplitude)
-        
-        // Verificar si ha pasado suficiente tiempo desde el último procesamiento
-        let currentTime = Date()
-        guard currentTime.timeIntervalSince(lastProcessedTime) >= minimumProcessingInterval else {
-            return
-        }
-        lastProcessedTime = currentTime
-        
-        // Verificar condiciones para procesar el pitch
-        if smoothedAmplitude > minimumAmplitude {
-            if frequency >= minimumFrequency && frequency <= maximumFrequency {
-                let tunerData = tunerEngine.processPitch(
-                    frequency: frequency,
-                    amplitude: smoothedAmplitude
-                )
-                DispatchQueue.main.async {
-                    self.tunerData = tunerData
+            // Suavizar la amplitud
+            smoothedAmplitude = (amplitudeSmoothing * smoothedAmplitude) + ((1 - amplitudeSmoothing) * amplitude)
+            
+            // Verificar si ha pasado suficiente tiempo desde el último procesamiento
+            let currentTime = Date()
+            guard currentTime.timeIntervalSince(lastProcessedTime) >= minimumProcessingInterval else {
+                return
+            }
+            lastProcessedTime = currentTime
+            
+            print("🎤 Procesando audio - Freq: \(frequency), Amp: \(smoothedAmplitude)")
+            
+            // Verificar condiciones para procesar el pitch
+            if smoothedAmplitude > minimumAmplitude {
+                if frequency >= minimumFrequency && frequency <= maximumFrequency {
+                    let tunerData = tunerEngine.processPitch(
+                        frequency: frequency,
+                        amplitude: smoothedAmplitude
+                    )
+                    DispatchQueue.main.async {
+                        self.tunerData = tunerData
+                        print("🎵 Nota detectada: \(tunerData.note)")
+                        self.delegate?.audioController(
+                            self,
+                            didDetectNote: tunerData.note,
+                            frequency: frequency,
+                            amplitude: smoothedAmplitude,
+                            deviation: tunerData.deviation
+                        )
+                    }
+                    updateStability(frequency: frequency)
                 }
-                updateStability(frequency: frequency)
-            }
-        } else {
-            DispatchQueue.main.async {
-                self.tunerData = .inactive
-                self.stabilityDuration = 0
+            } else {
+                DispatchQueue.main.async {
+                    self.tunerData = .inactive
+                    self.stabilityDuration = 0
+                    print("🔇 Silencio detectado")
+                    self.delegate?.audioControllerDidDetectSilence(self)
+                }
             }
         }
-    }
     
     private init() {
         do {
