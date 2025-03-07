@@ -47,8 +47,7 @@ class GameManager {
     }
     
     private func loadStatistics() {
-        totalGamesPlayed = userProfile.statistics.gamesPlayed
-        highScores = userProfile.statistics.highScores
+        totalGamesPlayed = userProfile.statistics.totalGamesPlayed
         lastPlayedLevel = userProfile.statistics.currentLevel
     }
     
@@ -98,7 +97,7 @@ class GameManager {
     
     // MARK: - Game Progress
     func updateGameStatistics(levelId: Int, score: Int, completed: Bool) {
-        // Actualizar estadísticas
+        // Actualizar estadísticas locales
         totalGamesPlayed += 1
         
         // Actualizar high score si es necesario
@@ -113,22 +112,44 @@ class GameManager {
         }
         
         // Actualizar perfil de usuario
-        userProfile.statistics.gamesPlayed = totalGamesPlayed
-        userProfile.statistics.highScores = highScores
+        userProfile.updateStatistics(
+            score: score,
+            accuracy: calculateAccuracyForLevel(score),
+            levelCompleted: completed,
+            isPerfect: isLevelPerfect(score),
+            playTime: calculatePlayTime()
+        )
         
-        // Si completó el nivel, desbloquear el siguiente
-        if completed && levelId < Constants.maxUnlockedLevel {
-            print("🎉 Nivel \(levelId) completado, desbloqueando siguiente nivel")
-            userProfile.statistics.unlockedLevels.insert(levelId + 1)
+        // Si completó el nivel, actualizar progreso
+        if completed {
+            if levelId >= userProfile.statistics.currentLevel {
+                userProfile.statistics.currentLevel = levelId + 1
+            }
         }
         
         userProfile.save()
     }
     
+    // MARK: - Helper Methods
+    private func calculateAccuracyForLevel(_ score: Int) -> Double {
+        guard let level = currentLevel else { return 0.0 }
+        return Double(score) / Double(level.requiredScore)
+    }
+    
+    private func isLevelPerfect(_ score: Int) -> Bool {
+        guard let level = currentLevel else { return false }
+        return score >= level.requiredScore * 1.5 // Por ejemplo, 50% más que el requerido
+    }
+    
+    private func calculatePlayTime() -> TimeInterval {
+        // Implementar lógica para calcular el tiempo de juego de la sesión actual
+        return 60.0 // Por ahora retornamos un valor fijo de 1 minuto
+    }
+    
     // MARK: - Level Information
     func getLevelInfo(_ levelId: Int) -> (name: String, highScore: Int)? {
-        guard let level = gameConfig?.levels.first(where: { $level in
-            $level.levelId == levelId
+        guard let level = gameConfig?.levels.first(where: { level in
+            level.levelId == levelId
         }) else {
             return nil
         }
@@ -137,15 +158,17 @@ class GameManager {
     }
     
     func getNextUnlockedLevel() -> Int? {
-        let unlockedLevels = userProfile.statistics.unlockedLevels
-        return unlockedLevels.sorted().first { levelId in
-            !hasCompletedLevel(levelId)
+        // El nivel actual siempre está desbloqueado
+        let currentLevel = userProfile.statistics.currentLevel
+        if !hasCompletedLevel(currentLevel) {
+            return currentLevel
         }
+        return nil
     }
     
     func hasCompletedLevel(_ levelId: Int) -> Bool {
-        guard let level = gameConfig?.levels.first(where: { $level in
-            $level.levelId == levelId
+        guard let level = gameConfig?.levels.first(where: { level in
+            level.levelId == levelId
         }) else {
             return false
         }

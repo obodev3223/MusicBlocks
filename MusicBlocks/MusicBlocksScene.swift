@@ -164,7 +164,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         }
     }
     
-    private func handleGameOver(reason: GameEngine.GameOverReason) {
+    private func handleGameOver(reason: GameOverReason) {  
         audioController.stop()
         blocksManager.stopBlockGeneration()
         
@@ -173,7 +173,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             gameManager.updateGameStatistics(
                 levelId: currentLevel.levelId,
                 score: gameEngine.score,
-                completed: gameEngine.score >= currentLevel.requiredScore
+                completed: gameEngine.score >= currentLevel.requiredScore  // Ahora requiredScore está definido
             )
         }
         

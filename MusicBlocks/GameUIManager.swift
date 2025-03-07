@@ -245,72 +245,76 @@ class GameUIManager {
         }
         
         // MARK: - Overlay Methods
-        func showLevelStartOverlay(for level: GameLevel, completion: @escaping () -> Void) {
-            guard let scene = scene else { return }
-            currentOverlay?.removeFromParent()
-            
-            let overlaySize = CGSize(width: scene.size.width * 0.7, height: scene.size.height * 0.45)
-            let overlay = LevelStartOverlayNode(
-                size: overlaySize,
-                levelId: level.levelId,
-                levelName: level.name,
-                completion: completion
-            )
-            
-            scene.addChild(overlay)
-            currentOverlay = overlay
-            
-            overlay.show(in: scene, overlayPosition: .center)
-        }
+    func showLevelStartOverlay(for level: GameLevel, completion: @escaping () -> Void) {
+        guard let scene = scene else { return }
+        currentOverlay?.removeFromParent()
         
-        func showSuccessOverlay(multiplier: Int, message: String) {
-            guard let scene = scene else { return }
-            currentOverlay?.removeFromParent()
-            
-            let overlaySize = CGSize(width: 350, height: 60)
-            let overlay = SuccessOverlayNode(size: overlaySize, multiplier: multiplier, message: message)
-            scene.addChild(overlay)
-            currentOverlay = overlay
-            
-            overlay.show(in: scene, overlayPosition: .bottom)
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
-                overlay?.hide()
-            }
-        }
+        let overlaySize = CGSize(width: scene.size.width * 0.7, height: scene.size.height * 0.45)
+        let overlay = LevelStartOverlayNode(
+            size: overlaySize,
+            levelId: level.levelId,
+            levelName: level.name,
+            startAction: completion  // Cambio: completion -> startAction
+        )
         
-        func showFailureOverlay() {
-            guard let scene = scene else { return }
-            currentOverlay?.removeFromParent()
-            
-            let overlaySize = CGSize(width: 350, height: 60)
-            let overlay = FailureOverlayNode(size: overlaySize)
-            scene.addChild(overlay)
-            currentOverlay = overlay
-            
-            overlay.show(in: scene, overlayPosition: .bottom)
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
-                overlay?.hide()
-            }
-        }
+        scene.addChild(overlay)
+        currentOverlay = overlay
         
-        func showGameOverOverlay(score: Int, onRestart: @escaping () -> Void) {
-            guard let scene = scene else { return }
-            currentOverlay?.removeFromParent()
-            
-            let overlaySize = CGSize(width: 400, height: 300)
-            let overlay = GameOverOverlayNode(
-                size: overlaySize,
-                score: score,
-                onRestart: onRestart
-            )
-            
-            scene.addChild(overlay)
-            currentOverlay = overlay
-            
-            overlay.show(in: scene, overlayPosition: .center)
+        overlay.show(in: scene, overlayPosition: .center)  // No necesita OverlayPosition. ya está definido en GameOverlayNode
+    }
+        
+    func showSuccessOverlay(multiplier: Int, message: String) {
+        guard let scene = scene else { return }
+        currentOverlay?.removeFromParent()
+        
+        let overlaySize = CGSize(width: 350, height: 60)
+        let overlay = SuccessOverlayNode(
+            size: overlaySize,
+            multiplier: multiplier,
+            message: message
+        )
+        scene.addChild(overlay)
+        currentOverlay = overlay
+        
+        overlay.show(in: scene, overlayPosition: .bottom)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
+            overlay?.hide()
         }
+    }
+
+    func showFailureOverlay() {
+        guard let scene = scene else { return }
+        currentOverlay?.removeFromParent()
+        
+        let overlaySize = CGSize(width: 350, height: 60)
+        let overlay = FailureOverlayNode(size: overlaySize)
+        scene.addChild(overlay)
+        currentOverlay = overlay
+        
+        overlay.show(in: scene, overlayPosition: .bottom)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
+            overlay?.hide()
+        }
+    }
+
+    func showGameOverOverlay(score: Int, onRestart: @escaping () -> Void) {
+        guard let scene = scene else { return }
+        currentOverlay?.removeFromParent()
+        
+        let overlaySize = CGSize(width: 400, height: 300)
+        let overlay = GameOverOverlayNode(
+            size: overlaySize,
+            score: score,
+            restartAction: onRestart  // Cambio: onRestart -> restartAction
+        )
+        
+        scene.addChild(overlay)
+        currentOverlay = overlay
+        
+        overlay.show(in: scene, overlayPosition: .center)
+    }
         
         // MARK: - Public Accessors
         func getMainAreaNode() -> SKNode? {

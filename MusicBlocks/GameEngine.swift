@@ -8,14 +8,9 @@
 import Foundation
 import SpriteKit
 
+
 class GameEngine: ObservableObject {
         
-        // MARK: - Published Properties
-        @Published var score: Int = 0
-        @Published var lives: Int = 0
-        @Published var gameState: GameState = .countdown
-        @Published var noteState: NoteState = .waiting
-        @Published var combo: Int = 0
         
         // MARK: - Private Properties
         private let tunerEngine: TunerEngine
@@ -78,7 +73,7 @@ class GameEngine: ObservableObject {
             blockManager?.startBlockGeneration()
         }
         
-        func endGame(reason: GameOverReason) {
+        func endGame(reason: GameOverReason) {  // Ya no necesita GameEngine.GameOverReason
             gameState = .gameOver(reason: reason)
             blockManager?.stopBlockGeneration()
             resetGameState()
