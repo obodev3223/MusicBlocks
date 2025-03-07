@@ -90,6 +90,8 @@ class MusicBlocksScene: SKScene {
     private func setupScene() {
         setupBackground()
         setupLayout()
+        // Inicializar GameEngine con BlocksManager
+        gameEngine = GameEngine(blockManager: blocksManager)
         setupAndStart()
     }
     

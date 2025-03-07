@@ -312,6 +312,29 @@ class BlocksManager {
         blocks.removeAll()
     }
     
+    /// Elimina el bloque más bajo (el último) cuando se acierta
+        func removeLastBlock() {
+            guard let lastBlock = blocks.last else {
+                print("No hay bloques para eliminar")
+                return
+            }
+            
+            // Crear la animación de desaparición
+            let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+            let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
+            let group = SKAction.group([fadeOut, scaleDown])
+            let remove = SKAction.removeFromParent()
+            let sequence = SKAction.sequence([group, remove])
+            
+            lastBlock.run(sequence) { [weak self] in
+                guard let self = self else { return }
+                self.blocks.removeLast()
+                
+                // Actualizar posiciones de los bloques restantes
+                self.updateBlockPositions()
+            }
+        }
+    
     func getCurrentBlock() -> CurrentBlock? {
         guard let bottomBlock = blocks.last else {
             print("No hay bloques en el área de juego")

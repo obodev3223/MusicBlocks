@@ -8,6 +8,7 @@
 import Foundation
 
 class GameEngine: ObservableObject {
+    
     // MARK: - Published Properties
     @Published var score: Int = 0
     @Published var lives: Int = 0 // Se inicializará con el valor del nivel
@@ -17,6 +18,7 @@ class GameEngine: ObservableObject {
     // MARK: - Private Properties
     private let tunerEngine: TunerEngine
     private let gameManager = GameManager.shared
+    private weak var blockManager: BlocksManager?
     private var noteMatchTime: TimeInterval = 0
     private var maxExtraLives: Int = 0 // Se obtendrá del nivel actual
     private var scoreThresholdsForExtraLives: [Int] = [] // Se obtendrá del nivel actual
@@ -35,13 +37,20 @@ class GameEngine: ObservableObject {
     private var currentDetectedNote: MusicalNote?
     private var isInSuccessState: Bool = false
     
+    // Propiedades para el tracking
+    private var currentTargetNote: String?
+    private var currentTargetConfig: Block?
+    private var noteHoldStartTime: Date?
+    private var requiredHoldTime: TimeInterval = 0
+    private var currentHits: Int = 0
+    private var requiredHits: Int = 0
+    
     // Propiedad para el nivel actual
     var currentLevel: GameLevel? {
         gameManager.currentLevel
     }
     
     // MARK: - Types
-    // En GameEngine
     enum GameState {
         case countdown     // Cuenta atrás inicial
         case playing      // Jugando
@@ -56,10 +65,11 @@ class GameEngine: ObservableObject {
     }
     
     // MARK: - Initialization
-    init(tunerEngine: TunerEngine = .shared) {
-        self.tunerEngine = tunerEngine
-        gameState = .countdown // Empezamos en estado de cuenta atrás
-    }
+    init(tunerEngine: TunerEngine = .shared, blockManager: BlocksManager?) {
+            self.tunerEngine = tunerEngine
+            self.blockManager = blockManager 
+            gameState = .countdown
+        }
     
     // MARK: - Public Methods
     func startNewGame() {
@@ -113,56 +123,69 @@ class GameEngine: ObservableObject {
         }
     
     func checkNote(currentNote: String, deviation: Double, isActive: Bool, currentBlockNote: String?, currentBlockConfig: Block?) {
-        // No procesar nada si el juego no está activo o estamos en estado de éxito
-        guard gameState == .playing && !isInSuccessState else { return }
-        
-        // Manejar el silencio
-        if !isActive {
-            if lastSilenceTime == nil {
-                lastSilenceTime = Date()
-            }
-            
-            if let silenceStart = lastSilenceTime,
-               Date().timeIntervalSince(silenceStart) >= silenceThreshold {
-                resetNoteDetection()
-            }
+        // No procesar si no estamos jugando o hay una animación en curso
+        guard gameState == .playing && !isInSuccessState && !isShowingError else {
             return
         }
         
-        // Si hay señal activa, resetear el tiempo de silencio
-        lastSilenceTime = nil
-        
-        guard let parsedNote = MusicalNote.parse(currentNote),
-              let targetNote = currentBlockNote,
-              let blockConfig = currentBlockConfig else {
-            resetNoteDetection()
-            return
+        // Actualizar el bloque objetivo si es necesario
+        if currentBlockNote != currentTargetNote {
+            currentTargetNote = currentBlockNote
+            currentTargetConfig = currentBlockConfig
+            currentHits = 0
+            if let config = currentBlockConfig {
+                requiredHits = config.requiredHits
+                requiredHoldTime = config.requiredTime
+            }
         }
         
-        // Si es una nota nueva diferente a la que estábamos detectando
-        if currentDetectedNote?.fullName != parsedNote.fullName {
-            currentDetectedNote = parsedNote
-            currentNoteStartTime = Date()
-            noteMatchTime = 0
+        // Si no hay bloque objetivo o no está activo el audio, resetear
+        guard let targetNote = currentTargetNote,
+              let config = currentTargetConfig,
+              isActive else {
+            resetNoteTracking()
             return
         }
         
         // Procesar la nota detectada
-        if parsedNote.fullName == targetNote {
-            // Si la nota es correcta, siempre mostrar el estado correcto
-            noteState = .correct(deviation: deviation)
+        if currentNote == targetNote {
+            // La nota es correcta
+            if noteHoldStartTime == nil {
+                noteHoldStartTime = Date()
+            }
             
-            // Incrementar el tiempo de coincidencia
-            noteMatchTime += 0.1
+            let holdDuration = Date().timeIntervalSince(noteHoldStartTime ?? Date())
             
-            // Si hemos mantenido la nota el tiempo suficiente, proceder al éxito
-            if noteMatchTime >= blockConfig.requiredTime {
-                handleSuccess(deviation: deviation, blockConfig: blockConfig)
+            // Verificar si se ha mantenido el tiempo suficiente
+            if holdDuration >= requiredHoldTime {
+                currentHits += 1
+                
+                // Verificar si se han alcanzado los hits necesarios
+                if currentHits >= requiredHits {
+                    // Éxito completo
+                    handleSuccess(deviation: deviation, blockConfig: config)
+                } else {
+                    // Hit parcial, resetear el tiempo de mantenimiento
+                    noteHoldStartTime = nil
+                    noteState = .correct(deviation: deviation)
+                }
+            } else {
+                // Mostrar que la nota es correcta pero aún necesita mantenerse
+                noteState = .correct(deviation: deviation)
             }
         } else {
+            // La nota es incorrecta
             handleWrongNote()
         }
     }
+    
+    private func resetNoteTracking() {
+            noteHoldStartTime = nil
+            currentHits = 0
+            if !isShowingError && !isInSuccessState {
+                noteState = .waiting
+            }
+        }
     
     // MARK: - Game Setup
     private func setupGame() {
@@ -220,52 +243,59 @@ class GameEngine: ObservableObject {
         }
     }
     
-    private func handleWrongNote() {
-        guard !isShowingError else { return }
-        
-        isShowingError = true
-        lastErrorTime = Date()
-        noteState = .wrong
-        lives -= 1
-        
-        if lives <= 0 {
-            gameState = .gameOver
-            stopGame()
-            return
-        }
-        
-        // Programar reseteo del estado de error
-        DispatchQueue.main.asyncAfter(deadline: .now() + errorDisplayTime) { [weak self] in
-            guard let self = self, self.gameState == .playing else { return }
-            self.isShowingError = false
-            self.noteState = .waiting
-        }
-    }
-    
     private func handleSuccess(deviation: Double, blockConfig: Block) {
-        isInSuccessState = true
-        
-        // Calcular la precisión y la puntuación
-        let accuracy = calculateAccuracy(deviation: deviation)
-        let (scorePoints, message) = calculateScore(accuracy: accuracy, blockBasePoints: blockConfig.basePoints)
-        
-        // Actualizar puntuación
-        score += scorePoints
-        
-        // Comprobar si corresponde vida extra
-        checkForExtraLife(currentScore: score)
-        
-        // Actualizar el estado con el mensaje
-        noteState = .success(multiplier: scorePoints / blockConfig.basePoints, message: message)
-        
-        // Resetear estado después de un breve delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self else { return }
-            self.isInSuccessState = false
-            self.noteState = .waiting
-            self.resetNoteDetection()
+            isInSuccessState = true
+            
+            // Calcular puntuación
+            let accuracy = calculateAccuracy(deviation: deviation)
+            let (scorePoints, message) = calculateScore(accuracy: accuracy, blockBasePoints: blockConfig.basePoints)
+            
+            // Actualizar puntuación
+            score += scorePoints
+            
+            // Comprobar vidas extra
+            checkForExtraLife(currentScore: score)
+            
+            // Notificar éxito
+            noteState = .success(multiplier: scorePoints / blockConfig.basePoints, message: message)
+            
+            // Eliminar el bloque
+            blockManager?.removeLastBlock()
+            
+            // Resetear tracking después de un breve delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
+                self.isInSuccessState = false
+                self.resetNoteTracking()
+                self.currentTargetNote = nil
+                self.currentTargetConfig = nil
+                self.noteState = .waiting
+            }
         }
-    }
+    
+    private func handleWrongNote() {
+            guard !isShowingError else { return }
+            
+            isShowingError = true
+            lives -= 1
+            noteState = .wrong
+            
+            // Verificar game over
+            if lives <= 0 {
+                gameState = .gameOver
+                stopGame()
+                return
+            }
+            
+            // Resetear estado de error después de un tiempo
+            DispatchQueue.main.asyncAfter(deadline: .now() + errorDisplayTime) { [weak self] in
+                guard let self = self else { return }
+                self.isShowingError = false
+                self.resetNoteTracking()
+                self.noteState = .waiting
+            }
+        }   
+    
     
     private func resetNoteDetection() {
         currentDetectedNote = nil
