@@ -63,17 +63,14 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         static let containerAlpha: CGFloat = 0.95
     }
     
-    // Constante para el límite inferior
-        private struct GameLimits {
-            static let bottomMarginRatio: CGFloat = 0.15 // 15% de la altura de la pantalla
-        }
-    
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
         super.didMove(to: view)
         print("🎬 Scene did move to view")
-        audioController.delegate = self // Configurar el delegado pero NO iniciar el audio todavía
-        gameEngine.delegate = self // Añadir delegado del GameEngine
+        
+        // Configurar el delegado pero NO iniciar el audio todavía
+        audioController.delegate = self
+        
         setupScene()
     }
     
@@ -124,49 +121,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         }
     }
     
-    // MARK: - GameEngineDelegate Methods
-        func gameEngine(_ engine: GameEngine, didEndGameWith reason: GameEngine.GameOverReason) {
-            audioController.stop()
-            removeAction(forKey: "spawnSequence")
-            blocksManager.clearBlocks()
-            showGameOverOverlay(message: reason.message)
-        }
-        
-        func gameEngine(_ engine: GameEngine, didAchieveSuccess multiplier: Int, message: String) {
-            showSuccessOverlay(multiplier: multiplier, message: message)
-        }
-        
-        func gameEngine(_ engine: GameEngine, didFailWithMessage message: String) {
-            showFailureOverlay()
-        }
-        
-        // MARK: - Game Flow Methods
-        private func checkBlocksLimit() {
-            let bottomLimit = size.height * GameLimits.bottomMarginRatio
-            if blocksManager.hasBlocksBelowLimit(bottomLimit) {
-                gameEngine.handleGameOver(reason: .blocksOverflow)
-            }
-        }
-        
-        private func startBlockSequence() {
-            removeAction(forKey: "spawnSequence")
-            
-            let spawnSequence = SKAction.sequence([
-                SKAction.wait(forDuration: 1.0),
-                SKAction.repeatForever(
-                    SKAction.sequence([
-                        SKAction.run { [weak self] in
-                            guard let self = self else { return }
-                            self.checkBlocksLimit()
-                            self.blocksManager.spawnBlock()
-                        },
-                        SKAction.wait(forDuration: 4.0)
-                    ])
-                )
-            ])
-            
-            run(spawnSequence, withKey: "spawnSequence")
-        }
+
     
     // MARK: - Setup Methods
     private func setupScene() {
@@ -403,34 +358,24 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     
     // Detener cualquier secuencia anterior si existe
     private func startBlockSequence() {
-            removeAction(forKey: "spawnSequence")
-            
-            let spawnSequence = SKAction.sequence([
-                SKAction.wait(forDuration: 1.0),
-                SKAction.repeatForever(
-                    SKAction.sequence([
-                        SKAction.run { [weak self] in
-                            guard let self = self else { return }
-                            
-                            // Comprobar si algún bloque ha sobrepasado el límite inferior
-                            let bottomLimit = self.size.height * GameLimits.bottomMarginRatio
-                            if self.blocksManager.hasBlocksBelowLimit(bottomLimit) {
-                                print("⚠️ Bloques han sobrepasado el límite inferior")
-                                self.gameEngine.gameState = .gameOver
-                                self.handleGameOver()
-                                return
-                            }
-                            
-                            print("Generando nuevo bloque...")
-                            self.blocksManager.spawnBlock()
-                        },
-                        SKAction.wait(forDuration: 4.0)
-                    ])
-                )
-            ])
-            
-            run(spawnSequence, withKey: "spawnSequence")
-        }
+        removeAction(forKey: "spawnSequence")
+        
+        let spawnSequence = SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.repeatForever(
+                SKAction.sequence([
+                    SKAction.run { [weak self] in
+                        guard let self = self else { return }
+                        self.blocksManager.spawnBlock()
+                        print("Bloque generado")  // Debug
+                    },
+                    SKAction.wait(forDuration: 4.0)
+                ])
+            )
+        ])
+        
+        run(spawnSequence, withKey: "spawnSequence")
+    }
     
     private func initializeUIElements() {
         if detectedNoteCounterNode == nil {
@@ -461,29 +406,43 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     }
     
     private func startGameplay() {
-            print("Iniciando gameplay")
-            
-            // Limpiar bloques existentes
-            blocksManager.clearBlocks()
-            
-            // Iniciar el juego y el audio
-            gameEngine.startNewGame()
-            
-            // Iniciar el audio aquí, cuando realmente comienza el juego
-            Task {
-                print("🎤 Iniciando motor de audio...")
-                await MainActor.run {
-                    audioController.start()
-                    print("✅ Motor de audio iniciado")
-                }
+        print("Iniciando gameplay")
+        
+        // Limpiar bloques existentes
+        blocksManager.clearBlocks()
+        
+        // Iniciar el juego y el audio
+        gameEngine.startNewGame()
+        
+        // Iniciar el audio aquí, cuando realmente comienza el juego
+        Task {
+            print("🎤 Iniciando motor de audio...")
+            await MainActor.run {
+                audioController.start()
+                print("✅ Motor de audio iniciado")
             }
-            
-            // Iniciar secuencia infinita de bloques
-            startBlockSequence()
-            updateGameUI()
-            
-            print("Gameplay iniciado")
         }
+        
+        // Iniciar secuencia de bloques cayendo con más logging
+        let spawnSequence = SKAction.sequence([
+            SKAction.wait(forDuration: 1.0),
+            SKAction.repeatForever(
+                SKAction.sequence([
+                    SKAction.run { [weak self] in
+                        guard let self = self else { return }
+                        print("Generando nuevo bloque...")
+                        self.blocksManager.spawnBlock()
+                    },
+                    SKAction.wait(forDuration: 4.0)
+                ])
+            )
+        ])
+        
+        run(spawnSequence, withKey: "spawnSequence")
+        updateGameUI()
+        
+        print("Gameplay iniciado")
+    }
     
     // MARK: - Update Methods
     override func update(_ currentTime: TimeInterval) {
@@ -561,6 +520,13 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         default:
             currentOverlay?.hide()
         }
+    }
+    
+    private func handleGameOver() {
+        print("⏹️ Deteniendo juego")
+        audioController.stop()
+        blocksManager.clearBlocks()
+        showGameOverOverlay()
     }
     
     // MARK: - Overlay Methods

@@ -196,30 +196,51 @@ class LevelStartOverlayNode: GameOverlayNode {
         }
         
     private func startCountdown() {
-            countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
-                guard let self = self else {
-                    timer.invalidate()
-                    return
-                }
-                
-                self.secondsRemaining -= 1
-                self.countdownLabel?.text = "\(self.secondsRemaining)"
-                
-                // Animar el cambio de número de manera más vistosa
-                let scaleUp = SKAction.scale(to: 1.3, duration: 0.15)
-                let scaleDown = SKAction.scale(to: 1.0, duration: 0.15)
-                let colorChange = SKAction.run {
-                    self.countdownLabel?.fontColor = self.secondsRemaining <= 2 ? .red : .orange
-                }
-                self.countdownLabel?.run(SKAction.sequence([colorChange, scaleUp, scaleDown]))
-                
-                if self.secondsRemaining <= 0 {
-                    timer.invalidate()
-                    self.hide()
-                    self.startAction?()
-                }
+        // Establecer el color inicial según el valor inicial (5)
+        updateCountdownColor()
+        
+        countdownTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+            
+            self.secondsRemaining -= 1
+            self.countdownLabel?.text = "\(self.secondsRemaining)"
+            
+            // Actualizar el color según el nuevo valor
+            self.updateCountdownColor()
+            
+            // Animar el cambio de número con un efecto más vistoso
+            let scaleUp = SKAction.scale(to: 1.3, duration: 0.15)
+            let scaleDown = SKAction.scale(to: 1.0, duration: 0.15)
+            self.countdownLabel?.run(SKAction.sequence([scaleUp, scaleDown]))
+            
+            if self.secondsRemaining <= 0 {
+                timer.invalidate()
+                self.hide()
+                self.startAction?()
             }
         }
+    }
+
+    private func updateCountdownColor() {
+        // Asignar colores según el valor de la cuenta atrás
+        switch secondsRemaining {
+        case 5, 4:
+            // 5 y 4 son verdes
+            countdownLabel?.fontColor = UIColor.systemGreen
+        case 3, 2:
+            // 3 y 2 son naranjas
+            countdownLabel?.fontColor = UIColor.orange
+        case 1, 0:
+            // 1 y 0 son rojos
+            countdownLabel?.fontColor = UIColor.red
+        default:
+            // Para cualquier otro número (por seguridad)
+            countdownLabel?.fontColor = UIColor.white
+        }
+    }
         
         override func hide(duration: TimeInterval = 0.3) {
             countdownTimer?.invalidate()
