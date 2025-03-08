@@ -76,19 +76,11 @@ class DetectedNoteCounterNode: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Añadir sombra primero
-        addChild(shadowNode)
-        
-        // Configurar contenedor principal
-        container.fillColor = .white
-        container.strokeColor = .clear
-        container.alpha = Layout.backgroundAlpha
-        addChild(container)
+        // Aplicar estilo común del contenedor
+        applyContainerStyle(size: containerSize)
         
         // Posicionar etiqueta en el centro
         noteLabel.position = CGPoint(x: 0, y: 0)
-        
-        // Añadir etiqueta directamente al nodo, no al contenedor
         addChild(noteLabel)
     }
     

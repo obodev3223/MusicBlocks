@@ -3,7 +3,7 @@
     Configuración principal del juego MusicBlocks
     Última actualización: 29-02-2025
     */
-    "game_version": "0.5",
+    "game_version": "0.6",
     /*
     Tipos de objetivos soportados:
     score: Alcanzar una puntuación específica en un tiempo límite

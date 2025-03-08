@@ -287,57 +287,6 @@ extension TopBar {
             blocks: [:]
         )
         
-        let level1 = GameLevel(
-            levelId: 1,
-            name: "Nivel 1",
-            allowedStyles: ["defaultBlock", "iceBlock"],
-            fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
-            lives: Lives(
-                initial: 4,
-                extraLives: ExtraLives(
-                    scoreThresholds: [500, 1000, 1500],
-                    maxExtra: 3
-                )
-            ),
-            objectives: Objectives(
-                primary: Objective(
-                    type: "note_accuracy",
-                    target: 10,
-                    timeLimit: 0,
-                    minimumAccuracy: 0.8,
-                    details: nil,
-                    requireAll: nil
-                ),
-                secondary: nil
-            ),
-            blocks: [:]
-        )
-        
-        let level2 = GameLevel(
-            levelId: 2,
-            name: "Nivel 2",
-            allowedStyles: ["defaultBlock", "hardIceBlock", "ghostBlock"],
-            fallingSpeed: FallingSpeed(initial: 7.0, increment: 0.0),
-            lives: Lives(
-                initial: 3,
-                extraLives: ExtraLives(
-                    scoreThresholds: [500, 1000, 1500, 2000],
-                    maxExtra: 4
-                )
-            ),
-            objectives: Objectives(
-                primary: Objective(
-                    type: "total_blocks",
-                    target: 15,
-                    timeLimit: 240,
-                    minimumAccuracy: nil,
-                    details: nil,
-                    requireAll: nil
-                ),
-                secondary: nil
-            ),
-            blocks: [:]
-        )
         
         // Crear un TopBar con nivel tutorial (3 vidas + 2 extra)
         let tutorialBar = TopBar.create(
@@ -349,27 +298,6 @@ extension TopBar {
         tutorialBar.updateScore(0)
         scene.addChild(tutorialBar)
         
-        // Crear un TopBar con nivel 1 (4 vidas + 3 extra, algunas perdidas)
-        let level1Bar = TopBar.create(
-            width: 350,
-            height: 60,
-            position: CGPoint(x: 200, y: 150)
-        )
-        level1Bar.configure(withLevel: level1)
-        level1Bar.updateScore(750)
-        level1Bar.updateLives(5) // 4 base + 1 extra ganada, 2 perdidas
-        scene.addChild(level1Bar)
-        
-        // Crear un TopBar con nivel 2 (5 vidas + 4 extra, todas las extra ganadas)
-        let level2Bar = TopBar.create(
-            width: 350,
-            height: 60,
-            position: CGPoint(x: 200, y: 50)
-        )
-        level2Bar.configure(withLevel: level2)
-        level2Bar.updateScore(2500)
-        level2Bar.updateLives(9) // Todas las vidas disponibles (5 base + 4 extra)
-        scene.addChild(level2Bar)
         
         return scene
     }
@@ -381,7 +309,7 @@ struct TopBarPreview: PreviewProvider {
             // Vista previa de la TopBar
             SpriteView(scene: TopBar.createPreviewScene())
                 .frame(width: 400, height: 300)
-                .previewLayout(.fixed(width: 400, height: 300))
+                .previewLayout(.fixed(width: 400, height: 150))
             
             // Leyenda explicativa
             VStack(alignment: .leading, spacing: 8) {

@@ -89,22 +89,19 @@ class TuningIndicatorNode: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Configurar glow de la barra
+        // Aplicar estilo común del contenedor
+        applyContainerStyle(size: containerSize)
+        
+        // Mantener configuración del glow
         barGlow.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.glowRadius])
         barGlow.shouldRasterize = true
         barGlow.addChild(barGlowShape)
         barGlow.zPosition = -1
         addChild(barGlow)
         
-        // Configurar la barra de fondo
-        backgroundBar.fillColor = UIColor.lightGray
-        backgroundBar.strokeColor = .clear
-        backgroundBar.alpha = Layout.backgroundAlpha
-        addChild(backgroundBar)
-        
         // Configurar marcas
         for (index, mark) in markings.enumerated() {
-            mark.fillColor = UIColor.darkGray
+            mark.fillColor = .darkGray
             mark.strokeColor = .clear
             mark.alpha = Layout.markingsAlpha
             addChild(mark)
@@ -112,14 +109,7 @@ class TuningIndicatorNode: SKNode {
         
         // Configurar indicador central
         addChild(indicatorContainer)
-        
-        // Creamos la forma para el indicador (círculo)
-        let barWidth = containerSize.width * Layout.barWidthRatio
-        let indicatorRadius = barWidth * Layout.indicatorSizeRatio
-        indicatorCore.path = CGPath(ellipseIn: CGRect(x: -indicatorRadius, y: -indicatorRadius,
-                                                    width: indicatorRadius*2, height: indicatorRadius*2), transform: nil)
-        indicatorCore.strokeColor = .clear
-        indicatorContainer.addChild(indicatorCore)
+        setupIndicatorCore()
         
         updateIndicator()
     }

@@ -3,14 +3,6 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 25/2/25.
-//
-
-//
-//  StabilityIndicatorNode.swift
-//  MusicBlocks
-//
-//  Creado por Jose R. García el 25/2/25.
-//
 
 import SpriteKit
 
@@ -137,14 +129,7 @@ class StabilityIndicatorNode: SKNode {
     }
     
     private func getProgressColor() -> SKColor {
-        let progress = duration / maxDuration
-        if progress >= 1.0 {
-            return .green
-        } else if progress >= 0.5 {
-            return .orange
-        } else {
-            return .blue
-        }
+        return UIColor(red: 0, green: 0.4, blue: 0.9, alpha: 1.0)
     }
     
     // MARK: - Public Methods

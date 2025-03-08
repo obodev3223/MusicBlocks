@@ -162,42 +162,41 @@ class GameUIManager {
         // Calcular la posición del límite (en la parte inferior)
         let bottomLimit = -(height/2)
         
-        // Crear el área de advertencia usando el ancho total de la pantalla
+        // Crear el área de advertencia usando el ancho total de la pantalla y extendiendo hasta el fondo
         let warningArea = SKShapeNode(rect: CGRect(
-            x: -scene.size.width/2,  // Usar el ancho total de la pantalla
-            y: bottomLimit,
-            width: scene.size.width,  // Usar el ancho total de la pantalla
-            height: 40
+            x: -scene.size.width/2,
+            y: bottomLimit - scene.size.height, // Extender hacia abajo
+            width: scene.size.width,
+            height: scene.size.height // Usar toda la altura restante de la pantalla
         ))
         warningArea.fillColor = UIColor.red
         warningArea.strokeColor = UIColor.clear
         warningArea.alpha = 0.15
         
+        // La línea límite permanece en la misma posición
         let limitLine = SKShapeNode(rect: CGRect(
-            x: -scene.size.width/2,  // Usar el ancho total de la pantalla
+            x: -scene.size.width/2,
             y: bottomLimit,
-            width: scene.size.width,  // Usar el ancho total de la pantalla
+            width: scene.size.width,
             height: 2
         ))
         limitLine.fillColor = UIColor.red
         limitLine.strokeColor = UIColor.clear
         limitLine.alpha = 0.8
         
-        // Animación de parpadeo para el área de advertencia
+        // Animación de parpadeo solo para la línea
         let fadeSequence = SKAction.sequence([
             SKAction.fadeAlpha(to: 0.3, duration: 0.5),
             SKAction.fadeAlpha(to: 0.8, duration: 0.5)
         ])
-        let repeatForever = SKAction.repeatForever(fadeSequence)
-        warningArea.run(repeatForever)
+        limitLine.run(SKAction.repeatForever(fadeSequence))
         
-        // Añadir elementos al nodo contenedor
         dangerZone.addChild(warningArea)
         dangerZone.addChild(limitLine)
         
         container.addChild(dangerZone)
     }
-
+    
     private func createDangerMarker(size: CGSize) -> SKShapeNode {
         let path = CGMutablePath()
         path.move(to: CGPoint(x: 0, y: 0))
@@ -296,27 +295,7 @@ class GameUIManager {
         let container = SKNode()
         container.position = position
         container.zPosition = zPosition
-        
-//        let shadowNode = SKEffectNode()
-//        shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
-//        shadowNode.shouldRasterize = true
-//        shadowNode.shouldEnableEffects = true
-//        shadowNode.position = Layout.shadowOffset
-//        container.addChild(shadowNode)
-//        
-//        let shadowShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-//        shadowShape.fillColor = .black
-//        shadowShape.strokeColor = .clear
-//        shadowShape.alpha = CGFloat(Layout.shadowOpacity)
-//        shadowNode.addChild(shadowShape)
-//        
-//        let mainShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-//        mainShape.fillColor = .white
-//        mainShape.strokeColor = .clear
-//        mainShape.alpha = Layout.containerAlpha
-//        mainShape.zPosition = 1
-//        container.addChild(mainShape)
-        
+        container.applyContainerStyle(.primary, size: size)
         return container
     }
     
