@@ -154,54 +154,46 @@ class GameUIManager {
     }
 
     private func addDangerZone(to container: SKNode, width: CGFloat, height: CGFloat) {
+        guard let scene = scene else { return }
+        
         let dangerZone = SKNode()
         dangerZone.zPosition = 1
         
-        // Calcular la posición del límite (15% desde abajo)
-        let bottomLimit = -(height/2) + (height * Constants.bottomLimitRatio)
+        // Calcular la posición del límite (en la parte inferior)
+        let bottomLimit = -(height/2)
         
-        // Crear el área de advertencia
+        // Crear el área de advertencia usando el ancho total de la pantalla
         let warningArea = SKShapeNode(rect: CGRect(
-            x: -width/2,
-            y: bottomLimit - 40,
-            width: width,
+            x: -scene.size.width/2,  // Usar el ancho total de la pantalla
+            y: bottomLimit,
+            width: scene.size.width,  // Usar el ancho total de la pantalla
             height: 40
         ))
         warningArea.fillColor = UIColor.red
         warningArea.strokeColor = UIColor.clear
         warningArea.alpha = 0.15
         
-        // Crear línea de límite
         let limitLine = SKShapeNode(rect: CGRect(
-            x: -width/2,
+            x: -scene.size.width/2,  // Usar el ancho total de la pantalla
             y: bottomLimit,
-            width: width,
+            width: scene.size.width,  // Usar el ancho total de la pantalla
             height: 2
         ))
         limitLine.fillColor = UIColor.red
         limitLine.strokeColor = UIColor.clear
         limitLine.alpha = 0.8
         
-        // Añadir efecto de parpadeo a la línea
+        // Animación de parpadeo para el área de advertencia
         let fadeSequence = SKAction.sequence([
             SKAction.fadeAlpha(to: 0.3, duration: 0.5),
             SKAction.fadeAlpha(to: 0.8, duration: 0.5)
         ])
-        limitLine.run(SKAction.repeatForever(fadeSequence))
+        let repeatForever = SKAction.repeatForever(fadeSequence)
+        warningArea.run(repeatForever)
         
-        // Añadir indicadores laterales
-        let markerSize = CGSize(width: 10, height: 20)
-        let leftMarker = createDangerMarker(size: markerSize)
-        leftMarker.position = CGPoint(x: -width/2, y: bottomLimit)
-        
-        let rightMarker = createDangerMarker(size: markerSize)
-        rightMarker.position = CGPoint(x: width/2 - markerSize.width, y: bottomLimit)
-        
-        // Añadir todos los elementos a la zona de peligro
+        // Añadir elementos al nodo contenedor
         dangerZone.addChild(warningArea)
         dangerZone.addChild(limitLine)
-        dangerZone.addChild(leftMarker)
-        dangerZone.addChild(rightMarker)
         
         container.addChild(dangerZone)
     }

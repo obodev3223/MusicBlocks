@@ -152,11 +152,21 @@ class BlocksManager {
         
         print("Generando nuevo bloque. Bloques actuales: \(blocks.count)")
         
-        // Verificar si el último bloque está muy cerca del límite superior
+        // Verificar si hay demasiados bloques
+        let maxBlocks = 5 // o el número máximo de bloques que quieras permitir
+        if blocks.count >= maxBlocks {
+            print("⏸️ Máximo número de bloques alcanzado")
+            return
+        }
+        
+        // Verificar si hay espacio para un nuevo bloque
         if let lastBlock = blocks.first {
             let topLimit = mainAreaHeight/2 - blockSize.height/2
-            if abs(lastBlock.position.y - topLimit) < blockSize.height {
-                print("⏸️ Esperando a que los bloques desciendan")
+            let lastBlockTopEdge = lastBlock.position.y + blockSize.height/2
+            
+            // Solo generar nuevo bloque si hay suficiente espacio
+            if lastBlockTopEdge > topLimit - blockSize.height {
+                print("⏸️ Esperando espacio para nuevo bloque")
                 return
             }
         }
@@ -175,7 +185,7 @@ class BlocksManager {
             blocks.insert(newBlock, at: 0)
             blockInfos.insert(blockInfo, at: 0)
             
-            print("Bloque añadido en posición Y: \(startY)")
+            print("✅ Bloque añadido en posición Y: \(startY)")
             updateBlockPositions()
         }
     }
@@ -261,35 +271,26 @@ class BlocksManager {
     private func updateBlockPositions() {
         let moveDistance = blockSize.height + blockSpacing
         let moveDuration = 0.5
-        let fallingSpeed = gameManager.currentLevel?.fallingSpeed.initial ?? 8.0
         
         for (index, block) in blocks.enumerated() {
+            // Calcular la posición final para cada bloque
             let targetY = (mainAreaHeight/2) - (blockSize.height/2) - (moveDistance * CGFloat(index))
             
-            // Crear una acción de movimiento continuo hacia abajo
-            let moveDown = SKAction.moveBy(
-                x: 0,
-                y: -fallingSpeed,  // Velocidad de caída desde la configuración del nivel
-                duration: 1.0
-            )
-            
-            // Aplicar el movimiento inicial a la posición correcta
+            // Mover el bloque a su posición con una animación suave
             let moveToPosition = SKAction.moveTo(y: targetY, duration: moveDuration)
             moveToPosition.timingMode = .easeInEaseOut
             
-            // Secuencia: primero mover a la posición y luego comenzar la caída
-            let sequence = SKAction.sequence([
-                moveToPosition,
-                SKAction.repeatForever(moveDown)
-            ])
+            // Detener cualquier acción previa
+            block.removeAllActions()
             
-            block.run(sequence)
+            // Aplicar solo el movimiento de posicionamiento
+            block.run(moveToPosition)
         }
     }
     
     // MARK: - Game State Checks
     func hasBlocksBelowLimit() -> Bool {
-        let bottomLimit = -mainAreaHeight/2 + (blockSize.height * Constants.bottomLimitRatio)
+        let bottomLimit = -mainAreaHeight/2  // Ajustado para coincidir con el límite visual
         return blocks.contains { block in
             block.position.y <= bottomLimit
         }
