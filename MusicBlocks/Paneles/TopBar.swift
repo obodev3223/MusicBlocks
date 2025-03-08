@@ -175,16 +175,16 @@ class TopBar: SKNode {
         maxExtraLives = level.lives.extraLives.maxExtra
         lives = level.lives.initial
         
-        // Mostrar solo el número del nivel
         levelLabel.text = "Nivel \(level.levelId)"
         
         if let container = heartsContainer {
             setupHearts(in: container)
+            // Importante: actualizar las vidas inmediatamente después de configurar
+            updateLives(level.lives.initial)
         }
-        updateLives(lives)
         updateScore(0)
         
-        print("TopBar configurada - Nivel: \(level.levelId), Vidas base: \(maxLives), Vidas extra posibles: \(maxExtraLives)")
+        print("TopBar configurada - Nivel: \(level.levelId), Vidas base: \(maxLives), Vidas extra posibles: \(maxExtraLives), Vidas actuales: \(lives)")
     }
     
     func updateScore(_ newScore: Int) {
@@ -201,23 +201,25 @@ class TopBar: SKNode {
         self.lives = newLives
         
         for (index, heart) in heartNodes.enumerated() {
+            heart.alpha = 1.0  // Asegurar que todos los corazones son visibles
+            
             if index < maxLives {
                 // Vidas base
-                heart.alpha = 1.0
                 if index < lives {
                     heart.text = "❤️"  // Corazón lleno
+                    heart.fontColor = .red
                 } else {
                     heart.text = "♡"   // Corazón vacío
+                    heart.fontColor = .red
                 }
-            } else {
-                        // Vidas extra (doradas)
-                        if index < lives {
-                            heart.text = "❤️"
-                            heart.fontColor = .systemYellow  // Color dorado para vidas extra
-                            heart.alpha = 1.0  // Mostrar vida extra ganada
-                        } else {
-                            heart.alpha = 0    // Mantener oculta
-                        }
+            } else if index < maxLives + maxExtraLives {
+                // Vidas extra
+                if index < lives {
+                    heart.text = "❤️"
+                    heart.fontColor = .systemYellow
+                } else {
+                    heart.alpha = 0  // Ocultar corazones extra no ganados
+                }
             }
         }
     }

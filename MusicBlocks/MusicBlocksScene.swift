@@ -44,7 +44,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         let userProfile = UserProfile.load()
         _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
         
-        // Luego inicializar UI Manager
+        // Inicializar UI Manager
         uiManager = GameUIManager(scene: self)
         
         // Obtener dimensiones del área principal
@@ -66,6 +66,11 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         
         // Configurar el delegado de audio
         audioController.delegate = self
+        
+        // IMPORTANTE: Actualizar UI con las vidas iniciales después de que todo esté configurado
+        if let currentLevel = gameManager.currentLevel {
+            uiManager.updateUI(score: 0, lives: currentLevel.lives.initial)
+        }
     }
     
     private func setupGame() {
@@ -94,7 +99,8 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         audioController.stop()
         blocksManager.clearBlocks()
         
-        // Actualizar UI con las vidas iniciales
+        // Configurar UI antes del overlay
+        uiManager.configureTopBar(withLevel: level)  // Usando el nuevo método público
         uiManager.updateUI(score: 0, lives: level.lives.initial)
         
         // Mostrar overlay de inicio de nivel

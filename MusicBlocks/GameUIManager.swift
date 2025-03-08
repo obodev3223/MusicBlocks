@@ -98,6 +98,11 @@ class GameUIManager {
     }
     
     // MARK: - UI Setup Methods
+    
+    func configureTopBar(withLevel level: GameLevel) {
+        topBarNode?.configure(withLevel: level)
+    }
+    
     private func setupTopBar(width: CGFloat, height: CGFloat) {
         guard let scene = scene else { return }
         let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
