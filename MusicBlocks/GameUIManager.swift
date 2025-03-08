@@ -6,6 +6,7 @@
 //
 
 import SpriteKit
+import UIKit
 
 class GameUIManager {
     // MARK: - Properties
@@ -48,6 +49,10 @@ class GameUIManager {
         static let shadowOpacity: Float = 0.8
         static let shadowOffset = CGPoint(x: 0, y: -2)
         static let containerAlpha: CGFloat = 0.95
+    }
+    
+    private struct Constants {
+        static let bottomLimitRatio: CGFloat = 0.15
     }
     
     // MARK: - Initialization
@@ -122,6 +127,8 @@ class GameUIManager {
     }
     
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
+        guard let scene = scene else { return }
+        
         mainAreaWidth = width
         mainAreaHeight = height
         
@@ -160,8 +167,8 @@ class GameUIManager {
             width: width,
             height: 40
         ))
-        warningArea.fillColor = .red
-        warningArea.strokeColor = .clear
+        warningArea.fillColor = UIColor.red
+        warningArea.strokeColor = UIColor.clear
         warningArea.alpha = 0.15
         
         // Crear línea de límite
@@ -171,8 +178,8 @@ class GameUIManager {
             width: width,
             height: 2
         ))
-        limitLine.fillColor = .red
-        limitLine.strokeColor = .clear
+        limitLine.fillColor = UIColor.red
+        limitLine.strokeColor = UIColor.clear
         limitLine.alpha = 0.8
         
         // Añadir efecto de parpadeo a la línea
@@ -208,8 +215,8 @@ class GameUIManager {
         path.closeSubpath()
         
         let marker = SKShapeNode(path: path)
-        marker.fillColor = .red
-        marker.strokeColor = .clear
+        marker.fillColor = UIColor.red
+        marker.strokeColor = UIColor.clear
         marker.alpha = 0.8
         
         // Añadir efecto de parpadeo
