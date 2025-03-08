@@ -26,14 +26,15 @@ class TuningIndicatorNode: SKNode {
     private struct Layout {
         static let barWidthRatio: CGFloat = 0.8
         static let markingWidthRatio: CGFloat = 0.6
-        static let indicatorSizeRatio: CGFloat = 0.15  // Relativo al ancho de la barra
+        // Cambiamos el ratio del indicador para que ocupe todo el ancho de la barra
+        static let indicatorSizeRatio: CGFloat = 1.0  // Cambiado de 0.15 a 1.0
         static let backgroundAlpha: CGFloat = 0.15
         static let markingsAlpha: CGFloat = 0.3
-        static let glowAlpha: CGFloat = 0.8  // Opacidad cuando está activo
+        static let glowAlpha: CGFloat = 0.8
         static let inactiveAlpha: CGFloat = 0.2
         static let animationDuration: TimeInterval = 0.2
         static let glowRadius: Float = 15.0
-        static let glowLineWidth: CGFloat = 8.0  // Grosor del contorno glow
+        static let glowLineWidth: CGFloat = 8.0
     }
     
     // MARK: - Properties
@@ -109,7 +110,19 @@ class TuningIndicatorNode: SKNode {
         
         // Configurar indicador central
         addChild(indicatorContainer)
-        setupIndicatorCore()
+        
+        // Configurar el indicador core (círculo que ocupa todo el ancho de la barra)
+        let barWidth = containerSize.width * Layout.barWidthRatio
+        let indicatorDiameter = barWidth // El diámetro será igual al ancho de la barra
+        let indicatorRadius = indicatorDiameter / 2
+        
+        indicatorCore.path = CGPath(ellipseIn: CGRect(x: -indicatorRadius,
+                                                     y: -indicatorRadius,
+                                                     width: indicatorDiameter,
+                                                     height: indicatorDiameter),
+                                  transform: nil)
+        indicatorCore.strokeColor = .clear
+        indicatorContainer.addChild(indicatorCore)
         
         updateIndicator()
     }

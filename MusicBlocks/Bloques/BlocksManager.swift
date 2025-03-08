@@ -56,47 +56,48 @@ class BlocksManager {
     // MARK: - Block Generation Control
     
     // Actualizar el intervalo de generación basado en la velocidad
-        private func calculateSpawnInterval() -> TimeInterval {
-            // El intervalo de generación debe ser inversamente proporcional a la velocidad
-            // Más velocidad = menor intervalo entre bloques
-            return max(4.0 - (currentFallingSpeed / 10.0), 1.5)
+    private func calculateSpawnInterval() -> TimeInterval {
+        // El intervalo de generación debe ser inversamente proporcional a la velocidad
+        // Más velocidad = menor intervalo entre bloques
+        return max(4.0 - (currentFallingSpeed / 10.0), 1.5)
+    }
+        
+    func startBlockGeneration() {
+        guard !isGeneratingBlocks else { return }
+        isGeneratingBlocks = true
+        
+        let spawnInterval = calculateSpawnInterval()
+        
+        // Esperar el delay inicial y luego comenzar la generación continua
+        let initialDelay = SKAction.wait(forDuration: Constants.initialDelay)
+        let startGenerating = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            
+            self.spawnAction = SKAction.repeatForever(
+                SKAction.sequence([
+                    SKAction.run { [weak self] in
+                        self?.spawnBlock()
+                        // Incrementar la velocidad después de cada bloque
+                        self?.currentFallingSpeed += self?.speedIncrement ?? 0
+                    },
+                    SKAction.wait(forDuration: spawnInterval)
+                ])
+            )
+            
+            self.mainAreaNode?.run(self.spawnAction!, withKey: "spawnSequence")
         }
         
-        // Actualizar startBlockGeneration para usar el intervalo calculado
-        func startBlockGeneration() {
-            guard !isGeneratingBlocks else { return }
-            isGeneratingBlocks = true
-            
-            let spawnInterval = calculateSpawnInterval()
-            
-            spawnAction = SKAction.sequence([
-                SKAction.wait(forDuration: Constants.initialDelay),
-                SKAction.repeatForever(
-                    SKAction.sequence([
-                        SKAction.run { [weak self] in
-                            self?.spawnBlock()
-                            // Incrementar la velocidad después de cada bloque
-                            self?.currentFallingSpeed += self?.speedIncrement ?? 0
-                            // Actualizar el intervalo si es necesario
-                            if let newInterval = self?.calculateSpawnInterval() {
-                                self?.updateSpawnInterval(to: newInterval)
-                            }
-                        },
-                        SKAction.wait(forDuration: spawnInterval)
-                    ])
-                )
-            ])
-            
-            mainAreaNode?.run(spawnAction!, withKey: "spawnSequence")
-            print("✅ Generación de bloques iniciada - Velocidad inicial: \(currentFallingSpeed)")
-        }
-    
+        let sequence = SKAction.sequence([initialDelay, startGenerating])
+        mainAreaNode?.run(sequence)
+        
+        print("✅ Generación de bloques iniciada - Velocidad inicial: \(currentFallingSpeed)")
+    }
+
     func stopBlockGeneration() {
-        if isGeneratingBlocks {
-            isGeneratingBlocks = false
-            mainAreaNode?.removeAction(forKey: "spawnSequence")
-            print("⏹️ Generación de bloques detenida")
-        }
+        guard isGeneratingBlocks else { return }
+        isGeneratingBlocks = false
+        mainAreaNode?.removeAction(forKey: "spawnSequence")
+        print("⏹️ Generación de bloques detenida")
     }
     
     // MARK: - Block Generation
@@ -189,50 +190,49 @@ class BlocksManager {
             return
         }
         
-        // Solo verificar el espacio si ya hay bloques
+        // Verificar espacio solo si hay bloques previos
         if let firstBlock = blocks.first {
             let topLimit = mainAreaHeight/2 - blockSize.height/2
-            let firstBlockY = firstBlock.position.y
+            let firstBlockTopEdge = firstBlock.position.y + blockSize.height/2
             
-            // Verificar si el primer bloque ya se ha movido lo suficiente hacia abajo
-            if firstBlockY > topLimit - (blockSize.height + blockSpacing) {
-                print("⏸️ Esperando a que el bloque anterior baje")
+            if abs(firstBlockTopEdge - topLimit) < blockSpacing {
+                print("⏸️ Esperando espacio para nuevo bloque")
                 return
             }
         }
         
         let newBlock = createBlock()
-               
-               if let blockInfo = createBlockInfo(for: newBlock) {
-                   let startY = mainAreaHeight/2 - blockSize.height/2
-                   newBlock.position = CGPoint(x: 0, y: startY)
-                   mainAreaNode.addChild(newBlock)
-                   blocks.insert(newBlock, at: 0)
-                   blockInfos.insert(blockInfo, at: 0)
-                   
-                   print("✅ Bloque añadido en posición Y: \(startY) - Velocidad actual: \(currentFallingSpeed)")
-                   updateBlockPositions()
-               }
+        
+        if let blockInfo = createBlockInfo(for: newBlock) {
+            let startY = mainAreaHeight/2 - blockSize.height/2
+            newBlock.position = CGPoint(x: 0, y: startY)
+            mainAreaNode.addChild(newBlock)
+            blocks.insert(newBlock, at: 0)
+            blockInfos.insert(blockInfo, at: 0)
+            
+            print("✅ Bloque añadido en posición Y: \(startY) - Velocidad actual: \(currentFallingSpeed)")
+            updateBlockPositions()
+        }
     }
     
     // Método para actualizar el intervalo de generación durante el juego
-        private func updateSpawnInterval(to newInterval: TimeInterval) {
-            stopBlockGeneration()
-            
-            spawnAction = SKAction.sequence([
-                SKAction.wait(forDuration: 0.1), // pequeña pausa antes de reiniciar
-                SKAction.repeatForever(
-                    SKAction.sequence([
-                        SKAction.run { [weak self] in
-                            self?.spawnBlock()
-                        },
-                        SKAction.wait(forDuration: newInterval)
-                    ])
-                )
+    private func updateSpawnInterval(to newInterval: TimeInterval) {
+        // No llamar a stopBlockGeneration() aquí
+        
+        // Remover solo la acción específica de spawn
+        mainAreaNode?.removeAction(forKey: "spawnSequence")
+        
+        spawnAction = SKAction.repeatForever(
+            SKAction.sequence([
+                SKAction.run { [weak self] in
+                    self?.spawnBlock()
+                },
+                SKAction.wait(forDuration: newInterval)
             ])
-            
-            mainAreaNode?.run(spawnAction!, withKey: "spawnSequence")
-        }
+        )
+        
+        mainAreaNode?.run(spawnAction!, withKey: "spawnSequence")
+    }
     
     private func createBlockInfo(for block: SKNode) -> BlockInfo? {
         guard let userData = block.userData,

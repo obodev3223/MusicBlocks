@@ -106,19 +106,22 @@ class GameUIManager {
             y: scene.size.height - safeAreaTop - height / 2
         )
         
-        topBarNode = TopBar.create(width: width, height: height, position: position)
+        // Crear y configurar la TopBar
+        let topBar = SKNode()
+        topBar.position = position
+        topBar.zPosition = 100
+        topBar.applyContainerStyle(size: CGSize(width: width, height: height))
         
-        if let topBar = topBarNode {
-            topBar.zPosition = 100
-            
+        // Añadir la TopBar configurada
+        topBarNode = TopBar.create(width: width, height: height, position: position)
+        if let topBarNode = topBarNode {
             if let currentLevel = GameManager.shared.currentLevel {
-                topBar.configure(withLevel: currentLevel)
+                topBarNode.configure(withLevel: currentLevel)
             }
-            
-            scene.addChild(topBar)
+            scene.addChild(topBarNode)
             
             print("TopBar configurada en posición: \(position)")
-            print("TopBar frame: \(topBar.frame)")
+            print("TopBar frame: \(topBarNode.frame)")
             print("Scene size: \(scene.size)")
             print("Safe area top: \(safeAreaTop)")
         } else {
@@ -232,17 +235,16 @@ class GameUIManager {
             y: scene.size.height/2 - (Layout.verticalSpacing/2)
         )
         
-        let leftBar = createContainerWithShadow(
-            size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius,
-            position: position,
-            zPosition: 1
-        )
+        // Crear el contenedor y aplicar el estilo directamente
+        let leftBar = SKNode()
+        leftBar.position = position
+        leftBar.zPosition = 1
+        leftBar.applyContainerStyle(size: CGSize(width: width, height: height))
         scene.addChild(leftBar)
         
         setupStabilityIndicators(in: leftBar, at: position, width: width, height: height)
     }
-    
+
     private func setupRightSideBar(width: CGFloat, height: CGFloat) {
         guard let scene = scene else { return }
         let position = CGPoint(
@@ -250,12 +252,11 @@ class GameUIManager {
             y: scene.size.height/2 - (Layout.verticalSpacing/2)
         )
         
-        let rightBar = createContainerWithShadow(
-            size: CGSize(width: width, height: height),
-            cornerRadius: Layout.cornerRadius,
-            position: position,
-            zPosition: 1
-        )
+        // Crear el contenedor y aplicar el estilo directamente
+        let rightBar = SKNode()
+        rightBar.position = position
+        rightBar.zPosition = 1
+        rightBar.applyContainerStyle(size: CGSize(width: width, height: height))
         scene.addChild(rightBar)
         
         setupTuningIndicators(in: rightBar, at: position, width: width, height: height)
@@ -290,14 +291,6 @@ class GameUIManager {
         scene.addChild(detectedNoteCounterNode)
     }
     
-    // MARK: - Container Creation
-    private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
-        let container = SKNode()
-        container.position = position
-        container.zPosition = zPosition
-        container.applyContainerStyle(.primary, size: size)
-        return container
-    }
     
     // MARK: - Overlay Methods
     func showLevelStartOverlay(for level: GameLevel, completion: @escaping () -> Void) {
