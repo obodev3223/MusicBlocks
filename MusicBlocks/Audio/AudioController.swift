@@ -2,22 +2,9 @@
 //  AudioController.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 10/2/25.
+//  Created by Jose R. García on 7/3/25.
 //
-/// AudioController: Controlador singleton para gestión del audio
-///
-/// Características principales:
-/// - Gestiona la entrada de audio y detección de pitch
-/// - Implementa el patrón Singleton con sharedInstance
-/// - Maneja la estabilidad de la frecuencia detectada
-///
-/// Componentes principales:
-/// - pitchTapData: Datos de frecuencia y amplitud detectados
-/// - stabilityDuration: Tiempo de estabilidad de la nota
-/// - Configuración del motor de audio y PitchTap
-/// - Funciones de control (start/stop)
-/// - Gestión de permisos del micrófono
-///
+
 import AudioKit
 import AudioKitEX
 import AVFoundation
@@ -80,7 +67,7 @@ class AudioController: ObservableObject {
         }
         lastProcessedTime = currentTime
         
-        print("🎤 Procesando audio - Freq: \(frequency), Amp: \(self.smoothedAmplitude)") // Aquí también necesita self
+//        print("🎤 Procesando audio - Freq: \(frequency), Amp: \(self.smoothedAmplitude)") // Aquí también necesita self
         
         // Verificar condiciones para procesar el pitch
         if self.smoothedAmplitude > minimumAmplitude { // Aquí está el error, necesitamos self
@@ -106,7 +93,7 @@ class AudioController: ObservableObject {
             DispatchQueue.main.async {
                 self.tunerData = .inactive
                 self.stabilityDuration = 0
-                print("🔇 Silencio detectado")
+  //              print("🔇 Silencio detectado")
                 self.delegate?.audioControllerDidDetectSilence(self)
             }
         }

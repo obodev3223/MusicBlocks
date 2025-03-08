@@ -91,160 +91,237 @@ class GameUIManager {
         setupMainArea(width: mainAreaWidth, height: mainAreaHeight, topBarHeight: topBarHeight)
         setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
     }
-
-        // MARK: - UI Setup Methods
-        private func setupTopBar(width: CGFloat, height: CGFloat) {
-            guard let scene = scene else { return }
-            let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
-            let position = CGPoint(
-                x: scene.size.width / 2,
-                y: scene.size.height - safeAreaTop - height / 2
-            )
+    
+    // MARK: - UI Setup Methods
+    private func setupTopBar(width: CGFloat, height: CGFloat) {
+        guard let scene = scene else { return }
+        let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
+        let position = CGPoint(
+            x: scene.size.width / 2,
+            y: scene.size.height - safeAreaTop - height / 2
+        )
+        
+        topBarNode = TopBar.create(width: width, height: height, position: position)
+        
+        if let topBar = topBarNode {
+            topBar.zPosition = 100
             
-            topBarNode = TopBar.create(width: width, height: height, position: position)
-            
-            if let topBar = topBarNode {
-                topBar.zPosition = 100
-                
-                if let currentLevel = GameManager.shared.currentLevel {
-                    topBar.configure(withLevel: currentLevel)
-                }
-                
-                scene.addChild(topBar)
-                
-                print("TopBar configurada en posición: \(position)")
-                print("TopBar frame: \(topBar.frame)")
-                print("Scene size: \(scene.size)")
-                print("Safe area top: \(safeAreaTop)")
-            } else {
-                print("Error: No se pudo crear la TopBar")
+            if let currentLevel = GameManager.shared.currentLevel {
+                topBar.configure(withLevel: currentLevel)
             }
+            
+            scene.addChild(topBar)
+            
+            print("TopBar configurada en posición: \(position)")
+            print("TopBar frame: \(topBar.frame)")
+            print("Scene size: \(scene.size)")
+            print("Safe area top: \(safeAreaTop)")
+        } else {
+            print("Error: No se pudo crear la TopBar")
         }
+    }
+    
+    private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
+        mainAreaWidth = width
+        mainAreaHeight = height
         
-        private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-            guard let scene = scene else { return }
-            mainAreaWidth = width
-            mainAreaHeight = height
-            
-            let containerNode = createContainerWithShadow(
-                size: CGSize(width: width, height: height),
-                cornerRadius: Layout.cornerRadius,
-                position: CGPoint(
-                    x: scene.size.width/2,
-                    y: scene.size.height/2 - Layout.verticalSpacing
-                ),
-                zPosition: 1
-            )
-            
-            let mainContent = SKNode()
-            mainContent.zPosition = 2
-            containerNode.addChild(mainContent)
-            mainAreaNode = mainContent
-            scene.addChild(containerNode)
-            
-            print("MainArea configurada - Tamaño: \(width)x\(height)")
-        }
+        // Crear el contenedor principal sin fondo ni bordes
+        let containerNode = SKNode()
+        containerNode.position = CGPoint(
+            x: scene.size.width/2,
+            y: scene.size.height/2 - Layout.verticalSpacing
+        )
+        containerNode.zPosition = 1
         
-        private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
-            setupLeftSideBar(width: width, height: height)
-            setupRightSideBar(width: width, height: height)
-        }
+        // Añadir línea límite con efecto de "danger zone"
+        addDangerZone(to: containerNode, width: width, height: height)
         
-        private func setupLeftSideBar(width: CGFloat, height: CGFloat) {
-            guard let scene = scene else { return }
-            let position = CGPoint(
-                x: Layout.margins.left + width/2,
-                y: scene.size.height/2 - (Layout.verticalSpacing/2)
-            )
-            
-            let leftBar = createContainerWithShadow(
-                size: CGSize(width: width, height: height),
-                cornerRadius: Layout.cornerRadius,
-                position: position,
-                zPosition: 1
-            )
-            scene.addChild(leftBar)
-            
-            setupStabilityIndicators(in: leftBar, at: position, width: width, height: height)
-        }
+        // Contenido principal (bloques)
+        let mainContent = SKNode()
+        mainContent.zPosition = 2
+        containerNode.addChild(mainContent)
+        mainAreaNode = mainContent
+        scene.addChild(containerNode)
         
-        private func setupRightSideBar(width: CGFloat, height: CGFloat) {
-            guard let scene = scene else { return }
-            let position = CGPoint(
-                x: scene.size.width - Layout.margins.right - width/2,
-                y: scene.size.height/2 - (Layout.verticalSpacing/2)
-            )
-            
-            let rightBar = createContainerWithShadow(
-                size: CGSize(width: width, height: height),
-                cornerRadius: Layout.cornerRadius,
-                position: position,
-                zPosition: 1
-            )
-            scene.addChild(rightBar)
-            
-            setupTuningIndicators(in: rightBar, at: position, width: width, height: height)
-        }
+        print("MainArea configurada - Tamaño: \(width)x\(height)")
+    }
+
+    private func addDangerZone(to container: SKNode, width: CGFloat, height: CGFloat) {
+        let dangerZone = SKNode()
+        dangerZone.zPosition = 1
         
-        // MARK: - Indicator Setup
-        private func setupStabilityIndicators(in container: SKNode, at position: CGPoint, width: CGFloat, height: CGFloat) {
-            guard let scene = scene else { return }
-            stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
-            stabilityIndicatorNode.position = .zero
-            stabilityIndicatorNode.zPosition = 10
-            container.addChild(stabilityIndicatorNode)
-            
-            let counterYPosition = position.y - height/2 - 30
-            stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 2.0, height: 30))
-            stabilityCounterNode.position = CGPoint(x: position.x, y: counterYPosition)
-            stabilityCounterNode.zPosition = 10
-            scene.addChild(stabilityCounterNode)
-        }
+        // Calcular la posición del límite (15% desde abajo)
+        let bottomLimit = -(height/2) + (height * Constants.bottomLimitRatio)
         
-        private func setupTuningIndicators(in container: SKNode, at position: CGPoint, width: CGFloat, height: CGFloat) {
-            guard let scene = scene else { return }
-            tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
-            tuningIndicatorNode.position = .zero
-            tuningIndicatorNode.zPosition = 10
-            container.addChild(tuningIndicatorNode)
-            
-            let counterYPosition = position.y - height/2 - 30
-            detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: width * 2.0, height: 30))
-            detectedNoteCounterNode.position = CGPoint(x: position.x, y: counterYPosition)
-            detectedNoteCounterNode.zPosition = 10
-            scene.addChild(detectedNoteCounterNode)
-        }
+        // Crear el área de advertencia
+        let warningArea = SKShapeNode(rect: CGRect(
+            x: -width/2,
+            y: bottomLimit - 40,
+            width: width,
+            height: 40
+        ))
+        warningArea.fillColor = .red
+        warningArea.strokeColor = .clear
+        warningArea.alpha = 0.15
         
-        // MARK: - Container Creation
-        private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
-            let container = SKNode()
-            container.position = position
-            container.zPosition = zPosition
-            
-            let shadowNode = SKEffectNode()
-            shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
-            shadowNode.shouldRasterize = true
-            shadowNode.shouldEnableEffects = true
-            shadowNode.position = Layout.shadowOffset
-            container.addChild(shadowNode)
-            
-            let shadowShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-            shadowShape.fillColor = .black
-            shadowShape.strokeColor = .clear
-            shadowShape.alpha = CGFloat(Layout.shadowOpacity)
-            shadowNode.addChild(shadowShape)
-            
-            let mainShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
-            mainShape.fillColor = .white
-            mainShape.strokeColor = .clear
-            mainShape.alpha = Layout.containerAlpha
-            mainShape.zPosition = 1
-            container.addChild(mainShape)
-            
-            return container
-        }
+        // Crear línea de límite
+        let limitLine = SKShapeNode(rect: CGRect(
+            x: -width/2,
+            y: bottomLimit,
+            width: width,
+            height: 2
+        ))
+        limitLine.fillColor = .red
+        limitLine.strokeColor = .clear
+        limitLine.alpha = 0.8
         
-        // MARK: - Overlay Methods
+        // Añadir efecto de parpadeo a la línea
+        let fadeSequence = SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.3, duration: 0.5),
+            SKAction.fadeAlpha(to: 0.8, duration: 0.5)
+        ])
+        limitLine.run(SKAction.repeatForever(fadeSequence))
+        
+        // Añadir indicadores laterales
+        let markerSize = CGSize(width: 10, height: 20)
+        let leftMarker = createDangerMarker(size: markerSize)
+        leftMarker.position = CGPoint(x: -width/2, y: bottomLimit)
+        
+        let rightMarker = createDangerMarker(size: markerSize)
+        rightMarker.position = CGPoint(x: width/2 - markerSize.width, y: bottomLimit)
+        
+        // Añadir todos los elementos a la zona de peligro
+        dangerZone.addChild(warningArea)
+        dangerZone.addChild(limitLine)
+        dangerZone.addChild(leftMarker)
+        dangerZone.addChild(rightMarker)
+        
+        container.addChild(dangerZone)
+    }
+
+    private func createDangerMarker(size: CGSize) -> SKShapeNode {
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: 0, y: 0))
+        path.addLine(to: CGPoint(x: size.width, y: 0))
+        path.addLine(to: CGPoint(x: size.width, y: -size.height))
+        path.addLine(to: CGPoint(x: 0, y: -size.height))
+        path.closeSubpath()
+        
+        let marker = SKShapeNode(path: path)
+        marker.fillColor = .red
+        marker.strokeColor = .clear
+        marker.alpha = 0.8
+        
+        // Añadir efecto de parpadeo
+        let fadeSequence = SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.3, duration: 0.5),
+            SKAction.fadeAlpha(to: 0.8, duration: 0.5)
+        ])
+        marker.run(SKAction.repeatForever(fadeSequence))
+        
+        return marker
+    }
+    
+    private func setupSideBars(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
+        setupLeftSideBar(width: width, height: height)
+        setupRightSideBar(width: width, height: height)
+    }
+    
+    private func setupLeftSideBar(width: CGFloat, height: CGFloat) {
+        guard let scene = scene else { return }
+        let position = CGPoint(
+            x: Layout.margins.left + width/2,
+            y: scene.size.height/2 - (Layout.verticalSpacing/2)
+        )
+        
+        let leftBar = createContainerWithShadow(
+            size: CGSize(width: width, height: height),
+            cornerRadius: Layout.cornerRadius,
+            position: position,
+            zPosition: 1
+        )
+        scene.addChild(leftBar)
+        
+        setupStabilityIndicators(in: leftBar, at: position, width: width, height: height)
+    }
+    
+    private func setupRightSideBar(width: CGFloat, height: CGFloat) {
+        guard let scene = scene else { return }
+        let position = CGPoint(
+            x: scene.size.width - Layout.margins.right - width/2,
+            y: scene.size.height/2 - (Layout.verticalSpacing/2)
+        )
+        
+        let rightBar = createContainerWithShadow(
+            size: CGSize(width: width, height: height),
+            cornerRadius: Layout.cornerRadius,
+            position: position,
+            zPosition: 1
+        )
+        scene.addChild(rightBar)
+        
+        setupTuningIndicators(in: rightBar, at: position, width: width, height: height)
+    }
+    
+    // MARK: - Indicator Setup
+    private func setupStabilityIndicators(in container: SKNode, at position: CGPoint, width: CGFloat, height: CGFloat) {
+        guard let scene = scene else { return }
+        stabilityIndicatorNode = StabilityIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
+        stabilityIndicatorNode.position = .zero
+        stabilityIndicatorNode.zPosition = 10
+        container.addChild(stabilityIndicatorNode)
+        
+        let counterYPosition = position.y - height/2 - 30
+        stabilityCounterNode = StabilityCounterNode(size: CGSize(width: width * 2.0, height: 30))
+        stabilityCounterNode.position = CGPoint(x: position.x, y: counterYPosition)
+        stabilityCounterNode.zPosition = 10
+        scene.addChild(stabilityCounterNode)
+    }
+    
+    private func setupTuningIndicators(in container: SKNode, at position: CGPoint, width: CGFloat, height: CGFloat) {
+        guard let scene = scene else { return }
+        tuningIndicatorNode = TuningIndicatorNode(size: CGSize(width: width * 0.6, height: height * 0.9))
+        tuningIndicatorNode.position = .zero
+        tuningIndicatorNode.zPosition = 10
+        container.addChild(tuningIndicatorNode)
+        
+        let counterYPosition = position.y - height/2 - 30
+        detectedNoteCounterNode = DetectedNoteCounterNode(size: CGSize(width: width * 2.0, height: 30))
+        detectedNoteCounterNode.position = CGPoint(x: position.x, y: counterYPosition)
+        detectedNoteCounterNode.zPosition = 10
+        scene.addChild(detectedNoteCounterNode)
+    }
+    
+    // MARK: - Container Creation
+    private func createContainerWithShadow(size: CGSize, cornerRadius: CGFloat, position: CGPoint, zPosition: CGFloat) -> SKNode {
+        let container = SKNode()
+        container.position = position
+        container.zPosition = zPosition
+        
+//        let shadowNode = SKEffectNode()
+//        shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": Layout.shadowRadius])
+//        shadowNode.shouldRasterize = true
+//        shadowNode.shouldEnableEffects = true
+//        shadowNode.position = Layout.shadowOffset
+//        container.addChild(shadowNode)
+//        
+//        let shadowShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
+//        shadowShape.fillColor = .black
+//        shadowShape.strokeColor = .clear
+//        shadowShape.alpha = CGFloat(Layout.shadowOpacity)
+//        shadowNode.addChild(shadowShape)
+//        
+//        let mainShape = SKShapeNode(rectOf: size, cornerRadius: cornerRadius)
+//        mainShape.fillColor = .white
+//        mainShape.strokeColor = .clear
+//        mainShape.alpha = Layout.containerAlpha
+//        mainShape.zPosition = 1
+//        container.addChild(mainShape)
+        
+        return container
+    }
+    
+    // MARK: - Overlay Methods
     func showLevelStartOverlay(for level: GameLevel, completion: @escaping () -> Void) {
         guard let scene = scene else { return }
         currentOverlay?.removeFromParent()
@@ -262,7 +339,7 @@ class GameUIManager {
         
         overlay.show(in: scene, overlayPosition: .center)  // No necesita OverlayPosition. ya está definido en GameOverlayNode
     }
-        
+    
     func showSuccessOverlay(multiplier: Int, message: String) {
         guard let scene = scene else { return }
         currentOverlay?.removeFromParent()
@@ -282,7 +359,7 @@ class GameUIManager {
             overlay?.hide()
         }
     }
-
+    
     func showFailureOverlay() {
         guard let scene = scene else { return }
         currentOverlay?.removeFromParent()
@@ -298,7 +375,7 @@ class GameUIManager {
             overlay?.hide()
         }
     }
-
+    
     func showGameOverOverlay(score: Int, onRestart: @escaping () -> Void) {
         guard let scene = scene else { return }
         currentOverlay?.removeFromParent()
@@ -315,13 +392,13 @@ class GameUIManager {
         
         overlay.show(in: scene, overlayPosition: .center)
     }
-        
-        // MARK: - Public Accessors
-        func getMainAreaNode() -> SKNode? {
-            return mainAreaNode
-        }
-        
-        func getMainAreaDimensions() -> (width: CGFloat, height: CGFloat) {
-            return (mainAreaWidth, mainAreaHeight)
-        }
+    
+    // MARK: - Public Accessors
+    func getMainAreaNode() -> SKNode? {
+        return mainAreaNode
     }
+    
+    func getMainAreaDimensions() -> (width: CGFloat, height: CGFloat) {
+        return (mainAreaWidth, mainAreaHeight)
+    }
+}

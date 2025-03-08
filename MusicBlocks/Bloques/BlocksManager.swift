@@ -24,7 +24,7 @@ class BlocksManager {
     
     // MARK: - Constants
     private struct Constants {
-        static let spawnInterval: TimeInterval = 4.0
+        static let spawnInterval: TimeInterval = 2.5
         static let initialDelay: TimeInterval = 1.0
         static let bottomLimitRatio: CGFloat = 0.15
     }
@@ -62,9 +62,11 @@ class BlocksManager {
     }
     
     func stopBlockGeneration() {
-        isGeneratingBlocks = false
-        mainAreaNode?.removeAction(forKey: "spawnSequence")
-        print("⏹️ Generación de bloques detenida")
+        if isGeneratingBlocks {
+            isGeneratingBlocks = false
+            mainAreaNode?.removeAction(forKey: "spawnSequence")
+            print("⏹️ Generación de bloques detenida")
+        }
     }
     
     // MARK: - Block Generation
@@ -83,7 +85,7 @@ class BlocksManager {
             return nil
         }
     }
-
+    
     private func createBlock() -> SKNode {
         guard let currentLevel = gameManager.currentLevel else {
             print("Error: No hay nivel actual")
@@ -142,12 +144,22 @@ class BlocksManager {
     
     // MARK: - Block Creation Methods
     func spawnBlock() {
-        guard let mainAreaNode = mainAreaNode else {
-            print("Error: mainAreaNode is nil")
+        guard let mainAreaNode = mainAreaNode,
+              isGeneratingBlocks else {
+            print("❌ No se pueden generar bloques: generación detenida o mainAreaNode es nil")
             return
         }
         
         print("Generando nuevo bloque. Bloques actuales: \(blocks.count)")
+        
+        // Verificar si el último bloque está muy cerca del límite superior
+        if let lastBlock = blocks.first {
+            let topLimit = mainAreaHeight/2 - blockSize.height/2
+            if abs(lastBlock.position.y - topLimit) < blockSize.height {
+                print("⏸️ Esperando a que los bloques desciendan")
+                return
+            }
+        }
         
         let newBlock = createBlock()
         
@@ -243,24 +255,41 @@ class BlocksManager {
         
         return background
     }
-      
+    
     
     // MARK: - Block Position Management
     private func updateBlockPositions() {
         let moveDistance = blockSize.height + blockSpacing
         let moveDuration = 0.5
+        let fallingSpeed = gameManager.currentLevel?.fallingSpeed.initial ?? 8.0
         
         for (index, block) in blocks.enumerated() {
             let targetY = (mainAreaHeight/2) - (blockSize.height/2) - (moveDistance * CGFloat(index))
-            let moveAction = SKAction.moveTo(y: targetY, duration: moveDuration)
-            moveAction.timingMode = .easeInEaseOut
-            block.run(moveAction)
+            
+            // Crear una acción de movimiento continuo hacia abajo
+            let moveDown = SKAction.moveBy(
+                x: 0,
+                y: -fallingSpeed,  // Velocidad de caída desde la configuración del nivel
+                duration: 1.0
+            )
+            
+            // Aplicar el movimiento inicial a la posición correcta
+            let moveToPosition = SKAction.moveTo(y: targetY, duration: moveDuration)
+            moveToPosition.timingMode = .easeInEaseOut
+            
+            // Secuencia: primero mover a la posición y luego comenzar la caída
+            let sequence = SKAction.sequence([
+                moveToPosition,
+                SKAction.repeatForever(moveDown)
+            ])
+            
+            block.run(sequence)
         }
     }
     
     // MARK: - Game State Checks
     func hasBlocksBelowLimit() -> Bool {
-        let bottomLimit = mainAreaHeight * Constants.bottomLimitRatio
+        let bottomLimit = -mainAreaHeight/2 + (blockSize.height * Constants.bottomLimitRatio)
         return blocks.contains { block in
             block.position.y <= bottomLimit
         }
@@ -268,6 +297,7 @@ class BlocksManager {
     
     // MARK: - Public Interface
     var currentBlocks: [SKNode] { blocks }
+    
     var blockCount: Int { blocks.count }
     
     func clearBlocks() {
@@ -284,109 +314,109 @@ class BlocksManager {
     }
     
     // MARK: - Block Style Management
-        private func selectBlockStyleBasedOnWeights(from blocks: [String: Block]) -> BlockStyle {
-            var weightedStyles: [(BlockStyle, Double)] = []
-            
-            for (styleName, blockConfig) in blocks {
-                if let style = getBlockStyle(for: styleName) {
-                    weightedStyles.append((style, blockConfig.weight))
-                }
-            }
-            
-            guard !weightedStyles.isEmpty else { return .defaultBlock }
-            
-            let totalWeight = weightedStyles.reduce(0) { $0 + $1.1 }
-            let randomValue = Double.random(in: 0..<totalWeight)
-            
-            var accumulatedWeight = 0.0
-            for (style, weight) in weightedStyles {
-                accumulatedWeight += weight
-                if randomValue < accumulatedWeight {
-                    return style
-                }
-            }
-            
-            return weightedStyles[0].0
-        }
+    private func selectBlockStyleBasedOnWeights(from blocks: [String: Block]) -> BlockStyle {
+        var weightedStyles: [(BlockStyle, Double)] = []
         
-        private func getBlockStyle(for styleName: String) -> BlockStyle? {
-            print("Buscando estilo: \(styleName)")
-            switch styleName {
-            case "defaultBlock": return .defaultBlock
-            case "iceBlock": return .iceBlock
-            case "hardIceBlock": return .hardiceBlock
-            case "ghostBlock": return .ghostBlock
-            case "changingBlock": return .changingBlock
-            default:
-                print("⚠️ Estilo no reconocido: \(styleName)")
-                return nil
+        for (styleName, blockConfig) in blocks {
+            if let style = getBlockStyle(for: styleName) {
+                weightedStyles.append((style, blockConfig.weight))
             }
         }
         
-        private func createDefaultBlock() -> SKNode {
-            let blockNode = SKNode()
-            let style = BlockStyle.defaultBlock
-            let container = createBlockContainer(with: style)
-            blockNode.addChild(container)
-            return blockNode
-        }
-
-        // MARK: - Block State Management
-        func getCurrentNote() -> String? {
-            return blocks.first?.userData?.value(forKey: "noteName") as? String
+        guard !weightedStyles.isEmpty else { return .defaultBlock }
+        
+        let totalWeight = weightedStyles.reduce(0) { $0 + $1.1 }
+        let randomValue = Double.random(in: 0..<totalWeight)
+        
+        var accumulatedWeight = 0.0
+        for (style, weight) in weightedStyles {
+            accumulatedWeight += weight
+            if randomValue < accumulatedWeight {
+                return style
+            }
         }
         
-        func removeLastBlock() {
-            guard let lastBlock = blocks.last,
-                  !blockInfos.isEmpty else { return }
-            
-            let fadeOut = SKAction.fadeOut(withDuration: 0.3)
-            let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
-            let group = SKAction.group([fadeOut, scaleDown])
-            let remove = SKAction.removeFromParent()
-            let sequence = SKAction.sequence([group, remove])
-            
-            lastBlock.run(sequence) { [weak self] in
-                guard let self = self else { return }
-                self.blocks.removeLast()
-                self.blockInfos.removeLast()
-                self.updateBlockPositions()
-            }
+        return weightedStyles[0].0
+    }
+    
+    private func getBlockStyle(for styleName: String) -> BlockStyle? {
+        print("Buscando estilo: \(styleName)")
+        switch styleName {
+        case "defaultBlock": return .defaultBlock
+        case "iceBlock": return .iceBlock
+        case "hardIceBlock": return .hardiceBlock
+        case "ghostBlock": return .ghostBlock
+        case "changingBlock": return .changingBlock
+        default:
+            print("⚠️ Estilo no reconocido: \(styleName)")
+            return nil
         }
-
-        // MARK: - Block Progress Management
-        func updateCurrentBlockProgress(hitTime: Date) -> Bool {
-            guard let index = blockInfos.indices.last else { return false }
-            
-            var currentInfo = blockInfos[index]
-            
-            if currentInfo.holdStartTime == nil {
-                currentInfo.holdStartTime = hitTime
-                blockInfos[index] = currentInfo
-            }
-            
-            let holdDuration = Date().timeIntervalSince(currentInfo.holdStartTime ?? Date())
-            
-            if holdDuration >= currentInfo.requiredTime {
-                currentInfo.currentHits += 1
-                currentInfo.holdStartTime = nil
-                blockInfos[index] = currentInfo
-                
-                if currentInfo.currentHits >= currentInfo.requiredHits {
-                    removeLastBlock()
-                    return true
-                }
-            }
-            
-            return false
-        }
+    }
+    
+    private func createDefaultBlock() -> SKNode {
+        let blockNode = SKNode()
+        let style = BlockStyle.defaultBlock
+        let container = createBlockContainer(with: style)
+        blockNode.addChild(container)
+        return blockNode
+    }
+    
+    // MARK: - Block State Management
+    func getCurrentNote() -> String? {
+        return blocks.first?.userData?.value(forKey: "noteName") as? String
+    }
+    
+    func removeLastBlock() {
+        guard let lastBlock = blocks.last,
+              !blockInfos.isEmpty else { return }
         
-        func resetCurrentBlockProgress() {
-            guard let index = blockInfos.indices.last else { return }
-            var currentInfo = blockInfos[index]
-            currentInfo.currentHits = 0
-            currentInfo.holdStartTime = nil
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+        let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
+        let group = SKAction.group([fadeOut, scaleDown])
+        let remove = SKAction.removeFromParent()
+        let sequence = SKAction.sequence([group, remove])
+        
+        lastBlock.run(sequence) { [weak self] in
+            guard let self = self else { return }
+            self.blocks.removeLast()
+            self.blockInfos.removeLast()
+            self.updateBlockPositions()
+        }
+    }
+    
+    // MARK: - Block Progress Management
+    func updateCurrentBlockProgress(hitTime: Date) -> Bool {
+        guard let index = blockInfos.indices.last else { return false }
+        
+        var currentInfo = blockInfos[index]
+        
+        if currentInfo.holdStartTime == nil {
+            currentInfo.holdStartTime = hitTime
             blockInfos[index] = currentInfo
         }
+        
+        let holdDuration = Date().timeIntervalSince(currentInfo.holdStartTime ?? Date())
+        
+        if holdDuration >= currentInfo.requiredTime {
+            currentInfo.currentHits += 1
+            currentInfo.holdStartTime = nil
+            blockInfos[index] = currentInfo
+            
+            if currentInfo.currentHits >= currentInfo.requiredHits {
+                removeLastBlock()
+                return true
+            }
+        }
+        
+        return false
+    }
+    
+    func resetCurrentBlockProgress() {
+        guard let index = blockInfos.indices.last else { return }
+        var currentInfo = blockInfos[index]
+        currentInfo.currentHits = 0
+        currentInfo.holdStartTime = nil
+        blockInfos[index] = currentInfo
+    }
     
 }

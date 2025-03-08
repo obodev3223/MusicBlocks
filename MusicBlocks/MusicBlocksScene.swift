@@ -90,8 +90,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         audioController.stop()
         blocksManager.clearBlocks()
         
-        // Inicializar el motor del juego
-        gameEngine.startNewGame()
+        // NO iniciar el motor del juego aquí, lo haremos después del overlay
         
         // Mostrar overlay de inicio de nivel
         uiManager.showLevelStartOverlay(for: level) { [weak self] in
@@ -102,19 +101,21 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     private func startGameplay() {
         print("Iniciando gameplay")
         
+        // Inicializar el motor del juego AQUÍ, después del overlay
+        gameEngine.startNewGame()
+        
         // Iniciar el audio
         Task {
             print("🎤 Iniciando motor de audio...")
             await MainActor.run {
                 audioController.start()
                 print("✅ Motor de audio iniciado")
+                
+                // Iniciar generación de bloques DESPUÉS de que el audio esté listo
+                self.blocksManager.startBlockGeneration()
+                print("✅ Gameplay iniciado")
             }
         }
-        
-        // Iniciar generación de bloques
-        blocksManager.startBlockGeneration()
-        
-        print("✅ Gameplay iniciado")
     }
     
     // MARK: - Update Methods
@@ -213,27 +214,6 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     }
     
 }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-  
-
-
-
-
-
-
 
 // MARK: - Environment Values
 private struct ScreenSizeKey: EnvironmentKey {
