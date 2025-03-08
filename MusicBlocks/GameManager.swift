@@ -132,13 +132,14 @@ class GameManager {
     
     // MARK: - Helper Methods
     private func calculateAccuracyForLevel(_ score: Int) -> Double {
-        guard let level = currentLevel else { return 0.0 }
+        guard let level = currentLevel, level.requiredScore > 0 else { return 0.0 }
         return Double(score) / Double(level.requiredScore)
     }
-    
+
     private func isLevelPerfect(_ score: Int) -> Bool {
         guard let level = currentLevel else { return false }
-        return score >= level.requiredScore * 1.5 // Por ejemplo, 50% más que el requerido
+        let perfectThreshold = level.requiredScore * 3 / 2 // 150% del score requerido
+        return score >= perfectThreshold
     }
     
     private func calculatePlayTime() -> TimeInterval {
@@ -173,7 +174,8 @@ class GameManager {
             return false
         }
         
-        return highScores[levelId] ?? 0 >= level.requiredScore
+        let currentScore = highScores[levelId] ?? 0
+        return currentScore >= level.requiredScore
     }
     
     // MARK: - Level Configuration Access

@@ -173,7 +173,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             gameManager.updateGameStatistics(
                 levelId: currentLevel.levelId,
                 score: gameEngine.score,
-                completed: gameEngine.score >= currentLevel.requiredScore  // Ahora requiredScore está definido
+                completed: gameEngine.score >= currentLevel.requiredScore
             )
         }
         

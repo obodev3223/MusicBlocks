@@ -82,6 +82,15 @@ struct GameLevel: Codable {
     let objectives: Objectives
     let blocks: [String: Block]
     
+    var requiredScore: Int {
+            // Si el objetivo primario es de tipo "score", usar ese valor
+            if objectives.primary.type == "score" {
+                return objectives.primary.target ?? 0
+            }
+            // Si no, usar un valor por defecto basado en los bloques
+            return blocks.values.reduce(0) { $0 + ($1.basePoints * 10) }
+        }
+    
     enum CodingKeys: String, CodingKey {
         case levelId = "level_id"
         case name
