@@ -185,10 +185,11 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         
         // Actualizar estadísticas del juego
         if let currentLevel = gameManager.currentLevel {
+            // Actualizar con el estado de victoria
             gameManager.updateGameStatistics(
                 levelId: currentLevel.levelId,
                 score: gameEngine.score,
-                completed: gameEngine.score >= currentLevel.requiredScore
+                completed: reason == .victory
             )
         }
         
@@ -198,6 +199,8 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             "¡Los bloques han alcanzado la zona de peligro!"
         case .noLives:
             "¡Te has quedado sin vidas!"
+        case .victory:
+            "¡Nivel completado!"
         }
         
         print("🔴 Game Over: \(message)")
@@ -205,7 +208,8 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         // Mostrar overlay con el mensaje específico
         uiManager.showGameOverOverlay(
             score: gameEngine.score,
-            message: message
+            message: message,
+            isVictory: reason == .victory
         ) { [weak self] in
             self?.setupGame()
         }

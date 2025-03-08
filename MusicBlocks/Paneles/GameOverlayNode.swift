@@ -321,63 +321,60 @@ class FailureOverlayNode: GameOverlayNode {
 class GameOverOverlayNode: GameOverlayNode {
     private var restartAction: (() -> Void)?
     
-    init(size: CGSize, score: Int, message: String? = nil, restartAction: @escaping () -> Void) {
+    init(size: CGSize, score: Int, message: String, isVictory: Bool = false, restartAction: @escaping () -> Void) {
         super.init(size: size)
         self.restartAction = restartAction
         
-        // Título Game Over
-        let gameoverNode = SKLabelNode(text: "¡Fin del juego!")
+        let titleColor: SKColor = isVictory ? .systemGreen : .purple
+        let messageColor: SKColor = isVictory ? .systemGreen : .red
+        
+        // Título Game Over o Victoria
+        let gameoverNode = SKLabelNode(text: isVictory ? "¡Victoria!" : "¡Fin del juego!")
         gameoverNode.fontSize = 36
         gameoverNode.fontName = "Helvetica-Bold"
-        gameoverNode.fontColor = .purple
+        gameoverNode.fontColor = titleColor
         gameoverNode.position = CGPoint(x: 0, y: size.height/4)
         contentNode.addChild(gameoverNode)
         
-        // Mensaje de razón (si existe)
-        if let message = message {
-            let messageNode = SKLabelNode(text: message)
-            messageNode.fontSize = 20
-            messageNode.fontName = "Helvetica"
-            messageNode.fontColor = .red
-            messageNode.position = CGPoint(x: 0, y: size.height/4 - 40)
-            // Permitir múltiples líneas si es necesario
-            messageNode.numberOfLines = 0
-            messageNode.preferredMaxLayoutWidth = size.width - 40
-            contentNode.addChild(messageNode)
-        }
+        // Mensaje específico
+        let messageNode = SKLabelNode(text: message)
+        messageNode.fontSize = 20
+        messageNode.fontName = "Helvetica"
+        messageNode.fontColor = messageColor
+        messageNode.position = CGPoint(x: 0, y: size.height/4 - 40)
+        contentNode.addChild(messageNode)
         
         // Puntuación
         let scoreNode = SKLabelNode(text: "Puntuación final: \(score)")
         scoreNode.fontSize = 24
         scoreNode.fontName = "Helvetica-Bold"
-        scoreNode.fontColor = .purple
+        scoreNode.fontColor = titleColor
         scoreNode.position = CGPoint(x: 0, y: 0)
         contentNode.addChild(scoreNode)
         
-        setupRestartButton()
+        setupRestartButton(isVictory: isVictory)
     }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func setupRestartButton() {
+    private func setupRestartButton(isVictory: Bool) {
         let buttonSize = CGSize(width: 200, height: 50)
         let buttonNode = SKShapeNode(rectOf: buttonSize, cornerRadius: 10)
-        buttonNode.fillColor = .purple
+        buttonNode.fillColor = isVictory ? .systemGreen : .purple
         buttonNode.strokeColor = .clear
         buttonNode.position = CGPoint(x: 0, y: -50)
         buttonNode.name = "restartButton"
         contentNode.addChild(buttonNode)
         
-        let buttonLabel = SKLabelNode(text: "Jugar de nuevo")
+        let buttonText = isVictory ? "Siguiente nivel" : "Intentar de nuevo"
+        let buttonLabel = SKLabelNode(text: buttonText)
         buttonLabel.fontSize = 20
         buttonLabel.fontName = "Helvetica-Bold"
         buttonLabel.fontColor = .white
         buttonLabel.verticalAlignmentMode = .center
         buttonNode.addChild(buttonLabel)
-        
-        isUserInteractionEnabled = true
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -441,7 +438,7 @@ struct GameOverlayPreview: PreviewProvider {
                 // Game Over Overlay
                 let gameOverNode = GameOverOverlayNode(
                     size: CGSize(width: 300, height: 200),
-                    score: 1500,
+                    score: 1500, message: "kk",
                     restartAction: {}
                 )
                 gameOverNode.position = CGPoint(x: 200, y: 150)

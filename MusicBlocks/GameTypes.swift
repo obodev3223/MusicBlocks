@@ -31,6 +31,7 @@ enum GameState {
 enum GameOverReason {
     case noLives
     case blocksOverflow
+    case victory
     
     var message: String {
         switch self {
@@ -38,9 +39,19 @@ enum GameOverReason {
             return "¡Te has quedado sin vidas!"
         case .blocksOverflow:
             return "¡Los bloques han llegado demasiado abajo!"
+        case .victory:
+            return "¡Nivel completado!"
         }
     }
+    
+    var isVictory: Bool {
+        if case .victory = self {
+            return true
+        }
+        return false
+    }
 }
+
 
 enum NoteState: Equatable {
     case waiting

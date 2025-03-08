@@ -21,6 +21,7 @@ class GameEngine: ObservableObject {
     private let tunerEngine: TunerEngine
     private let gameManager = GameManager.shared
     private weak var blockManager: BlocksManager?
+    private var objectiveTracker: LevelObjectiveTracker?
     
     // Configuración del nivel
     private var maxExtraLives: Int = 0
@@ -39,8 +40,8 @@ class GameEngine: ObservableObject {
     private var isInSuccessState: Bool = false
     
     // Métricas de partidas
-        private var gamesWon: Int = 0
-        private var gamesLost: Int = 0
+    private var gamesWon: Int = 0
+    private var gamesLost: Int = 0
     
     // Métricas de la partida actual
     private var gameStartTime: Date?
@@ -48,6 +49,9 @@ class GameEngine: ObservableObject {
     private var bestStreakInGame: Int = 0
     private var totalAccuracyInGame: Double = 0.0
     private var accuracyMeasurements: Int = 0
+    
+    // Seguimiento de bloques por estilo en el nivel actual
+    private var blockHitsByStyle: [String: Int] = [:]
     
     
     // MARK: - Initialization
@@ -59,17 +63,26 @@ class GameEngine: ObservableObject {
     
     // MARK: - Game Control
     func startNewGame() {
-            guard let currentLevel = gameManager.currentLevel else { return }
-            
-            // Resetear estado del juego
-            resetGameState()
-            
-            // Inicializar métricas de la partida
-            gameStartTime = Date()
-            notesHitInGame = 0
-            bestStreakInGame = 0
-            totalAccuracyInGame = 0.0
-            accuracyMeasurements = 0
+        guard let currentLevel = gameManager.currentLevel else { return }
+        
+        // Resetear estado del juego
+        resetGameState()
+        
+        // Inicializar contador de bloques por estilo
+        blockHitsByStyle.removeAll()
+        for style in currentLevel.allowedStyles {
+            blockHitsByStyle[style] = 0
+        }
+        
+        // Inicializar métricas de la partida
+        gameStartTime = Date()
+        notesHitInGame = 0
+        bestStreakInGame = 0
+        totalAccuracyInGame = 0.0
+        accuracyMeasurements = 0
+        
+        // Inicializar el tracker de objetivos
+        objectiveTracker = LevelObjectiveTracker(level: currentLevel)
         
         // Configurar vidas y puntuación
         lives = currentLevel.lives.initial
@@ -98,51 +111,57 @@ class GameEngine: ObservableObject {
     }
     
     func endGame(reason: GameOverReason) {
-            gameState = .gameOver(reason: reason)
-            blockManager?.stopBlockGeneration()
-            
-            // Calcular métricas finales
-            let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
-            let averageAccuracy = accuracyMeasurements > 0 ?
-                totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
-            
-            // Determinar si la partida fue ganada o perdida
-            let requiredScore = gameManager.currentLevel?.requiredScore ?? 0
-            let isGameWon = reason != .blocksOverflow && score >= requiredScore
-            
-            // Actualizar contadores de partidas
-            if isGameWon {
-                gamesWon += 1
-            } else {
-                gamesLost += 1
-            }
-            
-            // Actualizar estadísticas del usuario
-            let userProfile = UserProfile.load()
-            var updatedProfile = userProfile
-            updatedProfile.updateStatistics(
-                score: score,
-                noteHit: false,
-                accuracy: averageAccuracy,
-                levelCompleted: isGameWon,
-                isPerfect: averageAccuracy >= 0.95,
-                playTime: playTime,
-                gamesWon: gamesWon,
-                gamesLost: gamesLost
-            )
-            
-            // Imprimir estadísticas para debug
-            print("📊 Estadísticas de la partida:")
-            print("⏱️ Tiempo jugado: \(Int(playTime))s")
-            print("🎯 Notas acertadas: \(notesHitInGame)")
-            print("🔥 Mejor racha: \(bestStreakInGame)")
-            print("📏 Precisión promedio: \(Int(averageAccuracy * 100))%")
-            print("🎮 Estado: \(isGameWon ? "Victoria" : "Derrota")")
-            print("📈 Total partidas - Ganadas: \(gamesWon), Perdidas: \(gamesLost)")
-            
-            resetGameState()
+        gameState = .gameOver(reason: reason)
+        blockManager?.stopBlockGeneration()
+        
+        // Calcular métricas finales
+        let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
+        let averageAccuracy = accuracyMeasurements > 0 ?
+        totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
+        
+        // Determinar si la partida fue ganada o perdida
+        let requiredScore = gameManager.currentLevel?.requiredScore ?? 0
+        let isGameWon = reason != .blocksOverflow && score >= requiredScore
+        
+        // Actualizar contadores de partidas
+        if isGameWon {
+            gamesWon += 1
+        } else {
+            gamesLost += 1
         }
-
+        
+        // Actualizar estadísticas del usuario
+        let userProfile = UserProfile.load()
+        var updatedProfile = userProfile
+        updatedProfile.updateStatistics(
+            score: score,
+            noteHit: false,
+            accuracy: averageAccuracy,
+            levelCompleted: isGameWon,
+            isPerfect: averageAccuracy >= 0.95,
+            playTime: playTime,
+            gamesWon: gamesWon,
+            gamesLost: gamesLost
+        )
+        
+        // Imprimir estadísticas para debug
+        print("📊 Estadísticas de la partida:")
+        print("⏱️ Tiempo jugado: \(Int(playTime))s")
+        print("🎯 Notas acertadas: \(notesHitInGame)")
+        print("🔥 Mejor racha: \(bestStreakInGame)")
+        print("📏 Precisión promedio: \(Int(averageAccuracy * 100))%")
+        print("🎮 Estado: \(isGameWon ? "Victoria" : "Derrota")")
+        print("📈 Total partidas - Ganadas: \(gamesWon), Perdidas: \(gamesLost)")
+        
+        // Imprimir estadísticas finales de bloques por estilo
+        print("📊 Resumen final de bloques por estilo:")
+        for (style, count) in blockHitsByStyle {
+            print("  • \(style): \(count) bloques acertados")
+        }
+        
+        resetGameState()
+    }
+    
     
     // MARK: - Note Processing
     func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
@@ -204,6 +223,32 @@ class GameEngine: ObservableObject {
     
     private func handleSuccess(deviation: Double, blockConfig: Block) {
         isInSuccessState = true
+        
+        // Incrementar contador de bloques por estilo
+        if let currentBlock = blockManager?.getCurrentBlock() {
+            blockHitsByStyle[currentBlock.style] = (blockHitsByStyle[currentBlock.style] ?? 0) + 1
+            
+            // Debug: imprimir contadores actualizados
+            print("📊 Bloques acertados por estilo:")
+            for (style, count) in blockHitsByStyle {
+                print("  • \(style): \(count)")
+            }
+        }
+        
+        // Actualizar progreso de objetivos
+                objectiveTracker?.updateProgress(
+                    score: score,
+                    noteHit: true,
+                    accuracy: calculateAccuracy(deviation: deviation),
+                    blockDestroyed: blockConfig.style
+                )
+                
+                // Comprobar si se han completado los objetivos
+                if let (primaryComplete, secondaryComplete) = objectiveTracker?.checkObjectives(),
+                   primaryComplete {
+                    // Victoria si el objetivo principal está completo
+                    endGame(reason: .victory)
+                }
         
         // Calcular puntuación con bonus por combo
         let accuracy = calculateAccuracy(deviation: deviation)
@@ -290,6 +335,9 @@ class GameEngine: ObservableObject {
         bestStreakInGame = 0
         totalAccuracyInGame = 0.0
         accuracyMeasurements = 0
+        
+        // Resetear contadores de bloques por estilo
+        blockHitsByStyle.removeAll()
     }
     
     // MARK: - Block Monitoring
@@ -298,6 +346,16 @@ class GameEngine: ObservableObject {
             print("🔥 Game Over: Bloques han alcanzado la zona límite")
             endGame(reason: .blocksOverflow)
         }
+    }
+    
+    // Añadir nuevo método para obtener el progreso
+        func getLevelProgress() -> (primary: Double, secondary: Double?) {
+            return objectiveTracker?.getProgress() ?? (0, nil)
+        }
+    
+    // Método público para consultar los bloques acertados por estilo
+    func getBlockHitsByStyle() -> [String: Int] {
+        return blockHitsByStyle
     }
     
 }
