@@ -11,225 +11,293 @@ import SpriteKit
 
 class GameEngine: ObservableObject {
     // MARK: - Published Properties
-        @Published var score: Int = 0
-        @Published var lives: Int = 0
-        @Published var gameState: GameState = .countdown
-        @Published var noteState: NoteState = .waiting
-        @Published var combo: Int = 0
-        
-        // MARK: - Private Properties
-        private let tunerEngine: TunerEngine
-        private let gameManager = GameManager.shared
-        private weak var blockManager: BlocksManager?
-        
-        // Configuración del nivel
-        private var maxExtraLives: Int = 0
-        private var scoreThresholdsForExtraLives: [Int] = []
-        
-        // Constantes de tiempo
-        private struct TimeConstants {
-            static let errorDisplayTime: TimeInterval = 2.0
-            static let silenceThreshold: TimeInterval = 0.3
-            static let minimalNoteDetectionTime: TimeInterval = 0.5
-            static let acceptableDeviation: Double = 10.0
-        }
-        
-        // Estado del juego
-        private var isShowingError: Bool = false
-        private var isInSuccessState: Bool = false
-        
-        // MARK: - Initialization
-        init(tunerEngine: TunerEngine = .shared, blockManager: BlocksManager?) {
-            self.tunerEngine = tunerEngine
-            self.blockManager = blockManager
-            gameState = .countdown
-        }
-        
-        // MARK: - Game Control
-        func startNewGame() {
+    @Published var score: Int = 0
+    @Published var lives: Int = 0
+    @Published var gameState: GameState = .countdown
+    @Published var noteState: NoteState = .waiting
+    @Published var combo: Int = 0
+    
+    // MARK: - Private Properties
+    private let tunerEngine: TunerEngine
+    private let gameManager = GameManager.shared
+    private weak var blockManager: BlocksManager?
+    
+    // Configuración del nivel
+    private var maxExtraLives: Int = 0
+    private var scoreThresholdsForExtraLives: [Int] = []
+    
+    // Constantes de tiempo
+    private struct TimeConstants {
+        static let errorDisplayTime: TimeInterval = 2.0
+        static let silenceThreshold: TimeInterval = 0.3
+        static let minimalNoteDetectionTime: TimeInterval = 0.5
+        static let acceptableDeviation: Double = 10.0
+    }
+    
+    // Estado del juego
+    private var isShowingError: Bool = false
+    private var isInSuccessState: Bool = false
+    
+    // Métricas de partidas
+        private var gamesWon: Int = 0
+        private var gamesLost: Int = 0
+    
+    // Métricas de la partida actual
+    private var gameStartTime: Date?
+    private var notesHitInGame: Int = 0
+    private var bestStreakInGame: Int = 0
+    private var totalAccuracyInGame: Double = 0.0
+    private var accuracyMeasurements: Int = 0
+    
+    
+    // MARK: - Initialization
+    init(tunerEngine: TunerEngine = .shared, blockManager: BlocksManager?) {
+        self.tunerEngine = tunerEngine
+        self.blockManager = blockManager
+        gameState = .countdown
+    }
+    
+    // MARK: - Game Control
+    func startNewGame() {
             guard let currentLevel = gameManager.currentLevel else { return }
             
             // Resetear estado del juego
             resetGameState()
             
-            // Configurar vidas y puntuación
-            lives = currentLevel.lives.initial
-            maxExtraLives = currentLevel.lives.extraLives.maxExtra
-            scoreThresholdsForExtraLives = currentLevel.lives.extraLives.scoreThresholds
-            
-            // Iniciar generación de bloques
-            blockManager?.startBlockGeneration()
-            
-            // Cambiar estado
-            gameState = .playing
-            
-            print("🎮 Nuevo juego iniciado - Nivel: \(currentLevel.levelId)")
-        }
+            // Inicializar métricas de la partida
+            gameStartTime = Date()
+            notesHitInGame = 0
+            bestStreakInGame = 0
+            totalAccuracyInGame = 0.0
+            accuracyMeasurements = 0
         
-        func pauseGame() {
-            guard case .playing = gameState else { return }
-            gameState = .paused
-            blockManager?.stopBlockGeneration()
-        }
+        // Configurar vidas y puntuación
+        lives = currentLevel.lives.initial
+        maxExtraLives = currentLevel.lives.extraLives.maxExtra
+        scoreThresholdsForExtraLives = currentLevel.lives.extraLives.scoreThresholds
         
-        func resumeGame() {
-            guard case .paused = gameState else { return }
-            gameState = .playing
-            blockManager?.startBlockGeneration()
-        }
+        // Iniciar generación de bloques
+        blockManager?.startBlockGeneration()
         
-        func endGame(reason: GameOverReason) {  // Ya no necesita GameEngine.GameOverReason
+        // Cambiar estado
+        gameState = .playing
+        
+        print("🎮 Nuevo juego iniciado - Nivel: \(currentLevel.levelId)")
+    }
+    
+    func pauseGame() {
+        guard case .playing = gameState else { return }
+        gameState = .paused
+        blockManager?.stopBlockGeneration()
+    }
+    
+    func resumeGame() {
+        guard case .paused = gameState else { return }
+        gameState = .playing
+        blockManager?.startBlockGeneration()
+    }
+    
+    func endGame(reason: GameOverReason) {
             gameState = .gameOver(reason: reason)
             blockManager?.stopBlockGeneration()
-            resetGameState()
-        }
-        
-        // MARK: - Note Processing
-        func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
-            guard case .playing = gameState,
-                  !isInSuccessState,
-                  !isShowingError else {
-                return
-            }
             
-            guard let currentBlock = blockManager?.getCurrentBlock(),
-                  isActive else {
-                return
-            }
+            // Calcular métricas finales
+            let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
+            let averageAccuracy = accuracyMeasurements > 0 ?
+                totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
             
-            print("🎯 Comparando notas:")
-            print("   Detectada: \(currentNote)")
-            print("   Objetivo: \(currentBlock.note)")
-            print("   Desviación: \(deviation)")
+            // Determinar si la partida fue ganada o perdida
+            let requiredScore = gameManager.currentLevel?.requiredScore ?? 0
+            let isGameWon = reason != .blocksOverflow && score >= requiredScore
             
-            if currentNote == currentBlock.note {
-                handleCorrectNote(deviation: deviation, block: currentBlock)
+            // Actualizar contadores de partidas
+            if isGameWon {
+                gamesWon += 1
             } else {
-                handleWrongNote()
-            }
-        }
-        
-        // MARK: - Note Handling
-        private func handleCorrectNote(deviation: Double, block: BlockInfo) {
-            if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
-                handleSuccess(deviation: deviation, blockConfig: block.config)
-            } else {
-                noteState = .correct(deviation: deviation)
+                gamesLost += 1
             }
             
-            combo += 1
-        }
-        
-        private func handleWrongNote() {
-            guard !isShowingError else { return }
-            
-            isShowingError = true
-            lives -= 1
-            combo = 0
-            noteState = .wrong
-            blockManager?.resetCurrentBlockProgress()
-            
-            if lives <= 0 {
-                endGame(reason: .noLives)
-                return
-            }
-            
-            // Resetear estado de error después de un tiempo
-            DispatchQueue.main.asyncAfter(deadline: .now() + TimeConstants.errorDisplayTime) { [weak self] in
-                guard let self = self else { return }
-                self.isShowingError = false
-                self.noteState = .waiting
-            }
-        }
-        
-        private func handleSuccess(deviation: Double, blockConfig: Block) {
-            isInSuccessState = true
-            
-            // Calcular puntuación con bonus por combo
-            let accuracy = calculateAccuracy(deviation: deviation)
-            let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
-            let comboBonus = calculateComboBonus(baseScore: baseScore)
-            let finalScore = baseScore + comboBonus
-            
-            // Actualizar puntuación
-            score += finalScore
-            
-            // Comprobar vidas extra
-            checkForExtraLife(currentScore: score)
-            
-            // Notificar éxito
-            noteState = .success(
-                multiplier: finalScore / blockConfig.basePoints,
-                message: "\(message) (\(combo)x Combo!)"
+            // Actualizar estadísticas del usuario
+            let userProfile = UserProfile.load()
+            var updatedProfile = userProfile
+            updatedProfile.updateStatistics(
+                score: score,
+                noteHit: false,
+                accuracy: averageAccuracy,
+                levelCompleted: isGameWon,
+                isPerfect: averageAccuracy >= 0.95,
+                playTime: playTime,
+                gamesWon: gamesWon,
+                gamesLost: gamesLost
             )
             
-            // Resetear estado después de un breve delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self = self else { return }
-                self.isInSuccessState = false
-                self.noteState = .waiting
-            }
-        }
-        
-        // MARK: - Score Calculation
-        private func calculateAccuracy(deviation: Double) -> Double {
-            let absDeviation = abs(deviation)
-            if absDeviation > TimeConstants.acceptableDeviation {
-                return 0.0
-            }
-            return 1.0 - (absDeviation / TimeConstants.acceptableDeviation)
-        }
-        
-        private func calculateScore(accuracy: Double, blockConfig: Block) -> (score: Int, message: String) {
-            guard let thresholds = gameManager.gameConfig?.accuracyThresholds else {
-                return (blockConfig.basePoints, "¡Bien!")
-            }
+            // Imprimir estadísticas para debug
+            print("📊 Estadísticas de la partida:")
+            print("⏱️ Tiempo jugado: \(Int(playTime))s")
+            print("🎯 Notas acertadas: \(notesHitInGame)")
+            print("🔥 Mejor racha: \(bestStreakInGame)")
+            print("📏 Precisión promedio: \(Int(averageAccuracy * 100))%")
+            print("🎮 Estado: \(isGameWon ? "Victoria" : "Derrota")")
+            print("📈 Total partidas - Ganadas: \(gamesWon), Perdidas: \(gamesLost)")
             
-            if accuracy >= thresholds.perfect.threshold {
-                return (Int(Double(blockConfig.basePoints) * thresholds.perfect.multiplier), "¡Perfecto!")
-            } else if accuracy >= thresholds.excellent.threshold {
-                return (Int(Double(blockConfig.basePoints) * thresholds.excellent.multiplier), "¡Excelente!")
-            } else if accuracy >= thresholds.good.threshold {
-                return (Int(Double(blockConfig.basePoints) * thresholds.good.multiplier), "¡Bien!")
-            }
-            
-            return (0, "Fallo")
-        }
-        
-        private func calculateComboBonus(baseScore: Int) -> Int {
-            let comboMultiplier = min(combo, 10) // Máximo multiplicador de 10x
-            return baseScore * (comboMultiplier - 1) / 2 // Bonus más equilibrado
-        }
-        
-        // MARK: - Lives Management
-        private func checkForExtraLife(currentScore: Int) {
-            for threshold in scoreThresholdsForExtraLives {
-                if currentScore >= threshold && lives < (gameManager.currentLevel?.lives.initial ?? 3) + maxExtraLives {
-                    lives += 1
-                    print("🎉 ¡Vida extra ganada! Vidas actuales: \(lives)")
-                    
-                    if let index = scoreThresholdsForExtraLives.firstIndex(of: threshold) {
-                        scoreThresholdsForExtraLives.remove(at: index)
-                    }
-                    break
-                }
-            }
-        }
-        
-        // MARK: - State Management
-        private func resetGameState() {
-            score = 0
-            combo = 0
-            isShowingError = false
-            isInSuccessState = false
-            noteState = .waiting
-        }
-        
-        // MARK: - Block Monitoring
-        func checkBlocksPosition() {
-            if blockManager?.hasBlocksBelowLimit() == true {
-                endGame(reason: .blocksOverflow)
-            }
+            resetGameState()
         }
 
+    
+    // MARK: - Note Processing
+    func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
+        guard case .playing = gameState,
+              !isInSuccessState,
+              !isShowingError else {
+            return
+        }
+        
+        guard let currentBlock = blockManager?.getCurrentBlock(),
+              isActive else {
+            return
+        }
+        
+        print("🎯 Comparando notas:")
+        print("   Detectada: \(currentNote)")
+        print("   Objetivo: \(currentBlock.note)")
+        print("   Desviación: \(deviation)")
+        
+        if currentNote == currentBlock.note {
+            handleCorrectNote(deviation: deviation, block: currentBlock)
+        } else {
+            handleWrongNote()
+        }
+    }
+    
+    // MARK: - Note Handling
+    private func handleCorrectNote(deviation: Double, block: BlockInfo) {
+        if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
+            handleSuccess(deviation: deviation, blockConfig: block.config)
+        } else {
+            noteState = .correct(deviation: deviation)
+        }
+        
+        combo += 1
+    }
+    
+    private func handleWrongNote() {
+        guard !isShowingError else { return }
+        
+        isShowingError = true
+        lives -= 1
+        combo = 0
+        noteState = .wrong
+        blockManager?.resetCurrentBlockProgress()
+        
+        if lives <= 0 {
+            endGame(reason: .noLives)
+            return
+        }
+        
+        // Resetear estado de error después de un tiempo
+        DispatchQueue.main.asyncAfter(deadline: .now() + TimeConstants.errorDisplayTime) { [weak self] in
+            guard let self = self else { return }
+            self.isShowingError = false
+            self.noteState = .waiting
+        }
+    }
+    
+    private func handleSuccess(deviation: Double, blockConfig: Block) {
+        isInSuccessState = true
+        
+        // Calcular puntuación con bonus por combo
+        let accuracy = calculateAccuracy(deviation: deviation)
+        let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
+        let comboBonus = calculateComboBonus(baseScore: baseScore)
+        let finalScore = baseScore + comboBonus
+        
+        // Actualizar puntuación
+        score += finalScore
+        
+        // Comprobar vidas extra
+        checkForExtraLife(currentScore: score)
+        
+        // Notificar éxito
+        noteState = .success(
+            multiplier: finalScore / blockConfig.basePoints,
+            message: "\(message) (\(combo)x Combo!)"
+        )
+        
+        // Resetear estado después de un breve delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            guard let self = self else { return }
+            self.isInSuccessState = false
+            self.noteState = .waiting
+        }
+    }
+    
+    // MARK: - Score Calculation
+    private func calculateAccuracy(deviation: Double) -> Double {
+        let absDeviation = abs(deviation)
+        if absDeviation > TimeConstants.acceptableDeviation {
+            return 0.0
+        }
+        return 1.0 - (absDeviation / TimeConstants.acceptableDeviation)
+    }
+    
+    private func calculateScore(accuracy: Double, blockConfig: Block) -> (score: Int, message: String) {
+        guard let thresholds = gameManager.gameConfig?.accuracyThresholds else {
+            return (blockConfig.basePoints, "¡Bien!")
+        }
+        
+        if accuracy >= thresholds.perfect.threshold {
+            return (Int(Double(blockConfig.basePoints) * thresholds.perfect.multiplier), "¡Perfecto!")
+        } else if accuracy >= thresholds.excellent.threshold {
+            return (Int(Double(blockConfig.basePoints) * thresholds.excellent.multiplier), "¡Excelente!")
+        } else if accuracy >= thresholds.good.threshold {
+            return (Int(Double(blockConfig.basePoints) * thresholds.good.multiplier), "¡Bien!")
+        }
+        
+        return (0, "Fallo")
+    }
+    
+    private func calculateComboBonus(baseScore: Int) -> Int {
+        let comboMultiplier = min(combo, 10) // Máximo multiplicador de 10x
+        return baseScore * (comboMultiplier - 1) / 2 // Bonus más equilibrado
+    }
+    
+    // MARK: - Lives Management
+    private func checkForExtraLife(currentScore: Int) {
+        for threshold in scoreThresholdsForExtraLives {
+            if currentScore >= threshold && lives < (gameManager.currentLevel?.lives.initial ?? 3) + maxExtraLives {
+                lives += 1
+                print("🎉 ¡Vida extra ganada! Vidas actuales: \(lives)")
+                
+                if let index = scoreThresholdsForExtraLives.firstIndex(of: threshold) {
+                    scoreThresholdsForExtraLives.remove(at: index)
+                }
+                break
+            }
+        }
+    }
+    
+    // MARK: - State Management
+    private func resetGameState() {
+        score = 0
+        combo = 0
+        isShowingError = false
+        isInSuccessState = false
+        noteState = .waiting
+        
+        // Resetear métricas
+        gameStartTime = nil
+        notesHitInGame = 0
+        bestStreakInGame = 0
+        totalAccuracyInGame = 0.0
+        accuracyMeasurements = 0
+    }
+    
+    // MARK: - Block Monitoring
+    func checkBlocksPosition() {
+        if blockManager?.hasBlocksBelowLimit() == true {
+            print("🔥 Game Over: Bloques han alcanzado la zona límite")
+            endGame(reason: .blocksOverflow)
+        }
+    }
+    
 }

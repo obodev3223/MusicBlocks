@@ -2,7 +2,7 @@
 //  StatsView.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 1/3/25.
+//  Created by Jose R. García on 8/3/25.
 //
 
 import UIKit
@@ -88,17 +88,45 @@ class StatsView: UIView {
     }
     
     private func configure(with statistics: Statistics) {
-        // Limpiar vista previa
-        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        
-        // Añadir filas de estadísticas
-        addStatRow(title: "Puntuación Total", value: statistics.formattedTotalScore)
-        addStatRow(title: "Nivel Actual", value: "\(statistics.currentLevel)")
-        addStatRow(title: "Tiempo de Juego", value: statistics.formattedPlayTime)
-        addStatRow(title: "Notas acertadas", value: "\(statistics.notesHit)")
-        addStatRow(title: "Precisión", value: statistics.formattedAccuracy)
-        addStatRow(title: "Mejor racha", value: "\(statistics.bestStreak)")
-    }
+            // Limpiar vista previa
+            stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+            
+            // Sección de Puntuación
+            addSectionHeader("Puntuación")
+            addStatRow(title: "Puntuación Total", value: statistics.formattedTotalScore)
+            addStatRow(title: "Nivel Actual", value: "\(statistics.currentLevel)")
+            
+            // Sección de Partidas
+            addSectionHeader("Partidas")
+            addStatRow(title: "Total Jugadas", value: "\(statistics.totalGamesPlayed)")
+            addStatRow(title: "Ganadas", value: "\(statistics.gamesWon)")
+            addStatRow(title: "Perdidas", value: "\(statistics.gamesLost)")
+            let winRate = statistics.totalGamesPlayed > 0 ?
+                Double(statistics.gamesWon) / Double(statistics.totalGamesPlayed) * 100 : 0
+            addStatRow(title: "Ratio Victoria", value: String(format: "%.1f%%", winRate))
+            
+            // Sección de Rendimiento
+            addSectionHeader("Rendimiento")
+            addStatRow(title: "Notas Acertadas", value: "\(statistics.notesHit)")
+            addStatRow(title: "Mejor Racha", value: "\(statistics.bestStreak)")
+            addStatRow(title: "Precisión Media", value: statistics.formattedAccuracy)
+            addStatRow(title: "Niveles Perfectos", value: "\(statistics.perfectLevelsCount)")
+            
+            // Sección de Tiempo
+            addSectionHeader("Tiempo")
+            addStatRow(title: "Tiempo Total", value: statistics.formattedPlayTime)
+        }
+    
+    private func addSectionHeader(_ title: String) {
+            let headerView = SectionHeaderView(title: title)
+            stackView.addArrangedSubview(headerView)
+            
+            // Añadir un pequeño espaciado después del header
+            let spacer = UIView()
+            spacer.heightAnchor.constraint(equalToConstant: 8).isActive = true
+            stackView.addArrangedSubview(spacer)
+        }
+
     
     private func addStatRow(title: String, value: String) {
         let row = StatRowView(title: title, value: value)
@@ -150,6 +178,51 @@ class StatRowView: UIView {
     }
 }
 
+// Nuevo componente para los headers de sección
+class SectionHeaderView: UIView {
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.font = .systemFont(ofSize: 17, weight: .bold)
+        label.textColor = .systemPurple
+        return label
+    }()
+    
+    private let separatorLine: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemPurple.withAlphaComponent(0.3)
+        return view
+    }()
+    
+    init(title: String) {
+        super.init(frame: .zero)
+        titleLabel.text = title
+        setupViews()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    private func setupViews() {
+        [titleLabel, separatorLine].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            addSubview($0)
+        }
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: leadingAnchor),
+            
+            separatorLine.leadingAnchor.constraint(equalTo: leadingAnchor),
+            separatorLine.trailingAnchor.constraint(equalTo: trailingAnchor),
+            separatorLine.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 4),
+            separatorLine.bottomAnchor.constraint(equalTo: bottomAnchor),
+            separatorLine.heightAnchor.constraint(equalToConstant: 1)
+        ])
+    }
+}
+
+// Actualizar la preview
 #if DEBUG
 import SwiftUI
 
@@ -177,7 +250,9 @@ struct StatsView_Previews: PreviewProvider {
                 bestStreak: 15,
                 perfectLevelsCount: 3,
                 totalGamesPlayed: 20,
-                averageAccuracy: 0.83
+                averageAccuracy: 0.83,
+                gamesWon: 12,
+                gamesLost: 8
             )
             return StatsView(statistics: mockStats)
         }

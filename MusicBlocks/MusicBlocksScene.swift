@@ -133,11 +133,14 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     override func update(_ currentTime: TimeInterval) {
         lastUpdateTime = currentTime
         
-        // Actualizar estado del juego
-        updateGameState()
-        
-        // Comprobar posición de bloques
-        gameEngine.checkBlocksPosition()
+        // Si el juego está en curso, comprobar la posición de los bloques
+        if case .playing = gameEngine.gameState {
+            // Comprobar posición de bloques primero
+            gameEngine.checkBlocksPosition()
+            
+            // Luego actualizar el estado del juego
+            updateGameState()
+        }
     }
     
     private func updateGameState() {
@@ -176,7 +179,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         }
     }
     
-    private func handleGameOver(reason: GameOverReason) {  
+    private func handleGameOver(reason: GameOverReason) {
         audioController.stop()
         blocksManager.stopBlockGeneration()
         
@@ -189,8 +192,21 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             )
         }
         
-        // Mostrar overlay de game over
-        uiManager.showGameOverOverlay(score: gameEngine.score) { [weak self] in
+        // Determinar el mensaje según la razón
+        let message = switch reason {
+        case .blocksOverflow:
+            "¡Los bloques han alcanzado la zona de peligro!"
+        case .noLives:
+            "¡Te has quedado sin vidas!"
+        }
+        
+        print("🔴 Game Over: \(message)")
+        
+        // Mostrar overlay con el mensaje específico
+        uiManager.showGameOverOverlay(
+            score: gameEngine.score,
+            message: message
+        ) { [weak self] in
             self?.setupGame()
         }
     }

@@ -2,8 +2,7 @@
 //  UserProfile.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 23/2/25.
-//  Updated by obodev3223 on 28/2/25.
+//  Created by Jose R. García on 8/3/25.
 //
 
 import Foundation
@@ -93,6 +92,12 @@ struct Statistics: Codable {
     /// Precisión promedio en todas las partidas (0.0 a 1.0)
     var averageAccuracy: Double
     
+    /// Número total de partidas ganadas
+    var gamesWon: Int
+    
+    /// Número total de partidas perdidas
+    var gamesLost: Int
+    
     /// Inicializador con valores por defecto para nuevas estadísticas
     init(totalScore: Int = 0,
          currentLevel: Int = 0,
@@ -102,7 +107,9 @@ struct Statistics: Codable {
          bestStreak: Int = 0,
          perfectLevelsCount: Int = 0,
          totalGamesPlayed: Int = 0,
-         averageAccuracy: Double = 0.0) {
+         averageAccuracy: Double = 0.0,
+         gamesWon: Int = 0,
+         gamesLost: Int = 0) {
         self.totalScore = totalScore
         self.currentLevel = currentLevel
         self.playTime = playTime
@@ -112,7 +119,10 @@ struct Statistics: Codable {
         self.perfectLevelsCount = perfectLevelsCount
         self.totalGamesPlayed = totalGamesPlayed
         self.averageAccuracy = averageAccuracy
+        self.gamesWon = gamesWon
+        self.gamesLost = gamesLost
     }
+
     
     /// Actualiza la precisión promedio con un nuevo valor
     /// - Parameter newAccuracy: Nueva precisión a incorporar en el promedio (0.0 a 1.0)
@@ -224,7 +234,9 @@ extension UserProfile {
                                  accuracy: Double? = nil,
                                  levelCompleted: Bool = false,
                                  isPerfect: Bool = false,
-                                 playTime: TimeInterval = 0) {
+                                 playTime: TimeInterval = 0,
+                                 gamesWon: Int = 0,
+                                 gamesLost: Int = 0) {
         statistics.totalScore += score
         
         if noteHit {
@@ -249,16 +261,21 @@ extension UserProfile {
             statistics.addPlayTime(playTime)
         }
         
-        // Actualizar medallas basado en las nuevas estadísticas
-        MedalManager.shared.updateMedals(
-            notesHit: statistics.notesHit,
-            playTime: statistics.playTime,
-            currentStreak: statistics.currentStreak,
-            perfectTuningCount: statistics.perfectLevelsCount  // Cambiado de perfectLevelsCount a perfectTuningCount
-        )
-
-        save()
-    }
+        // Actualizar estadísticas de partidas
+            statistics.gamesWon += gamesWon
+            statistics.gamesLost += gamesLost
+            statistics.totalGamesPlayed = statistics.gamesWon + statistics.gamesLost
+            
+            // Actualizar medallas
+            MedalManager.shared.updateMedals(
+                notesHit: statistics.notesHit,
+                playTime: statistics.playTime,
+                currentStreak: statistics.currentStreak,
+                perfectTuningCount: statistics.perfectLevelsCount
+            )
+            
+            save()
+        }
     
     /// Restablece todas las estadísticas y logros a sus valores iniciales
     func resetStatistics() {

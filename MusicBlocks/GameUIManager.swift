@@ -355,7 +355,7 @@ class GameUIManager {
         }
     }
     
-    func showGameOverOverlay(score: Int, onRestart: @escaping () -> Void) {
+    func showGameOverOverlay(score: Int, message: String, onRestart: @escaping () -> Void) {
         guard let scene = scene else { return }
         currentOverlay?.removeFromParent()
         
@@ -363,7 +363,8 @@ class GameUIManager {
         let overlay = GameOverOverlayNode(
             size: overlaySize,
             score: score,
-            restartAction: onRestart  // Cambio: onRestart -> restartAction
+            message: message,
+            restartAction: onRestart
         )
         
         scene.addChild(overlay)

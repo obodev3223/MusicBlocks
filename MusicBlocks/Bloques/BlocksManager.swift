@@ -327,9 +327,15 @@ class BlocksManager {
     
     // MARK: - Game State Checks
     func hasBlocksBelowLimit() -> Bool {
-        let bottomLimit = -mainAreaHeight/2  // Ajustado para coincidir con el límite visual
+        let bottomLimit = -mainAreaHeight/2
         return blocks.contains { block in
-            block.position.y <= bottomLimit
+            // Usar la parte inferior del bloque para la comprobación
+            let blockBottom = block.position.y - blockSize.height/2
+            let hasReachedLimit = blockBottom <= bottomLimit
+            if hasReachedLimit {
+                print("⚠️ Bloque ha alcanzado la zona de peligro")
+            }
+            return hasReachedLimit
         }
     }
     

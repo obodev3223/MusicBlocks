@@ -321,17 +321,32 @@ class FailureOverlayNode: GameOverlayNode {
 class GameOverOverlayNode: GameOverlayNode {
     private var restartAction: (() -> Void)?
     
-    init(size: CGSize, score: Int, restartAction: @escaping () -> Void) {
+    init(size: CGSize, score: Int, message: String? = nil, restartAction: @escaping () -> Void) {
         super.init(size: size)
         self.restartAction = restartAction
         
+        // Título Game Over
         let gameoverNode = SKLabelNode(text: "¡Fin del juego!")
         gameoverNode.fontSize = 36
         gameoverNode.fontName = "Helvetica-Bold"
         gameoverNode.fontColor = .purple
-        gameoverNode.position = CGPoint(x: 0, y: 40)
+        gameoverNode.position = CGPoint(x: 0, y: size.height/4)
         contentNode.addChild(gameoverNode)
         
+        // Mensaje de razón (si existe)
+        if let message = message {
+            let messageNode = SKLabelNode(text: message)
+            messageNode.fontSize = 20
+            messageNode.fontName = "Helvetica"
+            messageNode.fontColor = .red
+            messageNode.position = CGPoint(x: 0, y: size.height/4 - 40)
+            // Permitir múltiples líneas si es necesario
+            messageNode.numberOfLines = 0
+            messageNode.preferredMaxLayoutWidth = size.width - 40
+            contentNode.addChild(messageNode)
+        }
+        
+        // Puntuación
         let scoreNode = SKLabelNode(text: "Puntuación final: \(score)")
         scoreNode.fontSize = 24
         scoreNode.fontName = "Helvetica-Bold"
