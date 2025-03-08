@@ -183,13 +183,6 @@ class BlocksManager {
         
         print("Generando nuevo bloque. Bloques actuales: \(blocks.count)")
         
-        // Verificar si hay demasiados bloques
-        let maxBlocks = 5
-        if blocks.count >= maxBlocks {
-            print("⏸️ Máximo número de bloques alcanzado")
-            return
-        }
-        
         // Verificar espacio solo si hay bloques previos
         if let firstBlock = blocks.first {
             let topLimit = mainAreaHeight/2 - blockSize.height/2

@@ -106,22 +106,22 @@ class GameUIManager {
             y: scene.size.height - safeAreaTop - height / 2
         )
         
-        // Crear y configurar la TopBar
-        let topBar = SKNode()
-        topBar.position = position
-        topBar.zPosition = 100
-        topBar.applyContainerStyle(size: CGSize(width: width, height: height))
-        
-        // Añadir la TopBar configurada
         topBarNode = TopBar.create(width: width, height: height, position: position)
-        if let topBarNode = topBarNode {
+        
+        if let topBar = topBarNode {
+            topBar.zPosition = 100
+            
             if let currentLevel = GameManager.shared.currentLevel {
-                topBarNode.configure(withLevel: currentLevel)
+                topBar.configure(withLevel: currentLevel)
+                // Inicializar inmediatamente las vidas
+                topBar.updateLives(currentLevel.lives.initial)
+                topBar.updateScore(0)
             }
-            scene.addChild(topBarNode)
+            
+            scene.addChild(topBar)
             
             print("TopBar configurada en posición: \(position)")
-            print("TopBar frame: \(topBarNode.frame)")
+            print("TopBar frame: \(topBar.frame)")
             print("Scene size: \(scene.size)")
             print("Safe area top: \(safeAreaTop)")
         } else {
@@ -297,18 +297,21 @@ class GameUIManager {
         guard let scene = scene else { return }
         currentOverlay?.removeFromParent()
         
+        // Actualizar las vidas en la TopBar antes de mostrar el overlay
+        updateUI(score: 0, lives: level.lives.initial)
+        
         let overlaySize = CGSize(width: scene.size.width * 0.7, height: scene.size.height * 0.45)
         let overlay = LevelStartOverlayNode(
             size: overlaySize,
             levelId: level.levelId,
             levelName: level.name,
-            startAction: completion  // Cambio: completion -> startAction
+            startAction: completion
         )
         
         scene.addChild(overlay)
         currentOverlay = overlay
         
-        overlay.show(in: scene, overlayPosition: .center)  // No necesita OverlayPosition. ya está definido en GameOverlayNode
+        overlay.show(in: scene, overlayPosition: .center)
     }
     
     func showSuccessOverlay(multiplier: Int, message: String) {

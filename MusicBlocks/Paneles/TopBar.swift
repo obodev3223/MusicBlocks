@@ -91,13 +91,14 @@ class TopBar: SKNode {
             leftAreaNode.zPosition = 3
             addChild(leftAreaNode)
             
-            // Título del nivel
-            levelLabel.fontSize = Layout.levelFontSize
-            levelLabel.fontColor = .purple
-            levelLabel.horizontalAlignmentMode = .left
-            levelLabel.verticalAlignmentMode = .center
-            levelLabel.position = CGPoint(x: 0, y: size.height/4)
-            leftAreaNode.addChild(levelLabel)
+        // Título del nivel - Ajustar posición y estilo
+        levelLabel.fontSize = Layout.levelFontSize
+        levelLabel.fontColor = .purple
+        levelLabel.horizontalAlignmentMode = .left
+        levelLabel.verticalAlignmentMode = .center
+        levelLabel.position = CGPoint(x: 0, y: size.height/4)
+        levelLabel.zPosition = 4  // Asegurar que esté por encima del fondo
+        leftAreaNode.addChild(levelLabel)
             
             // Contenedor para los corazones
             let heartsNode = SKNode()
@@ -131,7 +132,7 @@ class TopBar: SKNode {
         heartNodes.forEach { $0.removeFromParent() }
         heartNodes.removeAll()
         
-        // Inicialmente solo mostrar las vidas base
+        // Vidas base (rojas)
         for i in 0..<maxLives {
             let heart = SKLabelNode(text: "❤️")
             heart.fontSize = Layout.heartSize
@@ -146,7 +147,7 @@ class TopBar: SKNode {
             heartNodes.append(heart)
         }
         
-        // Preparar espacios para vidas extra (inicialmente ocultos)
+        // Vidas extra (doradas)
         for i in maxLives..<(maxLives + maxExtraLives) {
             let heart = SKLabelNode(text: "")
             heart.fontSize = Layout.heartSize
@@ -156,7 +157,7 @@ class TopBar: SKNode {
                 x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing),
                 y: 0
             )
-            heart.fontColor = .purple
+            heart.fontColor = .systemYellow  // Color dorado para vidas extra
             heart.alpha = 0
             container.addChild(heart)
             heartNodes.append(heart)
@@ -174,6 +175,7 @@ class TopBar: SKNode {
         maxExtraLives = level.lives.extraLives.maxExtra
         lives = level.lives.initial
         
+        // Mostrar solo el número del nivel
         levelLabel.text = "Nivel \(level.levelId)"
         
         if let container = heartsContainer {
@@ -208,13 +210,14 @@ class TopBar: SKNode {
                     heart.text = "♡"   // Corazón vacío
                 }
             } else {
-                // Vidas extra
-                if index < lives {
-                    heart.text = "❤️"
-                    heart.alpha = 1.0  // Mostrar vida extra ganada
-                } else {
-                    heart.alpha = 0    // Mantener oculta
-                }
+                        // Vidas extra (doradas)
+                        if index < lives {
+                            heart.text = "❤️"
+                            heart.fontColor = .systemYellow  // Color dorado para vidas extra
+                            heart.alpha = 1.0  // Mostrar vida extra ganada
+                        } else {
+                            heart.alpha = 0    // Mantener oculta
+                        }
             }
         }
     }
@@ -301,7 +304,7 @@ struct TopBarPreview: PreviewProvider {
                     Text("Vidas base")
                 }
                 HStack {
-                    Text("❤️").foregroundColor(.purple)
+                    Text("❤️").foregroundColor(.yellow)
                     Text("Vidas extra")
                 }
                 Text("♡ Vida perdida")

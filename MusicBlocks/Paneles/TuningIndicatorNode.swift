@@ -101,7 +101,7 @@ class TuningIndicatorNode: SKNode {
         addChild(barGlow)
         
         // Configurar marcas
-        for (index, mark) in markings.enumerated() {
+        for mark in markings {
             mark.fillColor = .darkGray
             mark.strokeColor = .clear
             mark.alpha = Layout.markingsAlpha
@@ -217,7 +217,7 @@ extension TuningIndicatorNode {
         ]
         
         for state in states {
-            let node = TuningIndicatorNode(size: CGSize(width: 40, height: 120))
+            let node = TuningIndicatorNode(size: CGSize(width: 20, height: 190))
             node.position = state.position
             node.deviation = state.deviation
             node.isActive = state.isActive

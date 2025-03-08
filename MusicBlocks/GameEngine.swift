@@ -110,15 +110,15 @@ class GameEngine: ObservableObject {
         }
         
         // MARK: - Note Handling
-    private func handleCorrectNote(deviation: Double, block: BlockInfo) {
-           if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
-               handleSuccess(deviation: deviation, blockConfig: block.config)
-           } else {
-               noteState = .correct(deviation: deviation)
-           }
-           
-           combo += 1
-       }
+        private func handleCorrectNote(deviation: Double, block: BlockInfo) {
+            if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
+                handleSuccess(deviation: deviation, blockConfig: block.config)
+            } else {
+                noteState = .correct(deviation: deviation)
+            }
+            
+            combo += 1
+        }
         
         private func handleWrongNote() {
             guard !isShowingError else { return }

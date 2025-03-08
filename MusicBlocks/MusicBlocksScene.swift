@@ -40,13 +40,17 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     
     // MARK: - Setup Methods
     private func setupManagers() {
-        // Inicializar UI Manager primero para tener acceso al área principal
+        // Primero cargar el nivel inicial
+        let userProfile = UserProfile.load()
+        _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
+        
+        // Luego inicializar UI Manager
         uiManager = GameUIManager(scene: self)
         
         // Obtener dimensiones del área principal
         let (mainAreaWidth, mainAreaHeight) = uiManager.getMainAreaDimensions()
         
-        // Inicializar BlocksManager con el área principal
+        // Inicializar BlocksManager
         blocksManager = BlocksManager(
             blockSize: CGSize(
                 width: mainAreaWidth * 0.9,
@@ -57,7 +61,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             mainAreaHeight: mainAreaHeight
         )
         
-        // Inicializar GameEngine con BlocksManager
+        // Inicializar GameEngine
         gameEngine = GameEngine(blockManager: blocksManager)
         
         // Configurar el delegado de audio
@@ -90,7 +94,8 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         audioController.stop()
         blocksManager.clearBlocks()
         
-        // NO iniciar el motor del juego aquí, lo haremos después del overlay
+        // Actualizar UI con las vidas iniciales
+        uiManager.updateUI(score: 0, lives: level.lives.initial)
         
         // Mostrar overlay de inicio de nivel
         uiManager.showLevelStartOverlay(for: level) { [weak self] in
