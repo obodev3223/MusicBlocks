@@ -274,10 +274,8 @@ extension TopBar {
                     target: 100,
                     timeLimit: 180,
                     minimumAccuracy: nil,
-                    details: nil,
-                    requireAll: nil
-                ),
-                secondary: nil
+                    details: nil
+                )
             ),
             blocks: [:]
         )

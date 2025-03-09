@@ -50,7 +50,6 @@
                     "defaultBlock": 6
                 },
                 "time_limit": 90, // Límite de tiempo (0 para sin límite)
-                "require_all": false // indica si todos los bloques deben ser destruidos
             }
         },
         "total_blocks": {
@@ -135,14 +134,8 @@
                     "target": 10,  // número de notas a acertar
                     "minimum_accuracy": 0.8,  // 80% de precisión mínima
                     "time_limit": 0  // 0 significa sin límite de tiempo
-                },
-                "secondary": {
-                    "type": "block_destruction",
-                    "details": {
-                        "ice": 3  // destruir 3 bloques de hielo
-                    },
-                    "require_all": false  // todos los objetivos deben cumplirse
                 }
+
             },
             "blocks": {
                 "defaultBlock": {
@@ -190,14 +183,6 @@
                     "type": "total_blocks",
                     "target": 15,  // destruir 15 bloques en total
                     "time_limit": 240
-                },
-                "secondary": { //Objetivos adicionales opcionales o no
-                    "type": "block_destruction",
-                    "details": {
-                        "ghost": 2,  // destruir 2 bloques fantasma
-                        "hardIce": 3  // destruir 3 bloques de hielo duro
-                    },
-                    "require_all": true  // todos los objetivos deben cumplirse
                 }
             },
             "blocks": {

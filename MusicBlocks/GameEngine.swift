@@ -243,12 +243,12 @@ class GameEngine: ObservableObject {
                     blockDestroyed: blockConfig.style
                 )
                 
-                // Comprobar si se han completado los objetivos
-                if let (primaryComplete, secondaryComplete) = objectiveTracker?.checkObjectives(),
-                   primaryComplete {
-                    // Victoria si el objetivo principal está completo
-                    endGame(reason: .victory)
-                }
+        // Comprobar si se ha completado el objetivo
+        if let primaryComplete = objectiveTracker?.checkObjectives(),
+           primaryComplete {
+            // Victoria si el objetivo principal está completo
+            endGame(reason: .victory)
+        }
         
         // Calcular puntuación con bonus por combo
         let accuracy = calculateAccuracy(deviation: deviation)
@@ -349,9 +349,9 @@ class GameEngine: ObservableObject {
     }
     
     // Añadir nuevo método para obtener el progreso
-        func getLevelProgress() -> (primary: Double, secondary: Double?) {
-            return objectiveTracker?.getProgress() ?? (0, nil)
-        }
+    func getLevelProgress() -> Double {
+        return objectiveTracker?.getProgress() ?? 0
+    }
     
     // Método público para consultar los bloques acertados por estilo
     func getBlockHitsByStyle() -> [String: Int] {

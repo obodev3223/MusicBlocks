@@ -129,7 +129,6 @@ struct ExtraLives: Codable {
 
 struct Objectives: Codable {
     let primary: Objective
-    let secondary: Objective?
 }
 
 struct Objective: Codable {
@@ -138,7 +137,6 @@ struct Objective: Codable {
     let timeLimit: Int?
     let minimumAccuracy: Double?
     let details: [String: Int]?
-    let requireAll: Bool?
     
     enum CodingKeys: String, CodingKey {
         case type
@@ -146,7 +144,6 @@ struct Objective: Codable {
         case timeLimit = "time_limit"
         case minimumAccuracy = "minimum_accuracy"
         case details
-        case requireAll = "require_all"
     }
 }
 

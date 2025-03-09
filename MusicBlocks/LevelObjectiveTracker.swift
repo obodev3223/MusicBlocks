@@ -9,7 +9,6 @@ import Foundation
 
 class LevelObjectiveTracker {
     private let primaryObjective: Objective
-    private let secondaryObjective: Objective?
     private var currentProgress: ObjectiveProgress
     
     struct ObjectiveProgress {
@@ -28,23 +27,20 @@ class LevelObjectiveTracker {
     
     init(level: GameLevel) {
         self.primaryObjective = level.objectives.primary
-        self.secondaryObjective = level.objectives.secondary
         self.currentProgress = ObjectiveProgress()
         
-        // Inicializar contadores de bloques para objetivos de tipo block_destruction
-        if case "block_destruction" = primaryObjective.type,
-           let details = primaryObjective.details {
-            for (blockType, _) in details {
-                currentProgress.blocksByType[blockType] = 0
+        // Inicializar contadores de bloques para objetivo de tipo block_destruction
+                if case "block_destruction" = primaryObjective.type,
+                   let details = primaryObjective.details {
+                    for (blockType, _) in details {
+                        currentProgress.blocksByType[blockType] = 0
+                    }
+                }
             }
+    
+    func getPrimaryObjective() -> Objective {
+            return primaryObjective
         }
-        if case "block_destruction" = secondaryObjective?.type,
-           let details = secondaryObjective?.details {
-            for (blockType, _) in details {
-                currentProgress.blocksByType[blockType] = 0
-            }
-        }
-    }
     
     // MARK: - Progress Updates
     
@@ -83,55 +79,42 @@ class LevelObjectiveTracker {
     
     // MARK: - Objective Checking
     
-    func checkObjectives() -> (primary: Bool, secondary: Bool) {
-        let primaryComplete = checkObjective(primaryObjective)
-        let secondaryComplete = secondaryObjective.map(checkObjective) ?? true
-        return (primaryComplete, secondaryComplete)
-    }
+    func checkObjectives() -> Bool {
+            return checkObjective(primaryObjective)
+        }
     
     private func checkObjective(_ objective: Objective) -> Bool {
-        switch objective.type {
-        case "score":
-            return currentProgress.score >= (objective.target ?? 0)
-            
-        case "total_notes":
-            return currentProgress.notesHit >= (objective.target ?? 0)
-            
-        case "note_accuracy":
-            return currentProgress.notesHit >= (objective.target ?? 0) &&
-                   currentProgress.averageAccuracy >= (objective.minimumAccuracy ?? 0)
-            
-        case "block_destruction":
-            guard let details = objective.details else { return false }
-            let requireAll = objective.requireAll ?? false
-            
-            if requireAll {
-                // Todos los tipos de bloques deben alcanzar su objetivo
+            switch objective.type {
+            case "score":
+                return currentProgress.score >= (objective.target ?? 0)
+                
+            case "total_notes":
+                return currentProgress.notesHit >= (objective.target ?? 0)
+                
+            case "note_accuracy":
+                return currentProgress.notesHit >= (objective.target ?? 0) &&
+                       currentProgress.averageAccuracy >= (objective.minimumAccuracy ?? 0)
+                
+            case "block_destruction":
+                guard let details = objective.details else { return false }
+                // All blocks must reach their target
                 return details.allSatisfy { blockType, required in
                     currentProgress.blocksByType[blockType, default: 0] >= required
                 }
-            } else {
-                // Al menos un tipo de bloque debe alcanzar su objetivo
-                return details.contains { blockType, required in
-                    currentProgress.blocksByType[blockType, default: 0] >= required
-                }
+                
+            case "total_blocks":
+                return currentProgress.totalBlocksDestroyed >= (objective.target ?? 0)
+                
+            default:
+                return false
             }
-            
-        case "total_blocks":
-            return currentProgress.totalBlocksDestroyed >= (objective.target ?? 0)
-            
-        default:
-            return false
         }
-    }
     
     // MARK: - Progress Information
     
-    func getProgress() -> (primary: Double, secondary: Double?) {
-        let primaryProgress = calculateProgress(for: primaryObjective)
-        let secondaryProgress = secondaryObjective.map(calculateProgress)
-        return (primaryProgress, secondaryProgress)
-    }
+    func getProgress() -> Double {
+            return calculateProgress(for: primaryObjective)
+        }
     
     private func calculateProgress(for objective: Objective) -> Double {
         switch objective.type {
@@ -153,11 +136,8 @@ class LevelObjectiveTracker {
             let progressByType = details.map { blockType, required in
                 Double(currentProgress.blocksByType[blockType, default: 0]) / Double(required)
             }
-            if objective.requireAll ?? false {
-                return min(progressByType.min() ?? 0, 1.0)
-            } else {
-                return min(progressByType.max() ?? 0, 1.0)
-            }
+            // Always use min since we now require all blocks to be destroyed
+            return min(progressByType.min() ?? 0, 1.0)
             
         case "total_blocks":
             let target = Double(objective.target ?? 1)
