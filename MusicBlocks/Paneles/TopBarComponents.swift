@@ -11,13 +11,13 @@ import UIKit
 // MARK: - Constantes y Configuración
 private enum TopBarLayout {
     static let cornerRadius: CGFloat = 15
-    static let padding: CGFloat = 8
+    static let padding: CGFloat = 18
     static let fontSize: CGFloat = 14
     static let titleFontSize: CGFloat = 16
     static let smallFontSize: CGFloat = 12
     static let verticalSpacing: CGFloat = 4
     static let horizontalSpacing: CGFloat = 8
-    static let panelHeight: CGFloat = 50
+    static let panelHeight: CGFloat = 60
 }
 
 // MARK: - Estructuras de Datos
@@ -237,3 +237,155 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             return ObjectiveInfoPanel(size: size, objectiveTracker: tracker)
         }
     }
+
+
+#if DEBUG
+import SwiftUI
+
+// MARK: - Previews
+struct TopBarComponentsPreview: PreviewProvider {
+    static var previews: some View {
+        TopBarComponentsPreviewScene()
+    }
+}
+
+struct TopBarComponentsPreviewScene: View {
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Color.gray.opacity(0.1).edgesIgnoringSafeArea(.all)
+                
+                SpriteView(scene: createPreviewScene(size: geometry.size))
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                    .edgesIgnoringSafeArea(.all)
+            }
+        }
+        .previewDisplayName("TopBars Layout")
+    }
+    
+    private func createPreviewScene(size: CGSize) -> SKScene {
+        let scene = SKScene(size: size)
+        scene.backgroundColor = .clear
+        
+        // Crear nivel de ejemplo
+        let level = GameLevel(
+            levelId: 1,
+            name: "Nivel de prueba",
+            allowedStyles: ["default"],
+            fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
+            lives: Lives(
+                initial: 3,
+                extraLives: ExtraLives(
+                    scoreThresholds: [500, 1000],
+                    maxExtra: 2
+                )
+            ),
+            objectives: Objectives(
+                primary: Objective(
+                    type: "score",
+                    target: 1000,
+                    timeLimit: 180,
+                    minimumAccuracy: nil,
+                    details: nil
+                )
+            ),
+            blocks: [:]
+        )
+        
+        let mockObjectiveTracker = LevelObjectiveTracker(level: level)
+        
+        // Configurar las dimensiones según el nuevo layout
+        let safeWidth = size.width - 16 // 8 pts de margen en cada lado
+        let topBarWidth = safeWidth * 0.47 // 47% del ancho disponible
+        let topBarHeight: CGFloat = 60
+        let yPosition = size.height - topBarHeight/2 - 6 // 6 pts desde arriba
+        
+        // Crear TopBar izquierda (principal)
+        let leftBar = TopBar.create(
+            width: topBarWidth,
+            height: topBarHeight,
+            position: CGPoint(x: 8 + topBarWidth/2, y: yPosition),
+            type: .main
+        )
+        
+        // Crear TopBar derecha (objetivos)
+        let rightBar = TopBar.create(
+            width: topBarWidth,
+            height: topBarHeight,
+            position: CGPoint(x: size.width - 8 - topBarWidth/2, y: yPosition),
+            type: .objectives
+        )
+        
+        // Configurar ambas barras
+        leftBar.configure(withLevel: level, objectiveTracker: mockObjectiveTracker)
+        rightBar.configure(withLevel: level, objectiveTracker: mockObjectiveTracker)
+        
+        // Simular algunos datos
+        leftBar.updateScore(500)
+        leftBar.updateLives(2)
+        
+        // Actualizar el panel de objetivos
+        let progress = ObjectiveProgress(
+            score: 500,
+            notesHit: 25,
+            accuracySum: 85.0,
+            accuracyCount: 1,
+            totalBlocksDestroyed: 25,
+            timeElapsed: 60
+        )
+        
+        // Usar el método público
+        rightBar.updateObjectiveInfo(with: progress)
+        
+        // Añadir barras a la escena
+        scene.addChild(leftBar)
+        scene.addChild(rightBar)
+        
+        // Añadir líneas guía para visualizar los márgenes (solo en preview)
+        addGuideLines(to: scene, size: size)
+        
+        return scene
+    }
+    
+    private func addGuideLines(to scene: SKScene, size: CGSize) {
+        // Líneas verticales para mostrar los márgenes
+        let leftMargin = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
+        leftMargin.position = CGPoint(x: 8, y: size.height/2)
+        leftMargin.fillColor = .red
+        leftMargin.alpha = 0.3
+        scene.addChild(leftMargin)
+        
+        let rightMargin = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
+        rightMargin.position = CGPoint(x: size.width - 8, y: size.height/2)
+        rightMargin.fillColor = .red
+        rightMargin.alpha = 0.3
+        scene.addChild(rightMargin)
+        
+        // Línea central para mostrar la separación
+        let centerLine = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
+        centerLine.position = CGPoint(x: size.width/2, y: size.height/2)
+        centerLine.fillColor = .red
+        centerLine.alpha = 0.3
+        scene.addChild(centerLine)
+    }
+}
+
+// Vista previa adicional con diferentes tamaños de pantalla
+struct TopBarComponentsPreview_MultipleDevices: PreviewProvider {
+    static var previews: some View {
+        Group {
+            TopBarComponentsPreviewScene()
+                .previewDevice("iPhone 14")
+                .previewDisplayName("iPhone 14")
+            
+            TopBarComponentsPreviewScene()
+                .previewDevice("iPhone 14 Pro Max")
+                .previewDisplayName("iPhone 14 Pro Max")
+            
+            TopBarComponentsPreviewScene()
+                .previewDevice("iPad Pro (11-inch)")
+                .previewDisplayName("iPad Pro 11\"")
+        }
+    }
+}
+#endif

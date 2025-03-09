@@ -32,9 +32,9 @@ class GameUIManager {
     private struct Layout {
         static let margins = UIEdgeInsets(
             top: 6,
-            left: 20,
+            left: 6,
             bottom: UIScreen.main.bounds.height * 0.05,
-            right: 20
+            right: 6
         )
         static let cornerRadius: CGFloat = 15
         static let verticalSpacing: CGFloat = 5
@@ -47,8 +47,8 @@ class GameUIManager {
         static let sideBarHeightRatio: CGFloat = 0.4
         
         // TopBars específicas
-        static let topBarWidthRatio: CGFloat = 0.4
-        static let topBarSpacing: CGFloat = 20
+        static let topBarWidthRatio: CGFloat = 0.47
+        static let topBarSpacing: CGFloat = 8
         
         // Efectos visuales
         static let shadowRadius: CGFloat = 8.0
@@ -101,52 +101,61 @@ class GameUIManager {
             setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
         }
         
-        private func setupTopBars(width: CGFloat, height: CGFloat) {
-            guard let scene = scene else { return }
-            let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
+    private func setupTopBars(width: CGFloat, height: CGFloat) {
+        guard let scene = scene else { return }
+        let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
+        
+        // Calcular dimensiones
+        let topBarWidth = width * Layout.topBarWidthRatio
+        let yPosition = scene.size.height - safeAreaTop - height / 2
+        
+        // Calcular posiciones X
+        // Ajustamos las posiciones para que estén más cerca de los bordes
+        let leftXPosition = Layout.margins.left + topBarWidth/2
+        let rightXPosition = scene.size.width - Layout.margins.right - topBarWidth/2
+        
+        // Crear TopBars
+        leftTopBarNode = TopBar.create(
+            width: topBarWidth,
+            height: height,
+            position: CGPoint(x: leftXPosition, y: yPosition),
+            type: .main
+        )
+        
+        rightTopBarNode = TopBar.create(
+            width: topBarWidth,
+            height: height,
+            position: CGPoint(x: rightXPosition, y: yPosition),
+            type: .objectives
+        )
+        
+        if let leftBar = leftTopBarNode, let rightBar = rightTopBarNode {
+            leftBar.zPosition = 100
+            rightBar.zPosition = 100
             
-            // Calcular dimensiones
-            let topBarWidth = width * Layout.topBarWidthRatio
-            let yPosition = scene.size.height - safeAreaTop - height / 2
-            
-            // Calcular posiciones X
-            let leftXPosition = Layout.margins.left + topBarWidth/2 + Layout.topBarSpacing
-            let rightXPosition = scene.size.width - Layout.margins.right - topBarWidth/2 - Layout.topBarSpacing
-            
-            // Crear TopBars
-            leftTopBarNode = TopBar.create(
-                width: topBarWidth,
-                height: height,
-                position: CGPoint(x: leftXPosition, y: yPosition),
-                type: .main
-            )
-            
-            rightTopBarNode = TopBar.create(
-                width: topBarWidth,
-                height: height,
-                position: CGPoint(x: rightXPosition, y: yPosition),
-                type: .objectives
-            )
-            
-            if let leftBar = leftTopBarNode, let rightBar = rightTopBarNode {
-                leftBar.zPosition = 100
-                rightBar.zPosition = 100
+            // Configurar las barras
+            if let currentLevel = GameManager.shared.currentLevel {
+                objectiveTracker = LevelObjectiveTracker(level: currentLevel)
                 
-                if let currentLevel = GameManager.shared.currentLevel {
-                    objectiveTracker = LevelObjectiveTracker(level: currentLevel)
-                    
-                    if let tracker = objectiveTracker {
-                        leftBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
-                        rightBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
-                        leftBar.updateLives(currentLevel.lives.initial)
-                        leftBar.updateScore(0)
-                    }
+                if let tracker = objectiveTracker {
+                    leftBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
+                    rightBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
+                    leftBar.updateLives(currentLevel.lives.initial)
+                    leftBar.updateScore(0)
                 }
-                
-                scene.addChild(leftBar)
-                scene.addChild(rightBar)
             }
+            
+            // Añadir a la escena
+            scene.addChild(leftBar)
+            scene.addChild(rightBar)
+            
+            // Debug de posiciones
+            print("Left TopBar position: \(leftXPosition)")
+            print("Right TopBar position: \(rightXPosition)")
+            print("TopBar width: \(topBarWidth)")
+            print("Scene width: \(scene.size.width)")
         }
+    }
     
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
         guard let scene = scene else { return }
@@ -250,7 +259,7 @@ class GameUIManager {
     private func setupLeftSideBar(width: CGFloat, height: CGFloat) {
         guard let scene = scene else { return }
         let position = CGPoint(
-            x: Layout.margins.left + width/2,
+            x: Layout.margins.left + width/2 + 10,
             y: scene.size.height/2 - (Layout.verticalSpacing/2)
         )
         
@@ -267,7 +276,7 @@ class GameUIManager {
     private func setupRightSideBar(width: CGFloat, height: CGFloat) {
         guard let scene = scene else { return }
         let position = CGPoint(
-            x: scene.size.width - Layout.margins.right - width/2,
+            x: scene.size.width - Layout.margins.right - width/2 - 10,
             y: scene.size.height/2 - (Layout.verticalSpacing/2)
         )
         

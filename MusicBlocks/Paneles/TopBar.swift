@@ -2,7 +2,7 @@
 //  TopBar.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 9/2325.
+//  Created by Jose R. García on 9/23/25.
 //
 
 import SpriteKit
@@ -71,196 +71,202 @@ class TopBar: SKNode {
     }
     
     // MARK: - Setup
-        private func setupNodes() {
-            applyContainerStyle(size: size)
-            
-            let mainContainer = SKNode()
-            mainContainer.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin,
-                                           y: size.height/2 - Layout.horizontalMargin)
-            addChild(mainContainer)
-            
-            switch type {
-            case .main:
-                setupMainTopBar(in: mainContainer)
-            case .objectives:
-                setupObjectivesTopBar(in: mainContainer)
-            }
+    private func setupNodes() {
+        applyContainerStyle(size: size)
+        
+        let mainContainer = SKNode()
+        mainContainer.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin,
+                                         y: size.height/2 - Layout.horizontalMargin)
+        addChild(mainContainer)
+        
+        switch type {
+        case .main:
+            setupMainTopBar(in: mainContainer)
+        case .objectives:
+            setupObjectivesTopBar(in: mainContainer)
+        }
+    }
+    
+    private func setupMainTopBar(in container: SKNode) {
+        setupLevelAndScore(in: container)
+        setupHeartsRow(in: container)
+    }
+    
+    private func setupObjectivesTopBar(in container: SKNode) {
+        // El panel de objetivos se añadirá en configure()
+    }
+    
+    private func setupLevelAndScore(in container: SKNode) {
+        let topRowContainer = SKNode()
+        
+        // Nivel
+        levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        levelLabel?.fontSize = Layout.levelAndScoreFontSize
+        levelLabel?.fontColor = .purple
+        levelLabel?.horizontalAlignmentMode = .left
+        levelLabel?.verticalAlignmentMode = .center
+        levelLabel?.text = "Nivel 1"
+        
+        // Separador
+        let separator = SKLabelNode(text: " • ")
+        separator.fontSize = Layout.levelAndScoreFontSize
+        separator.fontColor = .darkGray
+        separator.horizontalAlignmentMode = .left
+        separator.verticalAlignmentMode = .center
+        separator.position = CGPoint(x: (levelLabel?.frame.maxX ?? 0) + 5, y: 0)
+        
+        // Puntuación
+        let scoreIcon = SKLabelNode(text: "🏆")
+        scoreIcon.fontSize = Layout.levelAndScoreFontSize
+        scoreIcon.horizontalAlignmentMode = .left
+        scoreIcon.verticalAlignmentMode = .center
+        scoreIcon.position = CGPoint(x: separator.frame.maxX + 5, y: 0)
+        
+        scoreValue = SKLabelNode(fontNamed: "Helvetica-Bold")
+        scoreValue?.fontSize = Layout.levelAndScoreFontSize
+        scoreValue?.fontColor = .black
+        scoreValue?.horizontalAlignmentMode = .left
+        scoreValue?.verticalAlignmentMode = .center
+        scoreValue?.text = "0"
+        scoreValue?.position = CGPoint(x: scoreIcon.frame.maxX + 5, y: 0)
+        
+        if let level = levelLabel, let score = scoreValue {
+            topRowContainer.addChild(level)
+            topRowContainer.addChild(separator)
+            topRowContainer.addChild(scoreIcon)
+            topRowContainer.addChild(score)
         }
         
-        private func setupMainTopBar(in container: SKNode) {
-            setupLevelAndScore(in: container)
-            setupHeartsRow(in: container)
+        container.addChild(topRowContainer)
+    }
+    
+    private func setupHeartsRow(in container: SKNode) {
+        heartsContainer = SKNode()
+        heartsContainer?.position = CGPoint(x: 0, y: -(size.height/2) + Layout.verticalSpacing)
+        if let heartsContainer = heartsContainer {
+            container.addChild(heartsContainer)
+            setupHearts(in: heartsContainer)
+        }
+    }
+    
+    private func setupHearts(in container: SKNode) {
+        heartNodes.forEach { $0.removeFromParent() }
+        heartNodes.removeAll()
+        
+        // Vidas base
+        for i in 0..<maxLives {
+            let heart = SKLabelNode(text: "❤️")
+            heart.fontSize = Layout.heartSize
+            heart.verticalAlignmentMode = .center
+            heart.horizontalAlignmentMode = .left
+            heart.position = CGPoint(x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing), y: 0)
+            heart.fontColor = .red
+            container.addChild(heart)
+            heartNodes.append(heart)
         }
         
-        private func setupObjectivesTopBar(in container: SKNode) {
-            // El panel de objetivos se añadirá en configure()
+        // Vidas extra
+        for i in maxLives..<(maxLives + maxExtraLives) {
+            let heart = SKLabelNode(text: "")
+            heart.fontSize = Layout.heartSize
+            heart.verticalAlignmentMode = .center
+            heart.horizontalAlignmentMode = .left
+            heart.position = CGPoint(x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing), y: 0)
+            heart.fontColor = .systemYellow
+            heart.alpha = 0
+            container.addChild(heart)
+            heartNodes.append(heart)
         }
-        
-        private func setupLevelAndScore(in container: SKNode) {
-            let topRowContainer = SKNode()
-            
-            // Nivel
-            levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-            levelLabel?.fontSize = Layout.levelAndScoreFontSize
-            levelLabel?.fontColor = .purple
-            levelLabel?.horizontalAlignmentMode = .left
-            levelLabel?.verticalAlignmentMode = .center
-            levelLabel?.text = "Nivel 1"
-            
-            // Separador
-            let separator = SKLabelNode(text: " • ")
-            separator.fontSize = Layout.levelAndScoreFontSize
-            separator.fontColor = .darkGray
-            separator.horizontalAlignmentMode = .left
-            separator.verticalAlignmentMode = .center
-            separator.position = CGPoint(x: (levelLabel?.frame.maxX ?? 0) + 5, y: 0)
-            
-            // Puntuación
-            let scoreIcon = SKLabelNode(text: "🏆")
-            scoreIcon.fontSize = Layout.levelAndScoreFontSize
-            scoreIcon.horizontalAlignmentMode = .left
-            scoreIcon.verticalAlignmentMode = .center
-            scoreIcon.position = CGPoint(x: separator.frame.maxX + 5, y: 0)
-            
-            scoreValue = SKLabelNode(fontNamed: "Helvetica-Bold")
-            scoreValue?.fontSize = Layout.levelAndScoreFontSize
-            scoreValue?.fontColor = .black
-            scoreValue?.horizontalAlignmentMode = .left
-            scoreValue?.verticalAlignmentMode = .center
-            scoreValue?.text = "0"
-            scoreValue?.position = CGPoint(x: scoreIcon.frame.maxX + 5, y: 0)
-            
-            if let level = levelLabel, let score = scoreValue {
-                topRowContainer.addChild(level)
-                topRowContainer.addChild(separator)
-                topRowContainer.addChild(scoreIcon)
-                topRowContainer.addChild(score)
-            }
-            
-            container.addChild(topRowContainer)
-        }
-        
-        private func setupHeartsRow(in container: SKNode) {
-            heartsContainer = SKNode()
-            heartsContainer?.position = CGPoint(x: 0, y: -(size.height/2) + Layout.verticalSpacing)
-            if let heartsContainer = heartsContainer {
-                container.addChild(heartsContainer)
-                setupHearts(in: heartsContainer)
-            }
-        }
-        
-        private func setupHearts(in container: SKNode) {
-            heartNodes.forEach { $0.removeFromParent() }
-            heartNodes.removeAll()
-            
-            // Vidas base
-            for i in 0..<maxLives {
-                let heart = SKLabelNode(text: "❤️")
-                heart.fontSize = Layout.heartSize
-                heart.verticalAlignmentMode = .center
-                heart.horizontalAlignmentMode = .left
-                heart.position = CGPoint(x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing), y: 0)
-                heart.fontColor = .red
-                container.addChild(heart)
-                heartNodes.append(heart)
-            }
-            
-            // Vidas extra
-            for i in maxLives..<(maxLives + maxExtraLives) {
-                let heart = SKLabelNode(text: "")
-                heart.fontSize = Layout.heartSize
-                heart.verticalAlignmentMode = .center
-                heart.horizontalAlignmentMode = .left
-                heart.position = CGPoint(x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing), y: 0)
-                heart.fontColor = .systemYellow
-                heart.alpha = 0
-                container.addChild(heart)
-                heartNodes.append(heart)
-            }
-        }
+    }
     
     // MARK: - Public Methods
-        static func create(width: CGFloat, height: CGFloat, position: CGPoint, type: TopBarType) -> TopBar {
-            return TopBar(width: width, height: height, position: position, type: type)
+    static func create(width: CGFloat, height: CGFloat, position: CGPoint, type: TopBarType) -> TopBar {
+        return TopBar(width: width, height: height, position: position, type: type)
+    }
+    
+    func configure(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
+        switch type {
+        case .main:
+            configureMainBar(withLevel: level)
+        case .objectives:
+            configureObjectivesBar(withLevel: level, objectiveTracker: objectiveTracker)
         }
+    }
+    
+    private func configureMainBar(withLevel level: GameLevel) {
+        levelLabel?.text = "Nivel \(level.levelId)"
+        scoreValue?.text = "0"
+        maxLives = level.lives.initial
+        maxExtraLives = level.lives.extraLives.maxExtra
+        lives = level.lives.initial
         
-        func configure(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
-            switch type {
-            case .main:
-                configureMainBar(withLevel: level)
-            case .objectives:
-                configureObjectivesBar(withLevel: level, objectiveTracker: objectiveTracker)
-            }
+        if let container = heartsContainer {
+            setupHearts(in: container)
+            updateLives(level.lives.initial)
         }
+    }
+    
+    private func configureObjectivesBar(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
+        objectivePanel?.removeFromParent()
         
-        private func configureMainBar(withLevel level: GameLevel) {
-            levelLabel?.text = "Nivel \(level.levelId)"
-            scoreValue?.text = "0"
-            maxLives = level.lives.initial
-            maxExtraLives = level.lives.extraLives.maxExtra
-            lives = level.lives.initial
+        let panelSize = CGSize(width: size.width - (Layout.objectivePanelMargin * 2),
+                               height: size.height - (Layout.objectivePanelMargin * 2))
+        
+        objectivePanel = ObjectivePanelFactory.createPanel(
+            for: level.objectives.primary,
+            size: panelSize,
+            tracker: objectiveTracker
+        )
+        
+        if let panel = objectivePanel {
+            panel.position = CGPoint(x: 0, y: 0)
+            addChild(panel)
+        }
+    }
+    
+    func updateScore(_ newScore: Int) {
+        if type == .main {
+            score = newScore
+            scoreValue?.text = "\(newScore)"
+        }
+    }
+    
+    func updateLives(_ newLives: Int) {
+        if type == .main {
+            lives = newLives
+            updateHeartsDisplay()
+        }
+    }
+    
+    private func updateHeartsDisplay() {
+        for (index, heart) in heartNodes.enumerated() {
+            heart.alpha = 1.0
             
-            if let container = heartsContainer {
-                setupHearts(in: container)
-                updateLives(level.lives.initial)
-            }
-        }
-        
-        private func configureObjectivesBar(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
-            objectivePanel?.removeFromParent()
-            
-            let panelSize = CGSize(width: size.width - (Layout.objectivePanelMargin * 2),
-                                  height: size.height - (Layout.objectivePanelMargin * 2))
-            
-            objectivePanel = ObjectivePanelFactory.createPanel(
-                for: level.objectives.primary,
-                size: panelSize,
-                tracker: objectiveTracker
-            )
-            
-            if let panel = objectivePanel {
-                panel.position = CGPoint(x: 0, y: 0)
-                addChild(panel)
-            }
-        }
-        
-        func updateScore(_ newScore: Int) {
-            if type == .main {
-                score = newScore
-                scoreValue?.text = "\(newScore)"
-            }
-        }
-        
-        func updateLives(_ newLives: Int) {
-            if type == .main {
-                lives = newLives
-                updateHeartsDisplay()
-            }
-        }
-        
-        private func updateHeartsDisplay() {
-            for (index, heart) in heartNodes.enumerated() {
-                heart.alpha = 1.0
-                
-                if index < maxLives {
-                    if index < lives {
-                        heart.text = "❤️"
-                        heart.fontColor = .red
-                    } else {
-                        heart.text = "♡"
-                        heart.fontColor = .red
-                    }
-                } else if index < maxLives + maxExtraLives {
-                    if index < lives {
-                        heart.text = "❤️"
-                        heart.fontColor = .systemYellow
-                    } else {
-                        heart.alpha = 0
-                    }
+            if index < maxLives {
+                if index < lives {
+                    heart.text = "❤️"
+                    heart.fontColor = .red
+                } else {
+                    heart.text = "♡"
+                    heart.fontColor = .red
+                }
+            } else if index < maxLives + maxExtraLives {
+                if index < lives {
+                    heart.text = "❤️"
+                    heart.fontColor = .systemYellow
+                } else {
+                    heart.alpha = 0
                 }
             }
         }
     }
+    
+    public func updateObjectiveInfo(with progress: ObjectiveProgress) {
+        if type == .objectives {
+            objectivePanel?.updateInfo(with: progress)
+        }
+    }
+}
 
 // MARK: - Previews
 #if DEBUG
@@ -301,17 +307,16 @@ extension TopBar {
         
         // Crear TopBar izquierda (principal)
         let leftBar = TopBar.create(
-            width: 300,
+            width: 370,  // Aproximadamente 47% de 800
             height: 60,
-            position: CGPoint(x: 200, y: 250),
+            position: CGPoint(x: 190, y: 250),
             type: .main
         )
-        
         // Crear TopBar derecha (objetivos)
         let rightBar = TopBar.create(
-            width: 300,
+            width: 370,  // Aproximadamente 47% de 800
             height: 60,
-            position: CGPoint(x: 600, y: 250),
+            position: CGPoint(x: 610, y: 250),
             type: .objectives
         )
         
