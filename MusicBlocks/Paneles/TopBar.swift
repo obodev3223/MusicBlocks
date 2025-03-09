@@ -17,14 +17,13 @@ class TopBar: SKNode {
         static let shadowOpacity: Float = 0.2
         
         // Espaciado y márgenes
-        static let horizontalMargin: CGFloat = 15
+        static let horizontalMargin: CGFloat = 8
         static let verticalSpacing: CGFloat = 8
         static let elementPadding: CGFloat = 10
         
         // Configuración de fuentes
-        static let scoreFontSize: CGFloat = 16     // Añadido para compatibilidad
-        static let levelFontSize: CGFloat = 16     // Mantenido
-        static let levelAndScoreFontSize: CGFloat = 18
+
+        static let levelAndScoreFontSize: CGFloat = 14
         
         // Iconos y símbolos
         static let scoreIconSize: CGFloat = 16
@@ -35,8 +34,8 @@ class TopBar: SKNode {
         static let dividerText = " - "
         
         // Panel de objetivos
-        static let objectivePanelWidth: CGFloat = 200
-        static let objectivePanelRightMargin: CGFloat = 20
+        static let objectivePanelWidth: CGFloat = 180
+        static let objectivePanelRightMargin: CGFloat = 10
         
         // Distribución vertical
         static let topRowHeightRatio: CGFloat = 0.33
@@ -75,27 +74,27 @@ class TopBar: SKNode {
         
         // Inicializar estrella de puntuación
         scoreIcon = SKLabelNode(text: "★")
-        scoreIcon.fontSize = Layout.scoreFontSize
+        scoreIcon.fontSize = Layout.levelAndScoreFontSize
         scoreIcon.fontColor = .systemYellow
         scoreIcon.verticalAlignmentMode = .center
         
         // Inicializar texto "Score:"
         scoreText = SKLabelNode(fontNamed: "Helvetica")
         scoreText.text = "Score:"
-        scoreText.fontSize = Layout.scoreFontSize * 0.8
+        scoreText.fontSize = Layout.levelAndScoreFontSize * 0.8
         scoreText.fontColor = .darkGray
         scoreText.verticalAlignmentMode = .center
         
         // Inicializar etiqueta de puntuación
         scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        scoreLabel.fontSize = Layout.scoreFontSize
+        scoreLabel.fontSize = Layout.levelAndScoreFontSize
         scoreLabel.verticalAlignmentMode = .center
         scoreLabel.horizontalAlignmentMode = .left
         scoreLabel.fontColor = .black
         
         // Inicializar etiqueta de nivel
         levelLabel = SKLabelNode(fontNamed: "Helvetica")
-        levelLabel.fontSize = Layout.levelFontSize
+        levelLabel.fontSize = Layout.levelAndScoreFontSize
         levelLabel.verticalAlignmentMode = .center
         levelLabel.horizontalAlignmentMode = .center
         levelLabel.fontColor = .purple
@@ -130,14 +129,49 @@ class TopBar: SKNode {
     }
     
     private func setupTopRow(in container: SKNode) {
-            levelAndScoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-            levelAndScoreLabel.fontSize = Layout.levelAndScoreFontSize
-            levelAndScoreLabel.fontColor = .purple
-            levelAndScoreLabel.horizontalAlignmentMode = .left
-            levelAndScoreLabel.verticalAlignmentMode = .top
-            levelAndScoreLabel.position = CGPoint(x: 0, y: 0)
-            container.addChild(levelAndScoreLabel)
-        }
+        // Crear contenedor para nivel y puntuación
+        let topRowContainer = SKNode()
+        
+        // Configurar etiqueta de nivel
+        let levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        levelLabel.fontSize = Layout.levelAndScoreFontSize
+        levelLabel.fontColor = .purple
+        levelLabel.horizontalAlignmentMode = .left
+        levelLabel.verticalAlignmentMode = .center
+        levelLabel.text = "Nivel 1"
+        
+        // Configurar separador
+        let separator = SKLabelNode(text: " • ")
+        separator.fontSize = Layout.levelAndScoreFontSize
+        separator.fontColor = .darkGray
+        separator.horizontalAlignmentMode = .left
+        separator.verticalAlignmentMode = .center
+        separator.position = CGPoint(x: levelLabel.frame.maxX + 5, y: 0)
+        
+        // Configurar icono de puntuación (trofeo)
+        let scoreIcon = SKLabelNode(text: "🏆")
+        scoreIcon.fontSize = Layout.levelAndScoreFontSize
+        scoreIcon.horizontalAlignmentMode = .left
+        scoreIcon.verticalAlignmentMode = .center
+        scoreIcon.position = CGPoint(x: separator.frame.maxX + 5, y: 0)
+        
+        // Configurar valor de puntuación
+        let scoreValue = SKLabelNode(fontNamed: "Helvetica-Bold")
+        scoreValue.fontSize = Layout.levelAndScoreFontSize
+        scoreValue.fontColor = .black
+        scoreValue.horizontalAlignmentMode = .left
+        scoreValue.verticalAlignmentMode = .center
+        scoreValue.text = "0"
+        scoreValue.position = CGPoint(x: scoreIcon.frame.maxX + 5, y: 0)
+        
+        // Añadir todos los elementos al contenedor
+        topRowContainer.addChild(levelLabel)
+        topRowContainer.addChild(separator)
+        topRowContainer.addChild(scoreIcon)
+        topRowContainer.addChild(scoreValue)
+        
+        container.addChild(topRowContainer)
+    }
         
         private func setupHeartsRow(in container: SKNode) {
             heartsContainer = SKNode()

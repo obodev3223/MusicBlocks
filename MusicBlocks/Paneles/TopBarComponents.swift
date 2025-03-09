@@ -35,6 +35,56 @@ struct ObjectiveProgress {
     }
 }
 
+// MARK: - Iconos
+enum ObjectiveIcon {
+    case score
+    case totalNotes
+    case accuracy
+    case blocks
+    case time
+    
+    var symbol: String {
+        switch self {
+        case .score: return "🏆"
+        case .totalNotes: return "🎵"
+        case .accuracy: return "🎯"
+        case .blocks: return "🟦"
+        case .time: return "⏱"
+        }
+    }
+}
+
+class ObjectiveIconNode: SKNode {
+    private let icon: SKLabelNode
+    private let value: SKLabelNode
+    
+    init(type: ObjectiveIcon) {
+        icon = SKLabelNode(text: type.symbol)
+        value = SKLabelNode(fontNamed: "Helvetica")
+        
+        super.init()
+        
+        icon.fontSize = 16
+        icon.verticalAlignmentMode = .center
+        
+        value.fontSize = 14
+        value.fontColor = .darkGray
+        value.verticalAlignmentMode = .center
+        value.position = CGPoint(x: icon.frame.maxX + 5, y: 0)
+        
+        addChild(icon)
+        addChild(value)
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    func updateValue(_ newValue: String) {
+        value.text = newValue
+    }
+}
+
 // MARK: - Nodos Base
 class TopBarBaseNode: SKNode {
     var size: CGSize
@@ -124,6 +174,8 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         // Las subclases deben implementar esto
     }
     
+    
+    
     func updateInfo(with progress: ObjectiveProgress) {
         // Las subclases deben implementar esto
     }
@@ -152,10 +204,62 @@ class ScoreObjectivePanel: ObjectiveInfoPanel {
         addChild(timeDisplay)
     }
     
+    override func setupPanel() {
+            guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
+            
+            // Crear icono según el tipo de objetivo
+            let iconType: ObjectiveIcon
+            switch objective.type {
+            case "score": iconType = .score
+            case "total_notes": iconType = .totalNotes
+            case "note_accuracy": iconType = .accuracy
+            case "block_destruction", "total_blocks": iconType = .blocks
+            default: iconType = .score
+            }
+            
+            objectiveIcon = ObjectiveIconNode(type: iconType)
+            objectiveIcon.position = CGPoint(x: Layout.horizontalMargin, y: 10)
+            
+            timeIcon = ObjectiveIconNode(type: .time)
+            timeIcon.position = CGPoint(x: Layout.horizontalMargin, y: -10)
+            
+            addChild(objectiveIcon)
+            addChild(timeIcon)
+        }
+    
     override func updateInfo(with progress: ObjectiveProgress) {
         scoreLabel.text = "Puntuación: \(progress.score)"
         timeDisplay.update()
     }
+    
+    override func updateInfo(with progress: ObjectiveProgress) {
+            guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
+            
+            // Actualizar valor según el tipo de objetivo
+            switch objective.type {
+            case "score":
+                objectiveIcon.updateValue("\(progress.score)/\(objective.target ?? 0)")
+            case "total_notes":
+                objectiveIcon.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
+            case "note_accuracy":
+                let accuracy = Int(progress.averageAccuracy * 100)
+                objectiveIcon.updateValue("\(accuracy)%")
+            case "block_destruction", "total_blocks":
+                objectiveIcon.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
+            default:
+                break
+            }
+            
+            // Actualizar tiempo si hay límite
+            if let timeLimit = objective.timeLimit {
+                let remainingTime = max(timeLimit - progress.timeElapsed, 0)
+                let minutes = Int(remainingTime) / 60
+                let seconds = Int(remainingTime) % 60
+                timeIcon.updateValue(String(format: "%02d:%02d", minutes, seconds))
+            } else {
+                timeIcon.updateValue("∞")
+            }
+        }
 }
 
 // MARK: - Panel de Notas Totales
