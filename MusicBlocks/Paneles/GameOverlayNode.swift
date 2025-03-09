@@ -330,7 +330,7 @@ class GameOverOverlayNode: GameOverlayNode {
         
         // Título Game Over o Victoria
         let gameoverNode = SKLabelNode(text: isVictory ? "¡Victoria!" : "¡Fin del juego!")
-        gameoverNode.fontSize = 36
+        gameoverNode.fontSize = 32
         gameoverNode.fontName = "Helvetica-Bold"
         gameoverNode.fontColor = titleColor
         gameoverNode.position = CGPoint(x: 0, y: size.height/4)
@@ -338,15 +338,15 @@ class GameOverOverlayNode: GameOverlayNode {
         
         // Mensaje específico
         let messageNode = SKLabelNode(text: message)
-        messageNode.fontSize = 20
+        messageNode.fontSize = 16
         messageNode.fontName = "Helvetica"
         messageNode.fontColor = messageColor
         messageNode.position = CGPoint(x: 0, y: size.height/4 - 40)
         contentNode.addChild(messageNode)
         
         // Puntuación
-        let scoreNode = SKLabelNode(text: "Puntuación final: \(score)")
-        scoreNode.fontSize = 24
+        let scoreNode = SKLabelNode(text: "Puntuación: \(score)")
+        scoreNode.fontSize = 20
         scoreNode.fontName = "Helvetica-Bold"
         scoreNode.fontColor = titleColor
         scoreNode.position = CGPoint(x: 0, y: 0)
@@ -360,7 +360,7 @@ class GameOverOverlayNode: GameOverlayNode {
     }
     
     private func setupRestartButton(isVictory: Bool) {
-        let buttonSize = CGSize(width: 200, height: 50)
+        let buttonSize = CGSize(width: 170, height: 50)
         let buttonNode = SKShapeNode(rectOf: buttonSize, cornerRadius: 10)
         buttonNode.fillColor = isVictory ? .systemGreen : .purple
         buttonNode.strokeColor = .clear
@@ -370,7 +370,7 @@ class GameOverOverlayNode: GameOverlayNode {
         
         let buttonText = isVictory ? "Siguiente nivel" : "Intentar de nuevo"
         let buttonLabel = SKLabelNode(text: buttonText)
-        buttonLabel.fontSize = 20
+        buttonLabel.fontSize = 18
         buttonLabel.fontName = "Helvetica-Bold"
         buttonLabel.fontColor = .white
         buttonLabel.verticalAlignmentMode = .center
@@ -438,7 +438,9 @@ struct GameOverlayPreview: PreviewProvider {
                 // Game Over Overlay
                 let gameOverNode = GameOverOverlayNode(
                     size: CGSize(width: 300, height: 200),
-                    score: 1500, message: "kk",
+                    score: 1500,
+                    message: "¡Juego terminado!",
+                    isVictory: true, // Para ver ambas variantes, puedes alternar entre true/false
                     restartAction: {}
                 )
                 gameOverNode.position = CGPoint(x: 200, y: 150)
