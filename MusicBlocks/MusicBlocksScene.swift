@@ -18,6 +18,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     private var gameEngine: GameEngine!
     private var blocksManager: BlocksManager!
     private var uiManager: GameUIManager!
+    private var objectiveTracker: LevelObjectiveTracker?
     
     // MARK: - Game State
     private var lastUpdateTime: TimeInterval = 0
@@ -43,6 +44,11 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         // Primero cargar el nivel inicial
         let userProfile = UserProfile.load()
         _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
+        
+        // Crear tracker para el nivel actual
+        if let currentLevel = gameManager.currentLevel {
+            objectiveTracker = LevelObjectiveTracker(level: currentLevel)
+        }
         
         // Inicializar UI Manager
         uiManager = GameUIManager(scene: self)
@@ -100,7 +106,9 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         blocksManager.clearBlocks()
         
         // Configurar UI antes del overlay
-        uiManager.configureTopBar(withLevel: level)  // Usando el nuevo método público
+        if let tracker = objectiveTracker {
+            uiManager.configureTopBars(withLevel: level, objectiveTracker: tracker)
+        }
         uiManager.updateUI(score: 0, lives: level.lives.initial)
         
         // Mostrar overlay de inicio de nivel

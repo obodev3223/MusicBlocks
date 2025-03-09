@@ -413,5 +413,9 @@ class GameUIManager {
                 deltaTime: deltaTime
             )
         }
-
+    
+    public func configureTopBars(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
+        leftTopBarNode?.configure(withLevel: level, objectiveTracker: objectiveTracker)
+        rightTopBarNode?.configure(withLevel: level, objectiveTracker: objectiveTracker)
+    }
 }
