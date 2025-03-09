@@ -13,7 +13,8 @@ class GameUIManager {
     private weak var scene: SKScene?
     private weak var mainAreaNode: SKNode?
     private var backgroundPattern: BackgroundPatternNode!
-    private var topBarNode: TopBar?
+    private var leftTopBarNode: TopBar?
+    private var rightTopBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
     private var objectiveTracker: LevelObjectiveTracker?
     
@@ -45,15 +46,15 @@ class GameUIManager {
         static let mainAreaWidthRatio: CGFloat = 0.75
         static let sideBarHeightRatio: CGFloat = 0.4
         
+        // TopBars específicas
+        static let topBarWidthRatio: CGFloat = 0.4
+        static let topBarSpacing: CGFloat = 20
+        
         // Efectos visuales
         static let shadowRadius: CGFloat = 8.0
         static let shadowOpacity: Float = 0.8
         static let shadowOffset = CGPoint(x: 0, y: -2)
         static let containerAlpha: CGFloat = 0.95
-    }
-    
-    private struct Constants {
-        static let bottomLimitRatio: CGFloat = 0.15
     }
     
     // MARK: - Initialization
@@ -63,88 +64,87 @@ class GameUIManager {
     }
     
     // MARK: - Public Methods
-    func setupUI() {
-        setupBackground()
-        setupLayout()
-    }
-    
-    func updateUI(score: Int, lives: Int) {
-        topBarNode?.updateScore(score)
-        topBarNode?.updateLives(lives)
-        
-        // Actualizar progreso del objetivo si hay score
-        objectiveTracker?.updateProgress(score: score)
-    }
-    
-    // MARK: - Setup Methods
-    private func setupBackground() {
-        guard let scene = scene else { return }
-        backgroundPattern = BackgroundPatternNode(size: scene.size)
-        backgroundPattern.zPosition = -10
-        scene.addChild(backgroundPattern)
-    }
-    
-    private func setupLayout() {
-        guard let scene = scene else { return }
-        
-        let safeWidth = scene.size.width - Layout.margins.left - Layout.margins.right
-        let safeHeight = scene.size.height - Layout.margins.top - Layout.margins.bottom
-        
-        let topBarHeight = safeHeight * Layout.topBarHeightRatio
-        let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
-        let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
-        let sideBarWidth = safeWidth * Layout.sideBarWidthRatio
-        let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
-        
-        setupTopBar(width: safeWidth, height: topBarHeight)
-        setupMainArea(width: mainAreaWidth, height: mainAreaHeight, topBarHeight: topBarHeight)
-        setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
-    }
-    
-    // MARK: - UI Setup Methods
-    
-    func configureTopBar(withLevel level: GameLevel) {
-            // Crear nuevo tracker para el nivel
-            objectiveTracker = LevelObjectiveTracker(level: level)
-            
-            // Configurar TopBar con el nivel y el tracker
-            if let tracker = objectiveTracker {
-                topBarNode?.configure(withLevel: level, objectiveTracker: tracker)
-            }
+        func setupUI() {
+            setupBackground()
+            setupLayout()
         }
         
-        private func setupTopBar(width: CGFloat, height: CGFloat) {
+        func updateUI(score: Int, lives: Int) {
+            leftTopBarNode?.updateScore(score)
+            leftTopBarNode?.updateLives(lives)
+            objectiveTracker?.updateProgress(score: score)
+        }
+
+    
+    // MARK: - Setup Methods
+        private func setupBackground() {
+            guard let scene = scene else { return }
+            backgroundPattern = BackgroundPatternNode(size: scene.size)
+            backgroundPattern.zPosition = -10
+            scene.addChild(backgroundPattern)
+        }
+        
+        private func setupLayout() {
+            guard let scene = scene else { return }
+            
+            let safeWidth = scene.size.width - Layout.margins.left - Layout.margins.right
+            let safeHeight = scene.size.height - Layout.margins.top - Layout.margins.bottom
+            
+            let topBarHeight = safeHeight * Layout.topBarHeightRatio
+            let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
+            let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
+            let sideBarWidth = safeWidth * Layout.sideBarWidthRatio
+            let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
+            
+            setupTopBars(width: safeWidth, height: topBarHeight)
+            setupMainArea(width: mainAreaWidth, height: mainAreaHeight, topBarHeight: topBarHeight)
+            setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
+        }
+        
+        private func setupTopBars(width: CGFloat, height: CGFloat) {
             guard let scene = scene else { return }
             let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
-            let position = CGPoint(
-                x: scene.size.width / 2,
-                y: scene.size.height - safeAreaTop - height / 2
+            
+            // Calcular dimensiones
+            let topBarWidth = width * Layout.topBarWidthRatio
+            let yPosition = scene.size.height - safeAreaTop - height / 2
+            
+            // Calcular posiciones X
+            let leftXPosition = Layout.margins.left + topBarWidth/2 + Layout.topBarSpacing
+            let rightXPosition = scene.size.width - Layout.margins.right - topBarWidth/2 - Layout.topBarSpacing
+            
+            // Crear TopBars
+            leftTopBarNode = TopBar.create(
+                width: topBarWidth,
+                height: height,
+                position: CGPoint(x: leftXPosition, y: yPosition),
+                type: .main
             )
             
-            topBarNode = TopBar.create(width: width, height: height, position: position)
+            rightTopBarNode = TopBar.create(
+                width: topBarWidth,
+                height: height,
+                position: CGPoint(x: rightXPosition, y: yPosition),
+                type: .objectives
+            )
             
-            if let topBar = topBarNode {
-                topBar.zPosition = 100
+            if let leftBar = leftTopBarNode, let rightBar = rightTopBarNode {
+                leftBar.zPosition = 100
+                rightBar.zPosition = 100
                 
                 if let currentLevel = GameManager.shared.currentLevel {
-                    // Crear tracker para el nivel inicial
                     objectiveTracker = LevelObjectiveTracker(level: currentLevel)
                     
                     if let tracker = objectiveTracker {
-                        topBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
-                        topBar.updateLives(currentLevel.lives.initial)
-                        topBar.updateScore(0)
+                        leftBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
+                        rightBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
+                        leftBar.updateLives(currentLevel.lives.initial)
+                        leftBar.updateScore(0)
                     }
                 }
                 
-                scene.addChild(topBar)
-                
-                print("TopBar configurada en posición: \(position)")
-                print("TopBar frame: \(topBar.frame)")
-                print("Scene size: \(scene.size)")
-                print("Safe area top: \(safeAreaTop)")
-            } else {
-                print("Error: No se pudo crear la TopBar")
+                scene.addChild(leftBar)
+                scene.addChild(rightBar)
             }
         }
     

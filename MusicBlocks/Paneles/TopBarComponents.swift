@@ -11,13 +11,13 @@ import UIKit
 // MARK: - Constantes y Configuración
 private enum TopBarLayout {
     static let cornerRadius: CGFloat = 15
-    static let padding: CGFloat = 10
-    static let fontSize: CGFloat = 16
-    static let titleFontSize: CGFloat = 20
-    static let smallFontSize: CGFloat = 14
-    static let verticalSpacing: CGFloat = 8
-    static let horizontalSpacing: CGFloat = 15
-    static let panelHeight: CGFloat = 60
+    static let padding: CGFloat = 8
+    static let fontSize: CGFloat = 14
+    static let titleFontSize: CGFloat = 16
+    static let smallFontSize: CGFloat = 12
+    static let verticalSpacing: CGFloat = 4
+    static let horizontalSpacing: CGFloat = 8
+    static let panelHeight: CGFloat = 50
 }
 
 // MARK: - Estructuras de Datos
@@ -179,14 +179,14 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
         objectiveIconNode = ObjectiveIconNode(type: iconType)
         if let objIcon = objectiveIconNode {
-            objIcon.position = CGPoint(x: TopBarLayout.padding, y: 10)
+            objIcon.position = CGPoint(x: TopBarLayout.padding, y: TopBarLayout.padding/2)
             addChild(objIcon)
         }
         
         // Crear y configurar el icono de tiempo
         timeIconNode = ObjectiveIconNode(type: .time)
         if let timeIcon = timeIconNode {
-            timeIcon.position = CGPoint(x: TopBarLayout.padding, y: -10)
+            timeIcon.position = CGPoint(x: TopBarLayout.padding, y: -TopBarLayout.padding/2)
             addChild(timeIcon)
         }
     }

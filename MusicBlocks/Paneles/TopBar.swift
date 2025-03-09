@@ -9,6 +9,14 @@ import SpriteKit
 import UIKit
 
 class TopBar: SKNode {
+    
+    enum TopBarType {
+           case main      // Para nivel, puntuación y vidas
+           case objectives // Para objetivos
+       }
+       
+       private let type: TopBarType
+    
     // MARK: - Layout Configuration
     private struct Layout {
         // Configuración del contenedor
@@ -16,32 +24,28 @@ class TopBar: SKNode {
         static let backgroundAlpha: CGFloat = 0.95
         static let shadowOpacity: Float = 0.2
         
-        // Espaciado y márgenes (reducidos para más anchura)
-        static let horizontalMargin: CGFloat = 8
-        static let verticalSpacing: CGFloat = 8
-        static let elementPadding: CGFloat = 10
+        // Espaciado y márgenes
+        static let horizontalMargin: CGFloat = 12
+            static let verticalSpacing: CGFloat = 6
+            static let elementPadding: CGFloat = 8
         
         // Configuración de fuentes
-        static let scoreFontSize: CGFloat = 14
-        static let levelFontSize: CGFloat = 14
         static let levelAndScoreFontSize: CGFloat = 14
         
         // Iconos y símbolos
-        static let scoreIconSize: CGFloat = 16
         static let heartSize: CGFloat = 16
-        static let heartSpacing: CGFloat = 6
+            static let heartSpacing: CGFloat = 6
         
         // Divisores
         static let dividerText = " • "
         
         // Panel de objetivos
-        static let objectivePanelWidth: CGFloat = 180
-        static let objectivePanelRightMargin: CGFloat = 10
+        static let objectivePanelWidth: CGFloat = 160
+        static let objectivePanelRightMargin: CGFloat = 8
         
         // Distribución vertical
-        static let topRowHeightRatio: CGFloat = 0.33
-        static let middleRowHeightRatio: CGFloat = 0.34
-        static let bottomRowHeightRatio: CGFloat = 0.33
+            static let topRowHeightRatio: CGFloat = 0.45
+            static let bottomRowHeightRatio: CGFloat = 0.55
     }
     
     // MARK: - Properties
@@ -63,47 +67,38 @@ class TopBar: SKNode {
     private var lives: Int = 3
     
     // MARK: - Initialization
-    private init(width: CGFloat, height: CGFloat, position: CGPoint) {
-        self.size = CGSize(width: width, height: height)
-        
-        // Inicializar etiqueta de nivel y puntuación combinada
-            levelAndScoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-            levelAndScoreLabel.fontSize = Layout.levelAndScoreFontSize
-            levelAndScoreLabel.fontColor = .purple
-            levelAndScoreLabel.verticalAlignmentMode = .center
-            levelAndScoreLabel.horizontalAlignmentMode = .left
-        
-        // Inicializar estrella de puntuación
-        scoreIcon = SKLabelNode(text: "★")
-        scoreIcon.fontSize = Layout.levelAndScoreFontSize
-        scoreIcon.fontColor = .systemYellow
-        scoreIcon.verticalAlignmentMode = .center
-        
-        // Inicializar texto "Score:"
-        scoreText = SKLabelNode(fontNamed: "Helvetica")
-        scoreText.text = "Score:"
-        scoreText.fontSize = Layout.levelAndScoreFontSize * 0.8
-        scoreText.fontColor = .darkGray
-        scoreText.verticalAlignmentMode = .center
-        
-        // Inicializar etiqueta de puntuación
-        scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
-        scoreLabel.fontSize = Layout.levelAndScoreFontSize
-        scoreLabel.verticalAlignmentMode = .center
-        scoreLabel.horizontalAlignmentMode = .left
-        scoreLabel.fontColor = .black
-        
-        // Inicializar etiqueta de nivel
-        levelLabel = SKLabelNode(fontNamed: "Helvetica")
-        levelLabel.fontSize = Layout.levelAndScoreFontSize
-        levelLabel.verticalAlignmentMode = .center
-        levelLabel.horizontalAlignmentMode = .center
-        levelLabel.fontColor = .purple
-        
-        super.init()
-        self.position = position
-        setupNodes()
-    }
+    private init(width: CGFloat, height: CGFloat, position: CGPoint, type: TopBarType) {
+            self.size = CGSize(width: width, height: height)
+            self.type = type
+            
+            // Inicializar propiedades según el tipo
+            if type == .main {
+                levelAndScoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+                levelAndScoreLabel.fontSize = Layout.levelAndScoreFontSize
+                levelAndScoreLabel.fontColor = .purple
+                levelAndScoreLabel.verticalAlignmentMode = .center
+                levelAndScoreLabel.horizontalAlignmentMode = .left
+                
+                scoreIcon = SKLabelNode(text: "🏆")
+                scoreIcon.fontSize = Layout.levelAndScoreFontSize
+                scoreIcon.fontColor = .systemYellow
+                scoreIcon.verticalAlignmentMode = .center
+                
+                scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+                scoreLabel.fontSize = Layout.levelAndScoreFontSize
+                scoreLabel.verticalAlignmentMode = .center
+                scoreLabel.horizontalAlignmentMode = .left
+                scoreLabel.fontColor = .black
+            } else {
+                levelAndScoreLabel = nil
+                scoreIcon = nil
+                scoreLabel = nil
+            }
+            
+            super.init()
+            self.position = position
+            setupNodes()
+        }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
@@ -111,23 +106,28 @@ class TopBar: SKNode {
     
     // MARK: - Setup
     private func setupNodes() {
-        // Aplicar el estilo común del contenedor
         applyContainerStyle(size: size)
         
-        // Contenedor principal
         let mainContainer = SKNode()
         mainContainer.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: size.height/2 - Layout.horizontalMargin)
         addChild(mainContainer)
         
-        // 1. Configurar fila superior (Nivel y Score)
-        setupTopRow(in: mainContainer)
-        
-        // 2. Configurar fila de corazones
-        setupHeartsRow(in: mainContainer)
-        
-        // 3. Área para el panel de objetivos
-        setupObjectivePanelArea(in: mainContainer)
+        switch type {
+        case .main:
+            setupMainTopBar(in: mainContainer)
+        case .objectives:
+            setupObjectivesTopBar(in: mainContainer)
+        }
     }
+    
+    private func setupMainTopBar(in container: SKNode) {
+            setupTopRow(in: container)
+            setupHeartsRow(in: container)
+        }
+        
+        private func setupObjectivesTopBar(in container: SKNode) {
+            setupObjectivePanelArea(in: container)
+        }
     
     private func setupTopRow(in container: SKNode) {
         // Crear contenedor para nivel y puntuación
@@ -227,49 +227,58 @@ class TopBar: SKNode {
     }
     
     // MARK: - Public Methods
-    static func create(width: CGFloat, height: CGFloat, position: CGPoint) -> TopBar {
-        return TopBar(width: width, height: height, position: position)
-    }
+    static func create(width: CGFloat, height: CGFloat, position: CGPoint, type: TopBarType) -> TopBar {
+            return TopBar(width: width, height: height, position: position, type: type)
+        }
     
     // Método para configurar el nivel inicial
     func configure(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
-            // Actualizar nivel y score
-            updateLevelAndScore(level: level.levelId, score: 0)
+        // Actualizar nivel y score
+        updateLevelAndScore(level: level.levelId, score: 0)
+        
+        // Configurar vidas
+        maxLives = level.lives.initial
+        maxExtraLives = level.lives.extraLives.maxExtra
+        lives = level.lives.initial
+        
+        // Eliminar panel anterior si existe
+        objectivePanel?.removeFromParent()
+        
+        // Crear y posicionar nuevo panel de objetivos
+        let panelSize = CGSize(
+            width: Layout.objectivePanelWidth,
+            height: size.height * Layout.middleRowHeightRatio
+        )
+        
+        objectivePanel = ObjectivePanelFactory.createPanel(
+            for: level.objectives.primary,
+            size: panelSize,
+            tracker: objectiveTracker
+        )
+        
+        if let panel = objectivePanel {
+            // Calcular la posición del panel en la mitad derecha de la TopBar
+            let halfWidth = size.width / 2
+            let panelX = halfWidth + (halfWidth - Layout.objectivePanelWidth) / 2 - Layout.objectivePanelRightMargin
             
-            // Configurar vidas
-            maxLives = level.lives.initial
-            maxExtraLives = level.lives.extraLives.maxExtra
-            lives = level.lives.initial
-            
-            // Eliminar panel anterior si existe
-            objectivePanel?.removeFromParent()
-            
-            // Crear y posicionar nuevo panel de objetivos
-            let panelSize = CGSize(
-                width: Layout.objectivePanelWidth,
-                height: size.height * Layout.middleRowHeightRatio
+            panel.position = CGPoint(
+                x: panelX,
+                y: -size.height * Layout.topRowHeightRatio + Layout.verticalSpacing
             )
+            addChild(panel)
             
-            objectivePanel = ObjectivePanelFactory.createPanel(
-                for: level.objectives.primary,
-                size: panelSize,
-                tracker: objectiveTracker
-            )
-            
-            if let panel = objectivePanel {
-                panel.position = CGPoint(
-                    x: size.width - Layout.objectivePanelWidth - Layout.objectivePanelRightMargin,
-                    y: -size.height * Layout.topRowHeightRatio
-                )
-                addChild(panel)
-            }
-            
-            // Actualizar vidas
-            if let container = heartsContainer {
-                setupHearts(in: container)
-                updateLives(level.lives.initial)
-            }
+            // Imprimir información de depuración
+            print("Panel position: \(panel.position)")
+            print("TopBar size: \(size)")
+            print("Panel size: \(panelSize)")
         }
+        
+        // Actualizar vidas
+        if let container = heartsContainer {
+            setupHearts(in: container)
+            updateLives(level.lives.initial)
+        }
+    }
     
     func updateScore(_ newScore: Int) {
             guard let levelId = Int(levelAndScoreLabel.text?.components(separatedBy: Layout.dividerText).first?.replacingOccurrences(of: "Nivel ", with: "") ?? "0") else { return }
@@ -324,7 +333,7 @@ extension TopBar {
         
         // Crear una escena de ejemplo con diferentes estados de TopBar
         let scene = SKScene(size: CGSize(width: 400, height: 300))
-        scene.backgroundColor = .lightGray
+        scene.backgroundColor = .white
         
         // Crear niveles de ejemplo que simulan la configuración del JSON
         let level0 = GameLevel(
@@ -375,28 +384,9 @@ struct TopBarPreview: PreviewProvider {
             SpriteView(scene: TopBar.createPreviewScene())
                 .frame(width: 400, height: 300)
                 .previewLayout(.fixed(width: 400, height: 150))
-            
-            // Leyenda explicativa
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Leyenda:")
-                    .font(.headline)
-                HStack {
-                    Text("❤️").foregroundColor(.red)
-                    Text("Vidas base")
-                }
-                HStack {
-                    Text("❤️").foregroundColor(.yellow)
-                    Text("Vidas extra")
-                }
-                Text("♡ Vida perdida")
-                    .foregroundColor(.gray)
-            }
-            .padding()
-            .background(Color.white)
-            .cornerRadius(10)
-            .shadow(radius: 5)
+
         }
-        .background(Color.gray.opacity(0.2))
+        .background(Color.white)
         .previewDisplayName("TopBar Estados")
     }
 }
