@@ -14,11 +14,11 @@ class TopBar: SKNode {
         static let cornerRadius: CGFloat = 15
         static let backgroundAlpha: CGFloat = 0.95
         static let shadowOpacity: Float = 0.2
-        static let padding: CGFloat = 10
-        static let scoreFontSize: CGFloat = 20
-        static let heartSize: CGFloat = 14
-        static let heartSpacing: CGFloat = 4
-        static let horizontalMargin: CGFloat = 25
+        static let padding: CGFloat = 5
+        static let scoreFontSize: CGFloat = 16
+        static let heartSize: CGFloat = 16
+        static let heartSpacing: CGFloat = 6
+        static let horizontalMargin: CGFloat = 15
         static let levelFontSize: CGFloat = 16
         static let verticalSpacing: CGFloat = 8
     }
@@ -170,12 +170,19 @@ class TopBar: SKNode {
     }
     
     // Método para configurar el nivel inicial
-    func configure(withLevel level: GameLevel) {
+    func configure(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
         maxLives = level.lives.initial
         maxExtraLives = level.lives.extraLives.maxExtra
         lives = level.lives.initial
         
         levelLabel.text = "Nivel \(level.levelId)"
+        
+        let panelSize = CGSize(width: size.width * 0.6, height: TopBarLayout.panelHeight)
+                let panel = ObjectivePanelFactory.createPanel(
+                    for: level.objectives.primary,
+                    size: panelSize,
+                    tracker: objectiveTracker
+                )
         
         if let container = heartsContainer {
             setupHearts(in: container)
@@ -183,6 +190,8 @@ class TopBar: SKNode {
             updateLives(level.lives.initial)
         }
         updateScore(0)
+        
+        addChild(panel)
         
         print("TopBar configurada - Nivel: \(level.levelId), Vidas base: \(maxLives), Vidas extra posibles: \(maxExtraLives), Vidas actuales: \(lives)")
     }
