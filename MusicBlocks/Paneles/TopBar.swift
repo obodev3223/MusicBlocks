@@ -16,13 +16,14 @@ class TopBar: SKNode {
         static let backgroundAlpha: CGFloat = 0.95
         static let shadowOpacity: Float = 0.2
         
-        // Espaciado y márgenes
+        // Espaciado y márgenes (reducidos para más anchura)
         static let horizontalMargin: CGFloat = 8
         static let verticalSpacing: CGFloat = 8
         static let elementPadding: CGFloat = 10
         
         // Configuración de fuentes
-
+        static let scoreFontSize: CGFloat = 14
+        static let levelFontSize: CGFloat = 14
         static let levelAndScoreFontSize: CGFloat = 14
         
         // Iconos y símbolos
@@ -31,7 +32,7 @@ class TopBar: SKNode {
         static let heartSpacing: CGFloat = 6
         
         // Divisores
-        static let dividerText = " - "
+        static let dividerText = " • "
         
         // Panel de objetivos
         static let objectivePanelWidth: CGFloat = 180
