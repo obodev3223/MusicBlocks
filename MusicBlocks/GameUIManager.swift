@@ -47,8 +47,8 @@ class GameUIManager {
         static let sideBarHeightRatio: CGFloat = 0.4
         
         // TopBars específicas
-        static let topBarWidthRatio: CGFloat = 0.47
-        static let topBarSpacing: CGFloat = 8
+        static let topBarWidthRatio: CGFloat = 0.485  // Aumentado de 0.47 para que sean más anchas
+        static let topBarSpacing: CGFloat = 4         // Reducido de 8 para que estén más juntas
         
         // Efectos visuales
         static let shadowRadius: CGFloat = 8.0

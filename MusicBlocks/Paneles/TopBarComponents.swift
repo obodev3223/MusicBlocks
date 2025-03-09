@@ -12,6 +12,7 @@ import UIKit
 private enum TopBarLayout {
     static let cornerRadius: CGFloat = 15
     static let padding: CGFloat = 18
+    static let iconTextSpacing: CGFloat = 24      // Aumentado el espacio entre icono y texto
     static let fontSize: CGFloat = 14
     static let titleFontSize: CGFloat = 16
     static let smallFontSize: CGFloat = 12
@@ -66,11 +67,14 @@ class ObjectiveIconNode: SKNode {
         
         icon.fontSize = TopBarLayout.fontSize
         icon.verticalAlignmentMode = .center
+        icon.horizontalAlignmentMode = .left
         
         value.fontSize = TopBarLayout.smallFontSize
         value.fontColor = .darkGray
         value.verticalAlignmentMode = .center
-        value.position = CGPoint(x: icon.frame.maxX + TopBarLayout.padding, y: 0)
+        value.horizontalAlignmentMode = .left
+        // Aumentar la separación entre icono y texto
+        value.position = CGPoint(x: icon.frame.maxX + TopBarLayout.iconTextSpacing, y: 0)
         
         addChild(icon)
         addChild(value)
@@ -99,7 +103,7 @@ class TopBarBaseNode: SKNode {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func setupBackground() {
+    func setupBackground() {
         let background = SKShapeNode(rectOf: size, cornerRadius: TopBarLayout.cornerRadius)
         background.fillColor = .white
         background.strokeColor = .clear
@@ -173,23 +177,29 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     }
     
     func setupPanel() {
-        guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
-        
-        // Crear y configurar el icono del objetivo según el tipo
-        let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
-        objectiveIconNode = ObjectiveIconNode(type: iconType)
-        if let objIcon = objectiveIconNode {
-            objIcon.position = CGPoint(x: TopBarLayout.padding, y: TopBarLayout.padding/2)
-            addChild(objIcon)
+            // Eliminamos la creación del fondo blanco
+            guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
+            
+            let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
+            objectiveIconNode = ObjectiveIconNode(type: iconType)
+            if let objIcon = objectiveIconNode {
+                // Mover los iconos más hacia la derecha
+                objIcon.position = CGPoint(x: size.width * 0.3, y: TopBarLayout.padding/2)
+                addChild(objIcon)
+            }
+            
+            timeIconNode = ObjectiveIconNode(type: .time)
+            if let timeIcon = timeIconNode {
+                // Mover los iconos más hacia la derecha
+                timeIcon.position = CGPoint(x: size.width * 0.3, y: -TopBarLayout.padding/2)
+                addChild(timeIcon)
+            }
         }
         
-        // Crear y configurar el icono de tiempo
-        timeIconNode = ObjectiveIconNode(type: .time)
-        if let timeIcon = timeIconNode {
-            timeIcon.position = CGPoint(x: TopBarLayout.padding, y: -TopBarLayout.padding/2)
-            addChild(timeIcon)
+        override func setupBackground() {
+            // No crear fondo blanco para el panel de objetivos
         }
-    }
+
     
     private func getObjectiveIconType(for objectiveType: String) -> ObjectiveIcon {
         switch objectiveType {

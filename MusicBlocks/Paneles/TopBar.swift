@@ -116,7 +116,7 @@ class TopBar: SKNode {
         separator.position = CGPoint(x: (levelLabel?.frame.maxX ?? 0) + 5, y: 0)
         
         // Puntuación
-        let scoreIcon = SKLabelNode(text: "🏆")
+        let scoreIcon = SKLabelNode(text: "🪙")
         scoreIcon.fontSize = Layout.levelAndScoreFontSize
         scoreIcon.horizontalAlignmentMode = .left
         scoreIcon.verticalAlignmentMode = .center
@@ -209,8 +209,7 @@ class TopBar: SKNode {
     private func configureObjectivesBar(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
         objectivePanel?.removeFromParent()
         
-        let panelSize = CGSize(width: size.width - (Layout.objectivePanelMargin * 2),
-                               height: size.height - (Layout.objectivePanelMargin * 2))
+        let panelSize = CGSize(width: size.width, height: size.height)  // Usar todo el espacio disponible
         
         objectivePanel = ObjectivePanelFactory.createPanel(
             for: level.objectives.primary,
