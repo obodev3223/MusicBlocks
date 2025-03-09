@@ -11,29 +11,51 @@ import UIKit
 class TopBar: SKNode {
     // MARK: - Layout Configuration
     private struct Layout {
+        // Configuración del contenedor
         static let cornerRadius: CGFloat = 15
         static let backgroundAlpha: CGFloat = 0.95
         static let shadowOpacity: Float = 0.2
-        static let padding: CGFloat = 5
-        static let scoreFontSize: CGFloat = 16
+        
+        // Espaciado y márgenes
+        static let horizontalMargin: CGFloat = 15
+        static let verticalSpacing: CGFloat = 8
+        static let elementPadding: CGFloat = 10
+        
+        // Configuración de fuentes
+        static let scoreFontSize: CGFloat = 16     // Añadido para compatibilidad
+        static let levelFontSize: CGFloat = 16     // Mantenido
+        static let levelAndScoreFontSize: CGFloat = 18
+        
+        // Iconos y símbolos
+        static let scoreIconSize: CGFloat = 16
         static let heartSize: CGFloat = 16
         static let heartSpacing: CGFloat = 6
-        static let horizontalMargin: CGFloat = 15
-        static let levelFontSize: CGFloat = 16
-        static let verticalSpacing: CGFloat = 8
+        
+        // Divisores
+        static let dividerText = " - "
+        
+        // Panel de objetivos
+        static let objectivePanelWidth: CGFloat = 200
+        static let objectivePanelRightMargin: CGFloat = 20
+        
+        // Distribución vertical
+        static let topRowHeightRatio: CGFloat = 0.33
+        static let middleRowHeightRatio: CGFloat = 0.34
+        static let bottomRowHeightRatio: CGFloat = 0.33
     }
     
     // MARK: - Properties
     private let size: CGSize
+    private var levelAndScoreLabel: SKLabelNode!
+    private var heartNodes: [SKLabelNode] = []
+    private var objectivePanel: ObjectiveInfoPanel?
+    private var heartsContainer: SKNode?
     private let scoreLabel: SKLabelNode
     private let scoreIcon: SKLabelNode
     private let scoreText: SKLabelNode
     private var levelLabel: SKLabelNode
-    private var heartNodes: [SKLabelNode] = []
+
     private var score: Int = 0
-    
-    // Propiedad para mantener referencia al contenedor de corazones
-        private var heartsContainer: SKNode?
     
     // Propiedades para vidas
     private var maxLives: Int = 3 // Vidas base del nivel
@@ -43,6 +65,13 @@ class TopBar: SKNode {
     // MARK: - Initialization
     private init(width: CGFloat, height: CGFloat, position: CGPoint) {
         self.size = CGSize(width: width, height: height)
+        
+        // Inicializar etiqueta de nivel y puntuación combinada
+            levelAndScoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+            levelAndScoreLabel.fontSize = Layout.levelAndScoreFontSize
+            levelAndScoreLabel.fontColor = .purple
+            levelAndScoreLabel.verticalAlignmentMode = .center
+            levelAndScoreLabel.horizontalAlignmentMode = .left
         
         // Inicializar estrella de puntuación
         scoreIcon = SKLabelNode(text: "★")
@@ -83,48 +112,46 @@ class TopBar: SKNode {
     // MARK: - Setup
     private func setupNodes() {
         // Aplicar el estilo común del contenedor
-            applyContainerStyle(size: size)
-            
-            // Área izquierda (nivel y vidas)
-            let leftAreaNode = SKNode()
-            leftAreaNode.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: 0)
-            leftAreaNode.zPosition = 3
-            addChild(leftAreaNode)
-            
-        // Título del nivel - Ajustar posición y estilo
-        levelLabel.fontSize = Layout.levelFontSize
-        levelLabel.fontColor = .purple
-        levelLabel.horizontalAlignmentMode = .left
-        levelLabel.verticalAlignmentMode = .center
-        levelLabel.position = CGPoint(x: 0, y: size.height/4)
-        levelLabel.zPosition = 4  // Asegurar que esté por encima del fondo
-        leftAreaNode.addChild(levelLabel)
-            
-            // Contenedor para los corazones
-            let heartsNode = SKNode()
-            heartsNode.position = CGPoint(x: 0, y: levelLabel.position.y - Layout.heartSize - Layout.verticalSpacing)
-            leftAreaNode.addChild(heartsNode)
-            self.heartsContainer = heartsNode
-            
-            // Área de puntuación (derecha)
-            let scoreArea = SKNode()
-            scoreArea.position = CGPoint(x: size.width/2 - Layout.horizontalMargin, y: 0)
-            scoreArea.zPosition = 3
-            addChild(scoreArea)
-            
-            // Configurar puntuación
-            scoreIcon.position = CGPoint(x: -95, y: 0)
-            scoreText.position = CGPoint(x: -60, y: 0)
-            scoreLabel.position = CGPoint(x: -30, y: 0)
-            
-            scoreArea.addChild(scoreIcon)
-            scoreArea.addChild(scoreText)
-            scoreArea.addChild(scoreLabel)
-            
-            // Configurar corazones iniciales
-            if let container = heartsContainer {
-                setupHearts(in: container)
-            }
+        applyContainerStyle(size: size)
+        
+        // Contenedor principal
+        let mainContainer = SKNode()
+        mainContainer.position = CGPoint(x: -size.width/2 + Layout.horizontalMargin, y: size.height/2 - Layout.horizontalMargin)
+        addChild(mainContainer)
+        
+        // 1. Configurar fila superior (Nivel y Score)
+        setupTopRow(in: mainContainer)
+        
+        // 2. Configurar fila de corazones
+        setupHeartsRow(in: mainContainer)
+        
+        // 3. Área para el panel de objetivos
+        setupObjectivePanelArea(in: mainContainer)
+    }
+    
+    private func setupTopRow(in container: SKNode) {
+            levelAndScoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+            levelAndScoreLabel.fontSize = Layout.levelAndScoreFontSize
+            levelAndScoreLabel.fontColor = .purple
+            levelAndScoreLabel.horizontalAlignmentMode = .left
+            levelAndScoreLabel.verticalAlignmentMode = .top
+            levelAndScoreLabel.position = CGPoint(x: 0, y: 0)
+            container.addChild(levelAndScoreLabel)
+        }
+        
+        private func setupHeartsRow(in container: SKNode) {
+            heartsContainer = SKNode()
+            heartsContainer?.position = CGPoint(x: 0, y: -size.height * Layout.topRowHeightRatio - Layout.verticalSpacing)
+            container.addChild(heartsContainer!)
+            setupHearts(in: heartsContainer!)
+        }
+        
+        private func setupObjectivePanelArea(in container: SKNode) {
+            // El panel de objetivos se añadirá dinámicamente en configure()
+        }
+        
+        func updateLevelAndScore(level: Int, score: Int) {
+            levelAndScoreLabel.text = "Nivel \(level)\(Layout.dividerText)Score: \(score)"
         }
     
     private func setupHearts(in container: SKNode) {
@@ -171,40 +198,48 @@ class TopBar: SKNode {
     
     // Método para configurar el nivel inicial
     func configure(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
-        maxLives = level.lives.initial
-        maxExtraLives = level.lives.extraLives.maxExtra
-        lives = level.lives.initial
-        
-        levelLabel.text = "Nivel \(level.levelId)"
-        
-        let panelSize = CGSize(width: size.width * 0.6, height: TopBarLayout.panelHeight)
-                let panel = ObjectivePanelFactory.createPanel(
-                    for: level.objectives.primary,
-                    size: panelSize,
-                    tracker: objectiveTracker
+            // Actualizar nivel y score
+            updateLevelAndScore(level: level.levelId, score: 0)
+            
+            // Configurar vidas
+            maxLives = level.lives.initial
+            maxExtraLives = level.lives.extraLives.maxExtra
+            lives = level.lives.initial
+            
+            // Eliminar panel anterior si existe
+            objectivePanel?.removeFromParent()
+            
+            // Crear y posicionar nuevo panel de objetivos
+            let panelSize = CGSize(
+                width: Layout.objectivePanelWidth,
+                height: size.height * Layout.middleRowHeightRatio
+            )
+            
+            objectivePanel = ObjectivePanelFactory.createPanel(
+                for: level.objectives.primary,
+                size: panelSize,
+                tracker: objectiveTracker
+            )
+            
+            if let panel = objectivePanel {
+                panel.position = CGPoint(
+                    x: size.width - Layout.objectivePanelWidth - Layout.objectivePanelRightMargin,
+                    y: -size.height * Layout.topRowHeightRatio
                 )
-        
-        if let container = heartsContainer {
-            setupHearts(in: container)
-            // Importante: actualizar las vidas inmediatamente después de configurar
-            updateLives(level.lives.initial)
+                addChild(panel)
+            }
+            
+            // Actualizar vidas
+            if let container = heartsContainer {
+                setupHearts(in: container)
+                updateLives(level.lives.initial)
+            }
         }
-        updateScore(0)
-        
-        addChild(panel)
-        
-        print("TopBar configurada - Nivel: \(level.levelId), Vidas base: \(maxLives), Vidas extra posibles: \(maxExtraLives), Vidas actuales: \(lives)")
-    }
     
     func updateScore(_ newScore: Int) {
-        score = newScore
-        scoreLabel.text = "\(score)"
-        
-        // Animar actualización
-        let scaleUp = SKAction.scale(to: 1.1, duration: 0.1)
-        let scaleDown = SKAction.scale(to: 1.0, duration: 0.1)
-        scoreLabel.run(SKAction.sequence([scaleUp, scaleDown]))
-    }
+            guard let levelId = Int(levelAndScoreLabel.text?.components(separatedBy: Layout.dividerText).first?.replacingOccurrences(of: "Nivel ", with: "") ?? "0") else { return }
+            updateLevelAndScore(level: levelId, score: newScore)
+        }
     
     func updateLives(_ newLives: Int) {
         self.lives = newLives

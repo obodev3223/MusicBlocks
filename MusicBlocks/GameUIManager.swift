@@ -15,6 +15,7 @@ class GameUIManager {
     private var backgroundPattern: BackgroundPatternNode!
     private var topBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
+    private var objectiveTracker: LevelObjectiveTracker?
     
     // Indicadores
     var stabilityIndicatorNode: StabilityIndicatorNode!
@@ -70,6 +71,9 @@ class GameUIManager {
     func updateUI(score: Int, lives: Int) {
         topBarNode?.updateScore(score)
         topBarNode?.updateLives(lives)
+        
+        // Actualizar progreso del objetivo si hay score
+        objectiveTracker?.updateProgress(score: score)
     }
     
     // MARK: - Setup Methods
@@ -100,39 +104,49 @@ class GameUIManager {
     // MARK: - UI Setup Methods
     
     func configureTopBar(withLevel level: GameLevel) {
-        topBarNode?.configure(withLevel: level)
-    }
-    
-    private func setupTopBar(width: CGFloat, height: CGFloat) {
-        guard let scene = scene else { return }
-        let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
-        let position = CGPoint(
-            x: scene.size.width / 2,
-            y: scene.size.height - safeAreaTop - height / 2
-        )
-        
-        topBarNode = TopBar.create(width: width, height: height, position: position)
-        
-        if let topBar = topBarNode {
-            topBar.zPosition = 100
+            // Crear nuevo tracker para el nivel
+            objectiveTracker = LevelObjectiveTracker(level: level)
             
-            if let currentLevel = GameManager.shared.currentLevel {
-                topBar.configure(withLevel: currentLevel)
-                // Inicializar inmediatamente las vidas
-                topBar.updateLives(currentLevel.lives.initial)
-                topBar.updateScore(0)
+            // Configurar TopBar con el nivel y el tracker
+            if let tracker = objectiveTracker {
+                topBarNode?.configure(withLevel: level, objectiveTracker: tracker)
             }
-            
-            scene.addChild(topBar)
-            
-            print("TopBar configurada en posición: \(position)")
-            print("TopBar frame: \(topBar.frame)")
-            print("Scene size: \(scene.size)")
-            print("Safe area top: \(safeAreaTop)")
-        } else {
-            print("Error: No se pudo crear la TopBar")
         }
-    }
+        
+        private func setupTopBar(width: CGFloat, height: CGFloat) {
+            guard let scene = scene else { return }
+            let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
+            let position = CGPoint(
+                x: scene.size.width / 2,
+                y: scene.size.height - safeAreaTop - height / 2
+            )
+            
+            topBarNode = TopBar.create(width: width, height: height, position: position)
+            
+            if let topBar = topBarNode {
+                topBar.zPosition = 100
+                
+                if let currentLevel = GameManager.shared.currentLevel {
+                    // Crear tracker para el nivel inicial
+                    objectiveTracker = LevelObjectiveTracker(level: currentLevel)
+                    
+                    if let tracker = objectiveTracker {
+                        topBar.configure(withLevel: currentLevel, objectiveTracker: tracker)
+                        topBar.updateLives(currentLevel.lives.initial)
+                        topBar.updateScore(0)
+                    }
+                }
+                
+                scene.addChild(topBar)
+                
+                print("TopBar configurada en posición: \(position)")
+                print("TopBar frame: \(topBar.frame)")
+                print("Scene size: \(scene.size)")
+                print("Safe area top: \(safeAreaTop)")
+            } else {
+                print("Error: No se pudo crear la TopBar")
+            }
+        }
     
     private func setupMainArea(width: CGFloat, height: CGFloat, topBarHeight: CGFloat) {
         guard let scene = scene else { return }
@@ -382,4 +396,22 @@ class GameUIManager {
     func getMainAreaDimensions() -> (width: CGFloat, height: CGFloat) {
         return (mainAreaWidth, mainAreaHeight)
     }
+            
+        // Método adicional para actualizar el progreso del objetivo
+        func updateObjectiveProgress(
+            score: Int? = nil,
+            noteHit: Bool? = nil,
+            accuracy: Double? = nil,
+            blockDestroyed: String? = nil,
+            deltaTime: TimeInterval? = nil
+        ) {
+            objectiveTracker?.updateProgress(
+                score: score,
+                noteHit: noteHit,
+                accuracy: accuracy,
+                blockDestroyed: blockDestroyed,
+                deltaTime: deltaTime
+            )
+        }
+
 }
