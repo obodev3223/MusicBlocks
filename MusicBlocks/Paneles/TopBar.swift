@@ -251,6 +251,7 @@ import SwiftUI
 
 extension TopBar {
     static func createPreviewScene() -> SKScene {
+        
         // Crear una escena de ejemplo con diferentes estados de TopBar
         let scene = SKScene(size: CGSize(width: 400, height: 300))
         scene.backgroundColor = .lightGray
@@ -280,6 +281,7 @@ extension TopBar {
             blocks: [:]
         )
         
+        let mockObjectiveTracker = LevelObjectiveTracker(level: level0)
         
         // Crear un TopBar con nivel tutorial (3 vidas + 2 extra)
         let tutorialBar = TopBar.create(
@@ -287,7 +289,7 @@ extension TopBar {
             height: 60,
             position: CGPoint(x: 200, y: 250)
         )
-        tutorialBar.configure(withLevel: level0)
+        tutorialBar.configure(withLevel: level0, objectiveTracker: mockObjectiveTracker)
         tutorialBar.updateScore(0)
         scene.addChild(tutorialBar)
         
