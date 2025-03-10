@@ -103,7 +103,7 @@ class TopBarBaseNode: SKNode {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setupBackground() {
+     func setupBackground() {
         let background = SKShapeNode(rectOf: size, cornerRadius: TopBarLayout.cornerRadius)
         background.fillColor = .white
         background.strokeColor = .clear
@@ -177,24 +177,24 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     }
     
     func setupPanel() {
-            // Eliminamos la creación del fondo blanco
-            guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
-            
-            let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
-            objectiveIconNode = ObjectiveIconNode(type: iconType)
-            if let objIcon = objectiveIconNode {
-                // Mover los iconos más hacia la derecha
-                objIcon.position = CGPoint(x: size.width * 0.3, y: TopBarLayout.padding/2)
-                addChild(objIcon)
-            }
-            
-            timeIconNode = ObjectiveIconNode(type: .time)
-            if let timeIcon = timeIconNode {
-                // Mover los iconos más hacia la derecha
-                timeIcon.position = CGPoint(x: size.width * 0.3, y: -TopBarLayout.padding/2)
-                addChild(timeIcon)
-            }
+        // Eliminamos la creación del fondo blanco
+        guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
+        
+        let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
+        objectiveIconNode = ObjectiveIconNode(type: iconType)
+        if let objIcon = objectiveIconNode {
+            // Centrar el icono horizontalmente en el contenedor
+            objIcon.position = CGPoint(x: 0, y: TopBarLayout.padding/2)
+            addChild(objIcon)
         }
+        
+        timeIconNode = ObjectiveIconNode(type: .time)
+        if let timeIcon = timeIconNode {
+            // Centrar el icono horizontalmente en el contenedor
+            timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.padding/2)
+            addChild(timeIcon)
+        }
+    }
         
         override func setupBackground() {
             // No crear fondo blanco para el panel de objetivos
