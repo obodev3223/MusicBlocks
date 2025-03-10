@@ -67,14 +67,17 @@ class ObjectiveIconNode: SKNode {
         
         icon.fontSize = TopBarLayout.fontSize
         icon.verticalAlignmentMode = .center
-        icon.horizontalAlignmentMode = .left
+        // Cambiamos la alineación horizontal a .center
+        icon.horizontalAlignmentMode = .center
+        icon.position = CGPoint(x: -TopBarLayout.iconTextSpacing/2, y: 0)
         
         value.fontSize = TopBarLayout.smallFontSize
         value.fontColor = .darkGray
         value.verticalAlignmentMode = .center
+        // Cambiamos la alineación horizontal a .left
         value.horizontalAlignmentMode = .left
-        // Aumentar la separación entre icono y texto
-        value.position = CGPoint(x: icon.frame.maxX + TopBarLayout.iconTextSpacing, y: 0)
+        // Posicionamos el valor a la derecha del icono
+        value.position = CGPoint(x: icon.position.x + TopBarLayout.iconTextSpacing, y: 0)
         
         addChild(icon)
         addChild(value)

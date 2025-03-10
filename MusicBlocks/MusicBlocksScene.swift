@@ -237,6 +237,11 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             deviation: deviation,
             isActive: true
         )
+        
+        // Actualizar la información del objetivo en la UI
+            if let progress = objectiveTracker?.getCurrentProgress() {
+                uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+            }
     }
     
     func audioControllerDidDetectSilence(_ controller: AudioController) {

@@ -116,6 +116,10 @@ class LevelObjectiveTracker {
             return calculateProgress(for: primaryObjective)
         }
     
+    func getCurrentProgress() -> ObjectiveProgress {
+        return currentProgress
+    }
+    
     private func calculateProgress(for objective: Objective) -> Double {
         switch objective.type {
         case "score":
