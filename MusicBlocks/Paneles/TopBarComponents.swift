@@ -7,6 +7,7 @@
 
 import SpriteKit
 import UIKit
+import Foundation
 
 // MARK: - Constantes y Configuración
 private enum TopBarLayout {

@@ -77,16 +77,8 @@ class GameUIManager {
         if let tracker = objectiveTracker {
             tracker.updateProgress(score: score)
             
-            // Crear el objeto de progreso con los datos actualizados
-            let progress = ObjectiveProgress(
-                score: score,
-                notesHit: tracker.notesHit,
-                accuracySum: tracker.accuracySum,
-                accuracyCount: tracker.accuracyCount,
-                blocksByType: tracker.blocksByType,
-                totalBlocksDestroyed: tracker.totalBlocksDestroyed,
-                timeElapsed: tracker.timeElapsed
-            )
+            // Obtener el progreso actual directamente
+            let progress = tracker.getCurrentProgress()
             
             // Actualizar el panel de objetivos con estos datos
             rightTopBarNode?.updateObjectiveInfo(with: progress)
