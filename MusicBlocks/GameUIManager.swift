@@ -13,8 +13,8 @@ class GameUIManager {
     private weak var scene: SKScene?
     private weak var mainAreaNode: SKNode?
     private var backgroundPattern: BackgroundPatternNode!
-    private var leftTopBarNode: TopBar?
-    private var rightTopBarNode: TopBar?
+    var leftTopBarNode: TopBar?
+    var rightTopBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
     private var objectiveTracker: LevelObjectiveTracker?
     

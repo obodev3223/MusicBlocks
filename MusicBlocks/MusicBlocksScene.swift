@@ -22,6 +22,8 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     
     // MARK: - Game State
     private var lastUpdateTime: TimeInterval = 0
+    private var lastTimeUpdate: TimeInterval = 0
+    private let timeUpdateInterval: TimeInterval = 1.0 // Actualizar cada segundo
     
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
@@ -139,6 +141,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
     
     // MARK: - Update Methods
     override func update(_ currentTime: TimeInterval) {
+        // Mantener la actualización original
         lastUpdateTime = currentTime
         
         // Si el juego está en curso, comprobar la posición de los bloques
@@ -146,8 +149,28 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             // Comprobar posición de bloques primero
             gameEngine.checkBlocksPosition()
             
+            // Actualizar el tiempo si ha pasado el intervalo
+            if currentTime - lastTimeUpdate >= timeUpdateInterval {
+                lastTimeUpdate = currentTime
+                updateTimeDisplay()
+            }
+            
             // Luego actualizar el estado del juego
             updateGameState()
+        }
+    }
+
+    // Añadir este método para actualizar la información del tiempo
+    private func updateTimeDisplay() {
+        if let progress = objectiveTracker?.getCurrentProgress() {
+            // Incrementar el tiempo transcurrido
+            objectiveTracker?.updateProgress(deltaTime: timeUpdateInterval)
+            
+            // Obtener el progreso actualizado después de incrementar el tiempo
+            let updatedProgress = objectiveTracker?.getCurrentProgress() ?? progress
+            
+            // Actualizar el panel de objetivos con el tiempo actualizado
+            uiManager.rightTopBarNode?.updateObjectiveInfo(with: updatedProgress)
         }
     }
     

@@ -88,6 +88,10 @@ class ObjectiveIconNode: SKNode {
         fatalError("init(coder:) has not been implemented")
     }
     
+    func updateValueColor(_ color: SKColor) {
+        value.fontColor = color
+    }
+    
     func updateValue(_ newValue: String) {
         value.text = newValue
     }
@@ -107,7 +111,7 @@ class TopBarBaseNode: SKNode {
         fatalError("init(coder:) has not been implemented")
     }
     
-     func setupBackground() {
+    func setupBackground() {
         let background = SKShapeNode(rectOf: size, cornerRadius: TopBarLayout.cornerRadius)
         background.fillColor = .white
         background.strokeColor = .clear
@@ -199,11 +203,11 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             addChild(timeIcon)
         }
     }
-        
-        override func setupBackground() {
-            // No crear fondo blanco para el panel de objetivos
-        }
-
+    
+    override func setupBackground() {
+        // No crear fondo blanco para el panel de objetivos
+    }
+    
     
     private func getObjectiveIconType(for objectiveType: String) -> ObjectiveIcon {
         switch objectiveType {
@@ -233,24 +237,34 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             break
         }
         
-        // Actualizar el tiempo
+        // Actualizar el tiempo - mostrando siempre el tiempo restante
         if let timeLimit = objective.timeLimit {
             let timeLimitInterval = TimeInterval(timeLimit)
             let remainingTime = max(timeLimitInterval - progress.timeElapsed, 0)
             let minutes = Int(remainingTime) / 60
             let seconds = Int(remainingTime) % 60
             timeIconNode?.updateValue(String(format: "%02d:%02d", minutes, seconds))
+            
+            // Ya que no podemos acceder directamente a fontColor, vamos a crear un método en ObjectiveIconNode
+            if remainingTime < 30 {
+                // En lugar de esto que no funciona:
+                // timeIconNode?.value.fontColor = .red
+                timeIconNode?.updateValueColor(SKColor.red)
+            } else {
+                timeIconNode?.updateValueColor(SKColor.darkGray)
+            }
         } else {
             timeIconNode?.updateValue("∞")
+            timeIconNode?.updateValueColor(SKColor.darkGray)
         }
     }
 }
-    // MARK: - Fábrica de Paneles
-    class ObjectivePanelFactory {
-        static func createPanel(for objective: Objective, size: CGSize, tracker: LevelObjectiveTracker) -> ObjectiveInfoPanel {
-            return ObjectiveInfoPanel(size: size, objectiveTracker: tracker)
-        }
+// MARK: - Fábrica de Paneles
+class ObjectivePanelFactory {
+    static func createPanel(for objective: Objective, size: CGSize, tracker: LevelObjectiveTracker) -> ObjectiveInfoPanel {
+        return ObjectiveInfoPanel(size: size, objectiveTracker: tracker)
     }
+}
 
 
 #if DEBUG
