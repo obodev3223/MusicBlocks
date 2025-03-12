@@ -316,6 +316,7 @@ struct TopBarComponentsPreviewScene: View {
         let level = GameLevel(
             levelId: 1,
             name: "Nivel de prueba",
+            maxScore: 600,
             allowedStyles: ["default"],
             fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
             lives: Lives(

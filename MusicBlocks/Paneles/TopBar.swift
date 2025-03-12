@@ -284,6 +284,7 @@ extension TopBar {
         let level0 = GameLevel(
             levelId: 0,
             name: "Nivel 0. Tutorial",
+            maxScore: 500,
             allowedStyles: ["default"],
             fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
             lives: Lives(

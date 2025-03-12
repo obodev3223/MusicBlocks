@@ -51,14 +51,12 @@ struct ObjectiveParams: Codable {
     let timeLimit: Int?
     let minimumAccuracy: Double?
     let details: [String: Int]?
-    let requireAll: Bool?
     
     enum CodingKeys: String, CodingKey {
         case target
         case timeLimit = "time_limit"
         case minimumAccuracy = "minimum_accuracy"
         case details
-        case requireAll = "require_all"
     }
 }
 
@@ -76,6 +74,7 @@ struct AccuracyLevel: Codable {
 struct GameLevel: Codable {
     let levelId: Int
     let name: String
+    let maxScore: Int
     let allowedStyles: [String]
     let fallingSpeed: FallingSpeed
     let lives: Lives
@@ -94,6 +93,7 @@ struct GameLevel: Codable {
     enum CodingKeys: String, CodingKey {
         case levelId = "level_id"
         case name
+        case maxScore = "max_score"
         case allowedStyles = "allowed_styles"
         case fallingSpeed = "falling_speed"
         case lives

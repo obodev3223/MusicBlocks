@@ -3,7 +3,7 @@
     Configuración principal del juego MusicBlocks
     Última actualización: 29-02-2025
     */
-    "game_version": "0.6",
+    "game_version": "0.7",
     /*
     Tipos de objetivos soportados:
     score: Alcanzar una puntuación específica en un tiempo límite
@@ -11,7 +11,6 @@
     note_accuracy: Acertar un número determinado de notas con cierta precisión de afinación
     block_destruction: Destruir un número específico de bloques de ciertos tipos
     total_blocks: Destruir un número total de bloques sin importar el tipo
-    multi_objective: Combinar varios objetivos que deben cumplirse
     */
     "objective_types": {
         // El tipo de objetivo score, total_notes, note_accuracy, block_destruction, total_blocks
