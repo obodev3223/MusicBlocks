@@ -13,14 +13,14 @@ import Foundation
 private enum TopBarLayout {
     static let cornerRadius: CGFloat = 15
     static let padding: CGFloat = 18
-    static let iconTextSpacing: CGFloat = 24      // Aumentado el espacio entre icono y texto
+    static let iconTextSpacing: CGFloat = 16      // Reducido para mejor ajuste
     static let fontSize: CGFloat = 14
     static let titleFontSize: CGFloat = 16
     static let smallFontSize: CGFloat = 12
-    static let verticalSpacing: CGFloat = 4
+    static let verticalSpacing: CGFloat = 8       // Aumentado para mejor separación
     static let horizontalSpacing: CGFloat = 8
     static let panelHeight: CGFloat = 60
-    static let iconSize: CGFloat = 20             // Tamaño para los iconos de imagen
+    static let iconSize: CGFloat = 18             // Reducido ligeramente
 }
 
 // MARK: - Estructuras de Datos
@@ -205,21 +205,20 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     }
     
     func setupPanel() {
-        // Eliminamos la creación del fondo blanco
         guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
         
         let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
         objectiveIconNode = ObjectiveIconNode(type: iconType)
         if let objIcon = objectiveIconNode {
-            // Centrar el icono horizontalmente en el contenedor
-            objIcon.position = CGPoint(x: 0, y: TopBarLayout.padding/2)
+            // Ajustamos la posición vertical del primer icono
+            objIcon.position = CGPoint(x: TopBarLayout.padding, y: TopBarLayout.verticalSpacing * 2)
             addChild(objIcon)
         }
         
         timeIconNode = ObjectiveIconNode(type: .time)
         if let timeIcon = timeIconNode {
-            // Centrar el icono horizontalmente en el contenedor
-            timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.padding/2)
+            // Aumentamos la separación vertical entre iconos
+            timeIcon.position = CGPoint(x: TopBarLayout.padding, y: -TopBarLayout.verticalSpacing * 2)
             addChild(timeIcon)
         }
     }
@@ -302,7 +301,7 @@ struct TopBarComponentsPreviewScene: View {
                 
                 SpriteView(scene: createPreviewScene(size: geometry.size))
                     .frame(width: geometry.size.width, height: geometry.size.height)
-                    .edgesIgnoringSafeArea(.all)
+                  
             }
         }
         .previewDisplayName("TopBars Layout")

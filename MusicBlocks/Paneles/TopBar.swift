@@ -90,14 +90,17 @@ class TopBar: SKNode {
     }
     
     private func setupMainTopBar(in container: SKNode) {
-        // Primero configuramos el nivel
+        // Ajustamos el contenedor principal para dar más espacio
+        container.position = CGPoint(x: 0, y: size.height/2 - Layout.elementPadding)
+        
+        // Configuramos el nivel alineado a la izquierda
         setupLevelIndicator(in: container)
         
-        // Luego configuramos los corazones (vidas) en la fila superior
-        setupHeartsRow(in: container, yPosition: 0)
+        // Configuramos los corazones a la derecha del nivel
+        setupHeartsRow(in: container)
         
-        // Finalmente configuramos el score en la fila inferior
-        setupScoreDisplay(in: container, yPosition: -(size.height/2) + Layout.verticalSpacing)
+        // Configuramos la barra de progreso debajo
+        setupScoreDisplay(in: container)
     }
     
     private func setupObjectivesTopBar(in container: SKNode) {
@@ -105,39 +108,51 @@ class TopBar: SKNode {
     }
     
     private func setupLevelIndicator(in container: SKNode) {
-        // Nivel
         levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         levelLabel?.fontSize = Layout.levelAndScoreFontSize
         levelLabel?.fontColor = .purple
         levelLabel?.horizontalAlignmentMode = .left
         levelLabel?.verticalAlignmentMode = .center
-        levelLabel?.text = "Nivel 1"
+        levelLabel?.position = CGPoint(x: Layout.elementPadding, y: 0)
         
         if let level = levelLabel {
             container.addChild(level)
         }
     }
-    
-    private func setupScoreDisplay(in container: SKNode, yPosition: CGFloat) {
-        scoreContainer = SKNode()
-        scoreContainer?.position = CGPoint(x: 0, y: yPosition)
+
+    private func setupHeartsRow(in container: SKNode) {
+        heartsContainer = SKNode()
         
-        // Usar el Layout.padding definido en TopBar
-        let progressWidth = size.width - (Layout.horizontalMargin * 2)
+        // Posicionamos los corazones a la derecha del nivel con un espaciado
+        if let levelWidth = levelLabel?.frame.width {
+            heartsContainer?.position = CGPoint(
+                x: levelWidth + Layout.elementPadding * 2,
+                y: 0
+            )
+        }
+        
+        if let heartsContainer = heartsContainer {
+            container.addChild(heartsContainer)
+            setupHearts(in: heartsContainer)
+        }
+    }
+
+    private func setupScoreDisplay(in container: SKNode) {
+        scoreContainer = SKNode()
+        
+        // Posicionamos la barra de progreso debajo del nivel y los corazones
+        scoreContainer?.position = CGPoint(
+            x: Layout.elementPadding,
+            y: -Layout.verticalSpacing * 3 // Aumentamos el espaciado vertical
+        )
+        
+        // Ajustamos el ancho de la barra de progreso
+        let progressWidth = size.width - (Layout.elementPadding * 2)
         let scoreProgress = ScoreProgressNode(width: progressWidth)
         
         if let scoreNode = scoreContainer {
             scoreNode.addChild(scoreProgress)
             container.addChild(scoreNode)
-        }
-    }
-    
-    private func setupHeartsRow(in container: SKNode, yPosition: CGFloat) {
-        heartsContainer = SKNode()
-        heartsContainer?.position = CGPoint(x: levelLabel?.frame.maxX ?? 0 + 10, y: yPosition)
-        if let heartsContainer = heartsContainer {
-            container.addChild(heartsContainer)
-            setupHearts(in: heartsContainer)
         }
     }
     
@@ -264,17 +279,40 @@ class TopBar: SKNode {
 #if DEBUG
 import SwiftUI
 
-extension TopBar {
-    static func createPreviewScene() -> SKScene {
-        // Crear una escena de ejemplo
-        let scene = SKScene(size: CGSize(width: 800, height: 300))
-        scene.backgroundColor = .white
+// MARK: - TopBar Preview Provider
+struct TopBarPreview: PreviewProvider {
+    static var previews: some View {
+        TopBarPreviewContainer()
+            .previewDisplayName("TopBars - Principal y Objetivos")
+    }
+}
+
+// MARK: - Preview Container
+struct TopBarPreviewContainer: View {
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Fondo
+                Color.gray.opacity(0.1)
+                    
+                
+                // Scene View
+                SpriteView(scene: createPreviewScene(size: geometry.size))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    
+            }
+        }
+    }
+    
+    private func createPreviewScene(size: CGSize) -> SKScene {
+        let scene = SKScene(size: size)
+        scene.backgroundColor = .clear
         
         // Crear nivel de ejemplo
-        let level0 = GameLevel(
-            levelId: 0,
-            name: "Nivel 0. Tutorial",
-            maxScore: 500,
+        let level = GameLevel(
+            levelId: 1,
+            name: "Nivel de prueba",
+            maxScore: 600,
             allowedStyles: ["default"],
             fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
             lives: Lives(
@@ -287,7 +325,7 @@ extension TopBar {
             objectives: Objectives(
                 primary: Objective(
                     type: "score",
-                    target: 100,
+                    target: 1000,
                     timeLimit: 180,
                     minimumAccuracy: nil,
                     details: nil
@@ -296,48 +334,98 @@ extension TopBar {
             blocks: [:]
         )
         
-        let mockObjectiveTracker = LevelObjectiveTracker(level: level0)
+        let mockObjectiveTracker = LevelObjectiveTracker(level: level)
         
-        // Crear TopBar izquierda (principal)
+        // Calcular dimensiones responsivas
+        let safeWidth = size.width - 16
+        let topBarWidth = safeWidth * 0.47
+        let topBarHeight: CGFloat = min(60, size.height * 0.1)
+        let yPosition = size.height - topBarHeight/2 - 6
+        
+        // Crear TopBars
         let leftBar = TopBar.create(
-            width: 370,  // Aproximadamente 47% de 800
-            height: 60,
-            position: CGPoint(x: 190, y: 250),
+            width: topBarWidth,
+            height: topBarHeight,
+            position: CGPoint(x: 8 + topBarWidth/2, y: yPosition),
             type: .main
         )
-        // Crear TopBar derecha (objetivos)
+        
         let rightBar = TopBar.create(
-            width: 370,  // Aproximadamente 47% de 800
-            height: 60,
-            position: CGPoint(x: 610, y: 250),
+            width: topBarWidth,
+            height: topBarHeight,
+            position: CGPoint(x: size.width - 8 - topBarWidth/2, y: yPosition),
             type: .objectives
         )
         
-        // Configurar ambas barras
-        leftBar.configure(withLevel: level0, objectiveTracker: mockObjectiveTracker)
-        rightBar.configure(withLevel: level0, objectiveTracker: mockObjectiveTracker)
+        // Configurar las barras
+        leftBar.configure(withLevel: level, objectiveTracker: mockObjectiveTracker)
+        rightBar.configure(withLevel: level, objectiveTracker: mockObjectiveTracker)
         
-        // Actualizar estado inicial
-        leftBar.updateScore(0)
+        // Simular datos de ejemplo
+        leftBar.updateScore(300)
+        leftBar.updateLives(2)
         
-        // Añadir a la escena
+        let progress = ObjectiveProgress(
+            score: 300,
+            notesHit: 15,
+            accuracySum: 85.0,
+            accuracyCount: 1,
+            totalBlocksDestroyed: 15,
+            timeElapsed: 45
+        )
+        rightBar.updateObjectiveInfo(with: progress)
+        
+        // Añadir barras a la escena
         scene.addChild(leftBar)
         scene.addChild(rightBar)
         
+        // Añadir líneas guía para desarrollo
+        #if DEBUG
+        addGuideLines(to: scene, size: size)
+        #endif
+        
         return scene
+    }
+    
+    private func addGuideLines(to scene: SKScene, size: CGSize) {
+        let guideColor = UIColor.red.withAlphaComponent(0.3)
+        
+        // Márgenes verticales
+        let leftMargin = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
+        leftMargin.position = CGPoint(x: 8, y: size.height/2)
+        leftMargin.fillColor = guideColor
+        scene.addChild(leftMargin)
+        
+        let rightMargin = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
+        rightMargin.position = CGPoint(x: size.width - 8, y: size.height/2)
+        rightMargin.fillColor = guideColor
+        scene.addChild(rightMargin)
+        
+        // Línea central
+        let centerLine = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
+        centerLine.position = CGPoint(x: size.width/2, y: size.height/2)
+        centerLine.fillColor = guideColor
+        scene.addChild(centerLine)
     }
 }
 
-struct TopBarPreview: PreviewProvider {
+// MARK: - Multiple Device Previews
+struct TopBarPreview_MultipleDevices: PreviewProvider {
     static var previews: some View {
-        VStack {
-            // Vista previa de ambas TopBars
-            SpriteView(scene: TopBar.createPreviewScene())
-                .frame(width: 800, height: 300)
-                .previewLayout(.fixed(width: 800, height: 150))
+        Group {
+            TopBarPreviewContainer()
+                .previewDevice("iPhone 14")
+                .previewDisplayName("iPhone 14")
+            
+            TopBarPreviewContainer()
+                .previewDevice("iPhone 14 Pro Max")
+                .previewDisplayName("iPhone 14 Pro Max")
+            
+            TopBarPreviewContainer()
+                .previewDevice("iPad Pro (11-inch)")
+                .previewDisplayName("iPad Pro 11\"")
+                .previewInterfaceOrientation(.landscapeLeft)
         }
-        .background(Color.gray.opacity(0.1))
-        .previewDisplayName("TopBars - Principal y Objetivos")
     }
 }
 #endif
