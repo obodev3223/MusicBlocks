@@ -122,25 +122,12 @@ class TopBar: SKNode {
         scoreContainer = SKNode()
         scoreContainer?.position = CGPoint(x: 0, y: yPosition)
         
-        // Puntuación - Icono de moneda como imagen
-        let coinTexture = SKTexture(imageNamed: "coin_icon")
-        let scoreIcon = SKSpriteNode(texture: coinTexture)
-        scoreIcon.size = CGSize(width: Layout.iconSize, height: Layout.iconSize)
-        scoreIcon.position = CGPoint.zero
-        
-        scoreValue = SKLabelNode(fontNamed: "Helvetica-Bold")
-        scoreValue?.fontSize = Layout.levelAndScoreFontSize
-        scoreValue?.fontColor = .black
-        scoreValue?.horizontalAlignmentMode = .left
-        scoreValue?.verticalAlignmentMode = .center
-        scoreValue?.text = "0"
-        scoreValue?.position = CGPoint(x: scoreIcon.position.x + (scoreIcon.size.width / 2) + 5, y: 0)
+        // Usar el Layout.padding definido en TopBar
+        let progressWidth = size.width - (Layout.horizontalMargin * 2)
+        let scoreProgress = ScoreProgressNode(width: progressWidth)
         
         if let scoreNode = scoreContainer {
-            scoreNode.addChild(scoreIcon)
-            if let score = scoreValue {
-                scoreNode.addChild(score)
-            }
+            scoreNode.addChild(scoreProgress)
             container.addChild(scoreNode)
         }
     }
@@ -227,7 +214,10 @@ class TopBar: SKNode {
     func updateScore(_ newScore: Int) {
         if type == .main {
             score = newScore
-            scoreValue?.text = "\(newScore)"
+            if let scoreProgress = scoreContainer?.children.first as? ScoreProgressNode,
+               let currentLevel = GameManager.shared.currentLevel {
+                scoreProgress.updateProgress(score: newScore, maxScore: currentLevel.maxScore)
+            }
         }
     }
     
