@@ -172,7 +172,7 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             // Actualizar el panel de objetivos con el tiempo actualizado
             uiManager.rightTopBarNode?.updateObjectiveInfo(with: updatedProgress)
         }
-    }
+    } 
     
     private func updateGameState() {
         // Actualizar indicadores de estabilidad
