@@ -31,6 +31,7 @@ class TopBar: SKNode {
         static let levelAndScoreFontSize: CGFloat = 14
         
         // Iconos y símbolos
+        static let iconSize: CGFloat = 18
         static let heartSize: CGFloat = 16
         static let heartSpacing: CGFloat = 6
         
@@ -45,7 +46,8 @@ class TopBar: SKNode {
     // Propiedades para TopBar principal
     private var levelLabel: SKLabelNode?
     private var scoreValue: SKLabelNode?
-    private var heartNodes: [SKLabelNode] = []
+    private var scoreContainer: SKNode?
+    private var heartNodes: [SKSpriteNode] = [] // Cambiado a SKSpriteNode para imágenes
     private var heartsContainer: SKNode?
     
     // Propiedades para TopBar de objetivos
@@ -88,17 +90,21 @@ class TopBar: SKNode {
     }
     
     private func setupMainTopBar(in container: SKNode) {
-        setupLevelAndScore(in: container)
-        setupHeartsRow(in: container)
+        // Primero configuramos el nivel
+        setupLevelIndicator(in: container)
+        
+        // Luego configuramos los corazones (vidas) en la fila superior
+        setupHeartsRow(in: container, yPosition: 0)
+        
+        // Finalmente configuramos el score en la fila inferior
+        setupScoreDisplay(in: container, yPosition: -(size.height/2) + Layout.verticalSpacing)
     }
     
     private func setupObjectivesTopBar(in container: SKNode) {
         // El panel de objetivos se añadirá en configure()
     }
     
-    private func setupLevelAndScore(in container: SKNode) {
-        let topRowContainer = SKNode()
-        
+    private func setupLevelIndicator(in container: SKNode) {
         // Nivel
         levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         levelLabel?.fontSize = Layout.levelAndScoreFontSize
@@ -107,20 +113,20 @@ class TopBar: SKNode {
         levelLabel?.verticalAlignmentMode = .center
         levelLabel?.text = "Nivel 1"
         
-        // Separador
-        let separator = SKLabelNode(text: " • ")
-        separator.fontSize = Layout.levelAndScoreFontSize
-        separator.fontColor = .darkGray
-        separator.horizontalAlignmentMode = .left
-        separator.verticalAlignmentMode = .center
-        separator.position = CGPoint(x: (levelLabel?.frame.maxX ?? 0) + 5, y: 0)
+        if let level = levelLabel {
+            container.addChild(level)
+        }
+    }
+    
+    private func setupScoreDisplay(in container: SKNode, yPosition: CGFloat) {
+        scoreContainer = SKNode()
+        scoreContainer?.position = CGPoint(x: 0, y: yPosition)
         
-        // Puntuación
-        let scoreIcon = SKLabelNode(text: "🪙")
-        scoreIcon.fontSize = Layout.levelAndScoreFontSize
-        scoreIcon.horizontalAlignmentMode = .left
-        scoreIcon.verticalAlignmentMode = .center
-        scoreIcon.position = CGPoint(x: separator.frame.maxX + 5, y: 0)
+        // Puntuación - Icono de moneda como imagen
+        let coinTexture = SKTexture(imageNamed: "coin_icon")
+        let scoreIcon = SKSpriteNode(texture: coinTexture)
+        scoreIcon.size = CGSize(width: Layout.iconSize, height: Layout.iconSize)
+        scoreIcon.position = CGPoint.zero
         
         scoreValue = SKLabelNode(fontNamed: "Helvetica-Bold")
         scoreValue?.fontSize = Layout.levelAndScoreFontSize
@@ -128,21 +134,20 @@ class TopBar: SKNode {
         scoreValue?.horizontalAlignmentMode = .left
         scoreValue?.verticalAlignmentMode = .center
         scoreValue?.text = "0"
-        scoreValue?.position = CGPoint(x: scoreIcon.frame.maxX + 5, y: 0)
+        scoreValue?.position = CGPoint(x: scoreIcon.position.x + (scoreIcon.size.width / 2) + 5, y: 0)
         
-        if let level = levelLabel, let score = scoreValue {
-            topRowContainer.addChild(level)
-            topRowContainer.addChild(separator)
-            topRowContainer.addChild(scoreIcon)
-            topRowContainer.addChild(score)
+        if let scoreNode = scoreContainer {
+            scoreNode.addChild(scoreIcon)
+            if let score = scoreValue {
+                scoreNode.addChild(score)
+            }
+            container.addChild(scoreNode)
         }
-        
-        container.addChild(topRowContainer)
     }
     
-    private func setupHeartsRow(in container: SKNode) {
+    private func setupHeartsRow(in container: SKNode, yPosition: CGFloat) {
         heartsContainer = SKNode()
-        heartsContainer?.position = CGPoint(x: 0, y: -(size.height/2) + Layout.verticalSpacing)
+        heartsContainer?.position = CGPoint(x: levelLabel?.frame.maxX ?? 0 + 10, y: yPosition)
         if let heartsContainer = heartsContainer {
             container.addChild(heartsContainer)
             setupHearts(in: heartsContainer)
@@ -153,26 +158,22 @@ class TopBar: SKNode {
         heartNodes.forEach { $0.removeFromParent() }
         heartNodes.removeAll()
         
-        // Vidas base
+        // Vidas base - usando imágenes de corazón
         for i in 0..<maxLives {
-            let heart = SKLabelNode(text: "❤️")
-            heart.fontSize = Layout.heartSize
-            heart.verticalAlignmentMode = .center
-            heart.horizontalAlignmentMode = .left
+            let heartTexture = SKTexture(imageNamed: "heart_filled")
+            let heart = SKSpriteNode(texture: heartTexture)
+            heart.size = CGSize(width: Layout.heartSize, height: Layout.heartSize)
             heart.position = CGPoint(x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing), y: 0)
-            heart.fontColor = .red
             container.addChild(heart)
             heartNodes.append(heart)
         }
         
-        // Vidas extra
+        // Vidas extra - usando imágenes de corazón con diferente color
         for i in maxLives..<(maxLives + maxExtraLives) {
-            let heart = SKLabelNode(text: "")
-            heart.fontSize = Layout.heartSize
-            heart.verticalAlignmentMode = .center
-            heart.horizontalAlignmentMode = .left
+            let heartTexture = SKTexture(imageNamed: "heart_extra")
+            let heart = SKSpriteNode(texture: heartTexture)
+            heart.size = CGSize(width: Layout.heartSize, height: Layout.heartSize)
             heart.position = CGPoint(x: CGFloat(i) * (Layout.heartSize + Layout.heartSpacing), y: 0)
-            heart.fontColor = .systemYellow
             heart.alpha = 0
             container.addChild(heart)
             heartNodes.append(heart)
@@ -243,17 +244,19 @@ class TopBar: SKNode {
             
             if index < maxLives {
                 if index < lives {
-                    heart.text = "❤️"
-                    heart.fontColor = .red
+                    // Corazón lleno para vidas normales activas
+                    heart.texture = SKTexture(imageNamed: "heart_filled")
                 } else {
-                    heart.text = "♡"
-                    heart.fontColor = .red
+                    // Corazón vacío para vidas normales perdidas
+                    heart.texture = SKTexture(imageNamed: "heart_empty")
                 }
             } else if index < maxLives + maxExtraLives {
                 if index < lives {
-                    heart.text = "❤️"
-                    heart.fontColor = .systemYellow
+                    // Corazón extra activo
+                    heart.texture = SKTexture(imageNamed: "heart_extra_filled")
+                    heart.alpha = 1.0
                 } else {
+                    // Ocultar corazones extra no disponibles
                     heart.alpha = 0
                 }
             }

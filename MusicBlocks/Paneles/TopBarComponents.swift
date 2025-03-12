@@ -20,6 +20,7 @@ private enum TopBarLayout {
     static let verticalSpacing: CGFloat = 4
     static let horizontalSpacing: CGFloat = 8
     static let panelHeight: CGFloat = 60
+    static let iconSize: CGFloat = 20             // Tamaño para los iconos de imagen
 }
 
 // MARK: - Estructuras de Datos
@@ -45,39 +46,39 @@ enum ObjectiveIcon {
     case blocks
     case time
     
-    var symbol: String {
+    var imageName: String {
         switch self {
-        case .score: return "🏆"
-        case .totalNotes: return "🎵"
-        case .accuracy: return "🎯"
-        case .blocks: return "🟦"
-        case .time: return "⏱"
+        case .score: return "coin_icon"
+        case .totalNotes: return "note_icon"
+        case .accuracy: return "target_icon"
+        case .blocks: return "block_icon"
+        case .time: return "timer_icon"
         }
     }
 }
 
 class ObjectiveIconNode: SKNode {
-    private let icon: SKLabelNode
+    private let icon: SKSpriteNode
     private let value: SKLabelNode
     
     init(type: ObjectiveIcon) {
-        icon = SKLabelNode(text: type.symbol)
+        // Usar imagen en lugar de emoji
+        let iconTexture = SKTexture(imageNamed: type.imageName)
+        icon = SKSpriteNode(texture: iconTexture)
+        icon.size = CGSize(width: TopBarLayout.iconSize, height: TopBarLayout.iconSize)
+        
         value = SKLabelNode(fontNamed: "Helvetica")
         
         super.init()
         
-        icon.fontSize = TopBarLayout.fontSize
-        icon.verticalAlignmentMode = .center
-        // Cambiamos la alineación horizontal a .center
-        icon.horizontalAlignmentMode = .center
+        // Configurar icono
         icon.position = CGPoint(x: -TopBarLayout.iconTextSpacing/2, y: 0)
         
+        // Configurar valor
         value.fontSize = TopBarLayout.smallFontSize
         value.fontColor = .darkGray
         value.verticalAlignmentMode = .center
-        // Cambiamos la alineación horizontal a .left
         value.horizontalAlignmentMode = .left
-        // Posicionamos el valor a la derecha del icono
         value.position = CGPoint(x: icon.position.x + TopBarLayout.iconTextSpacing, y: 0)
         
         addChild(icon)
@@ -130,26 +131,45 @@ class TopBarBaseNode: SKNode {
 
 // MARK: - Componente de Tiempo
 class TimeDisplayNode: SKNode {
+    private let timeIcon: SKSpriteNode
     private let timeLabel: SKLabelNode
     private let timeLimit: TimeInterval
     private let startTime: Date
     
     init(timeLimit: TimeInterval) {
+        // Crear icono de tiempo
+        let iconTexture = SKTexture(imageNamed: "timer_icon")
+        timeIcon = SKSpriteNode(texture: iconTexture)
+        timeIcon.size = CGSize(width: TopBarLayout.iconSize, height: TopBarLayout.iconSize)
+        
         self.timeLabel = SKLabelNode(fontNamed: "Helvetica")
         self.timeLimit = timeLimit
         self.startTime = Date()
+        
         super.init()
-        setupTimeLabel()
+        
+        setupTimeComponents()
     }
     
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    private func setupTimeLabel() {
+    private func setupTimeComponents() {
+        // Posición del icono
+        timeIcon.position = CGPoint(x: -TopBarLayout.iconTextSpacing/2, y: 0)
+        addChild(timeIcon)
+        
+        // Configuración de la etiqueta
         timeLabel.fontSize = TopBarLayout.fontSize
         timeLabel.fontColor = .darkGray
+        timeLabel.verticalAlignmentMode = .center
+        timeLabel.horizontalAlignmentMode = .left
+        timeLabel.position = CGPoint(x: timeIcon.position.x + TopBarLayout.iconTextSpacing, y: 0)
         addChild(timeLabel)
+        
+        // Actualizar el tiempo inicial
+        update()
     }
     
     func update() {
@@ -208,7 +228,6 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         // No crear fondo blanco para el panel de objetivos
     }
     
-    
     private func getObjectiveIconType(for objectiveType: String) -> ObjectiveIcon {
         switch objectiveType {
         case "score": return .score
@@ -245,10 +264,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             let seconds = Int(remainingTime) % 60
             timeIconNode?.updateValue(String(format: "%02d:%02d", minutes, seconds))
             
-            // Ya que no podemos acceder directamente a fontColor, vamos a crear un método en ObjectiveIconNode
             if remainingTime < 30 {
-                // En lugar de esto que no funciona:
-                // timeIconNode?.value.fontColor = .red
                 timeIconNode?.updateValueColor(SKColor.red)
             } else {
                 timeIconNode?.updateValueColor(SKColor.darkGray)
@@ -259,6 +275,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         }
     }
 }
+
 // MARK: - Fábrica de Paneles
 class ObjectivePanelFactory {
     static func createPanel(for objective: Objective, size: CGSize, tracker: LevelObjectiveTracker) -> ObjectiveInfoPanel {
@@ -398,22 +415,23 @@ struct TopBarComponentsPreviewScene: View {
     }
 }
 
+
 // Vista previa adicional con diferentes tamaños de pantalla
 struct TopBarComponentsPreview_MultipleDevices: PreviewProvider {
-    static var previews: some View {
-        Group {
-            TopBarComponentsPreviewScene()
-                .previewDevice("iPhone 14")
-                .previewDisplayName("iPhone 14")
-            
-            TopBarComponentsPreviewScene()
-                .previewDevice("iPhone 14 Pro Max")
-                .previewDisplayName("iPhone 14 Pro Max")
-            
-            TopBarComponentsPreviewScene()
-                .previewDevice("iPad Pro (11-inch)")
-                .previewDisplayName("iPad Pro 11\"")
-        }
+static var previews: some View {
+    Group {
+        TopBarComponentsPreviewScene()
+            .previewDevice("iPhone 14")
+            .previewDisplayName("iPhone 14")
+        
+        TopBarComponentsPreviewScene()
+            .previewDevice("iPhone 14 Pro Max")
+            .previewDisplayName("iPhone 14 Pro Max")
+        
+        TopBarComponentsPreviewScene()
+            .previewDevice("iPad Pro (11-inch)")
+            .previewDisplayName("iPad Pro 11\"")
     }
+}
 }
 #endif

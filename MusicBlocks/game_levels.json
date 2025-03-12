@@ -79,6 +79,7 @@
         {
             "level_id": 0,
             "name": "Tutorial",
+            "max_score": 500,
             "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
             "falling_speed": {
                 "initial": 8.0,  // Velocidad de caida inicial
@@ -116,6 +117,7 @@
         {
             "level_id": 1,
             "name": "¡Comienza la aventura!",
+            "max_score": 600,
             "allowed_styles": ["defaultBlock", "iceBlock"],
             "falling_speed": {
                 "initial": 8.0,  // Velocidad de caida inicial
@@ -166,6 +168,7 @@
         {
             "level_id": 2,
             "name": "Más bloques...!",
+            "max_score": 700,
             "allowed_styles": ["defaultBlock", "hardIceBlock", "ghostBlock"],
             "falling_speed": {
                 "initial": 7.0,  // Velocidad de caida inicial
