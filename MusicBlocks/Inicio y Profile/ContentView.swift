@@ -45,9 +45,15 @@ struct ContentView: View {
                                         )
                                         .foregroundColor(.white)
                                     }
+                    // Agregamos un onTapGesture para detener la música de fondo al pulsar "Jugar"
+                                        .simultaneousGesture(TapGesture().onEnded {
+                                            audioController.stopBackgroundMusic()
+                                            audioController.playButtonSound()
+                                        })
                     
                     // Reemplazamos el NavigationLink con un botón personalizado
                     Button(action: {
+                        audioController.playButtonSound()
                         // Presentar el ProfileViewController
                         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                            let window = windowScene.windows.first,
@@ -88,6 +94,8 @@ struct ContentView: View {
         .onAppear {
             setupAudio()
             loadGameVersion()
+            // Iniciar la música de fondo al aparecer el menú
+                        audioController.startBackgroundMusic()
         }
         .onDisappear {
             audioController.stop()
@@ -98,7 +106,7 @@ struct ContentView: View {
         AVCaptureDevice.requestAccess(for: .audio) { granted in
             if granted {
                 DispatchQueue.main.async {
-                    audioController.start()
+//                    audioController.start()
                 }
             }
         }

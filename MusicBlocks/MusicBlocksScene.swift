@@ -9,7 +9,7 @@ import SpriteKit
 import UIKit
 import SwiftUI
 
-class MusicBlocksScene: SKScene, AudioControllerDelegate {
+class MusicBlocksScene: SKScene {
     @Environment(\.screenSize) var screenSize
     
     // MARK: - Managers
@@ -73,7 +73,10 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
         gameEngine = GameEngine(blockManager: blocksManager)
         
         // Configurar el delegado de audio
-        audioController.delegate = self
+        guard let engine = gameEngine else {
+            fatalError("GameEngine no se ha inicializado correctamente")
+        }
+        audioController.delegate = engine
         
         // IMPORTANTE: Actualizar UI con las vidas iniciales después de que todo esté configurado
         if let currentLevel = gameManager.currentLevel {
@@ -131,8 +134,6 @@ class MusicBlocksScene: SKScene, AudioControllerDelegate {
             await MainActor.run {
                 audioController.start()
                 print("✅ Motor de audio iniciado")
-                
-                // Iniciar generación de bloques DESPUÉS de que el audio esté listo
                 self.blocksManager.startBlockGeneration()
                 print("✅ Gameplay iniciado")
             }

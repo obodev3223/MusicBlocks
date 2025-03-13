@@ -11,32 +11,17 @@ class LevelObjectiveTracker {
     private let primaryObjective: Objective
     private var currentProgress: ObjectiveProgress
     
-//    struct ObjectiveProgress {
-//        var score: Int = 0
-//        var notesHit: Int = 0
-//        var accuracySum: Double = 0
-//        var accuracyCount: Int = 0
-//        var blocksByType: [String: Int] = [:]
-//        var totalBlocksDestroyed: Int = 0
-//        var timeElapsed: TimeInterval = 0
-//        
-//        var averageAccuracy: Double {
-//            return accuracyCount > 0 ? accuracySum / Double(accuracyCount) : 0
-//        }
-//    }
     
     init(level: GameLevel) {
-            self.primaryObjective = level.objectives.primary
-            self.currentProgress = ObjectiveProgress()
-            
-            // Inicializar contadores de bloques para objetivo de tipo block_destruction
-            if case "block_destruction" = primaryObjective.type,
-               let details = primaryObjective.details {
-                for (blockType, _) in details {
-                    currentProgress.blocksByType[blockType] = 0
-                }
-            }
+        self.primaryObjective = level.objectives.primary
+        self.currentProgress = ObjectiveProgress()
+        
+        // Inicializar contadores para cada estilo permitido en el nivel
+        for style in level.allowedStyles {
+            currentProgress.blocksByType[style] = 0
         }
+    }
+
         
         func getPrimaryObjective() -> Objective {
             return primaryObjective
@@ -70,6 +55,13 @@ class LevelObjectiveTracker {
                 currentProgress.blocksByType[blockType, default: 0] += 1
                 currentProgress.totalBlocksDestroyed += 1
             }
+        
+        // Actualizar tipo de bloque destruido
+        if let blockType = blockDestroyed {
+            currentProgress.blocksByType[blockType, default: 0] += 1
+            currentProgress.totalBlocksDestroyed += 1
+        }
+
             
             // Actualizar tiempo
             if let deltaTime = deltaTime {

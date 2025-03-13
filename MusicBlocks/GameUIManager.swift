@@ -160,10 +160,10 @@ class GameUIManager {
             scene.addChild(rightBar)
             
             // Debug de posiciones
-            print("Left TopBar position: \(leftXPosition)")
-            print("Right TopBar position: \(rightXPosition)")
-            print("TopBar width: \(topBarWidth)")
-            print("Scene width: \(scene.size.width)")
+//            print("Left TopBar position: \(leftXPosition)")
+//            print("Right TopBar position: \(rightXPosition)")
+//            print("TopBar width: \(topBarWidth)")
+//            print("Scene width: \(scene.size.width)")
         }
     }
     
@@ -191,7 +191,7 @@ class GameUIManager {
         mainAreaNode = mainContent
         scene.addChild(containerNode)
         
-        print("MainArea configurada - Tamaño: \(width)x\(height)")
+      //  print("MainArea configurada - Tamaño: \(width)x\(height)")
     }
 
     private func addDangerZone(to container: SKNode, width: CGFloat, height: CGFloat) {

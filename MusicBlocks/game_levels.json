@@ -44,8 +44,8 @@
             "description": "Destruir bloques específicos",
             "params": {
                 "details": {
-                    "ghost": 2, // El tipo de bloque y el número de bloques a acertar
-                    "hardIce": 3,
+                    "ghostBlock": 2, // El tipo de bloque y el número de bloques a acertar
+                    "hardIceBlock": 3,
                     "defaultBlock": 6
                 },
                 "time_limit": 90, // Límite de tiempo (0 para sin límite)

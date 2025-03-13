@@ -2,7 +2,8 @@
 //  AudioController.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 7/3/25.
+//  Created by Jose R. García on 13/3/25.
+//  Actualizado para obtener dinámicamente el requiredHoldTime del bloque actual.
 //
 
 import AudioKit
@@ -13,6 +14,8 @@ import SoundpipeAudioKit
 protocol AudioControllerDelegate: AnyObject {
     func audioController(_ controller: AudioController, didDetectNote note: String, frequency: Float, amplitude: Float, deviation: Double)
     func audioControllerDidDetectSilence(_ controller: AudioController)
+    // Nuevo método para obtener el tiempo requerido para mantener la nota (hold)
+    func audioControllerRequiredHoldTime(_ controller: AudioController) -> TimeInterval
 }
 
 class AudioController: ObservableObject {
@@ -43,6 +46,57 @@ class AudioController: ObservableObject {
     private var lastProcessedTime: Date = Date()
     private let minimumProcessingInterval: TimeInterval = 0.05 // 50ms entre procesamientos
     
+    // MARK: - Nueva funcionalidad: Música de fondo y efectos de sonido
+    private var backgroundMusicPlayer: AVAudioPlayer?
+    
+    /// Inicia la música de fondo en el menú.
+    /// Asegúrate de haber añadido "backgroundMusic.mp3" al bundle de tu proyecto.
+    func startBackgroundMusic() {
+        guard let url = Bundle.main.url(forResource: "backgroundMusic", withExtension: "mp3") else {
+            print("AudioController: No se encontró el archivo de música de fondo")
+            return
+        }
+        
+        do {
+            backgroundMusicPlayer = try AVAudioPlayer(contentsOf: url)
+            backgroundMusicPlayer?.numberOfLoops = -1 // Loop infinito
+            backgroundMusicPlayer?.volume = 0.5       // Ajusta el volumen según sea necesario
+            backgroundMusicPlayer?.prepareToPlay()
+            backgroundMusicPlayer?.play()
+            print("AudioController: Música de fondo iniciada")
+        } catch {
+            print("AudioController: Error al reproducir la música de fondo: \(error)")
+        }
+    }
+    
+    /// Detiene la música de fondo.
+    func stopBackgroundMusic() {
+        backgroundMusicPlayer?.stop()
+        print("AudioController: Música de fondo detenida")
+    }
+    
+    /// Reproduce un efecto de sonido para la pulsación de un botón.
+    /// Asegúrate de haber añadido "buttonClick.mp3" al bundle.
+    func playButtonSound() {
+        guard let url = Bundle.main.url(forResource: "buttonClick", withExtension: "mp3") else {
+            print("AudioController: No se encontró el efecto de sonido para botón")
+            return
+        }
+        
+        do {
+            let buttonSoundPlayer = try AVAudioPlayer(contentsOf: url)
+            buttonSoundPlayer.volume = 0.4
+            buttonSoundPlayer.prepareToPlay()
+            buttonSoundPlayer.play()
+            print("AudioController: Efecto de sonido del botón reproducido")
+            // Nota: Este reproductor se libera al salir del método.
+        } catch {
+            print("AudioController: Error al reproducir el efecto de sonido: \(error)")
+        }
+    }
+    
+    
+    // MARK: - Funciones para detección de notas
     private func updateStability(frequency: Float) {
         if abs(frequency - lastStableFrequency) <= stabilityThreshold {
             if stabilityStartTime == nil {
@@ -67,25 +121,29 @@ class AudioController: ObservableObject {
         }
         lastProcessedTime = currentTime
         
-//        print("🎤 Procesando audio - Freq: \(frequency), Amp: \(self.smoothedAmplitude)") // Aquí también necesita self
-        
         // Verificar condiciones para procesar el pitch
-        if self.smoothedAmplitude > minimumAmplitude { // Aquí está el error, necesitamos self
+        if self.smoothedAmplitude > minimumAmplitude {
             if frequency >= minimumFrequency && frequency <= maximumFrequency {
-                let tunerData = tunerEngine.processPitch(
-                    frequency: frequency,
-                    amplitude: self.smoothedAmplitude
-                )
-                DispatchQueue.main.async {
-                    self.tunerData = tunerData
-                    print("🎵 Nota detectada: \(tunerData.note)")
-                    self.delegate?.audioController(
-                        self,
-                        didDetectNote: tunerData.note,
-                        frequency: frequency,
-                        amplitude: self.smoothedAmplitude,
-                        deviation: tunerData.deviation
-                    )
+                let tunerData = tunerEngine.processPitch(frequency: frequency, amplitude: self.smoothedAmplitude)
+                
+                // Obtener el requiredHoldTime de forma dinámica desde el delegado.
+                let requiredHoldTime = delegate?.audioControllerRequiredHoldTime(self) ?? 1.0
+                
+                // Usar la lógica de acumulación en TunerEngine para verificar si se alcanzó el hold requerido
+                if tunerEngine.updateHoldDetection(note: tunerData.note,
+                                                   currentTime: currentTime.timeIntervalSinceReferenceDate,
+                                                   requiredHoldTime: requiredHoldTime) {
+                    DispatchQueue.main.async {
+                        self.tunerData = tunerData
+                        print("🎵 Nota validada tras hold: \(tunerData.note) (requiredHoldTime: \(requiredHoldTime) s)")
+                        self.delegate?.audioController(
+                            self,
+                            didDetectNote: tunerData.note,
+                            frequency: frequency,
+                            amplitude: self.smoothedAmplitude,
+                            deviation: tunerData.deviation
+                        )
+                    }
                 }
                 updateStability(frequency: frequency)
             }
@@ -93,7 +151,6 @@ class AudioController: ObservableObject {
             DispatchQueue.main.async {
                 self.tunerData = .inactive
                 self.stabilityDuration = 0
-  //              print("🔇 Silencio detectado")
                 self.delegate?.audioControllerDidDetectSilence(self)
             }
         }
@@ -102,7 +159,7 @@ class AudioController: ObservableObject {
     private init() {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playAndRecord,
-                                                          options: [.defaultToSpeaker, .mixWithOthers])
+                                                            options: [.defaultToSpeaker, .mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
             
             guard let input = engine.input else {
@@ -149,7 +206,6 @@ class AudioController: ObservableObject {
     
     func stop() {
         pitchTap.stop()
-        // Limpiar estados al detener
         DispatchQueue.main.async {
             self.tunerData = .inactive
             self.stabilityDuration = 0

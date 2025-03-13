@@ -20,7 +20,8 @@ private enum TopBarLayout {
     static let verticalSpacing: CGFloat = 8       // Aumentado para mejor separación
     static let horizontalSpacing: CGFloat = 8
     static let panelHeight: CGFloat = 60
-    static let iconSize: CGFloat = 18             // Reducido ligeramente
+    /// Tamaño máximo para la dimensión más larga del icono.
+    static let iconSize: CGFloat = 18
 }
 
 // MARK: - Estructuras de Datos
@@ -51,30 +52,53 @@ enum ObjectiveIcon {
         case .score: return "coin_icon"
         case .totalNotes: return "note_icon"
         case .accuracy: return "target_icon"
-        case .blocks: return "block_icon"
+        case .blocks: return "defaultBlock_icon"
         case .time: return "timer_icon"
         }
     }
 }
 
+// MARK: - Bloque extra: mapeo de estilo -> icono
+private let blockStyleIcons: [String: String] = [
+    "defaultBlock": "defaultBlock_icon",
+    "iceBlock": "iceBlock_icon",
+    "hardiceBlock": "hardiceBlock_icon",
+    "ghostBlock": "ghostBlock_icon",
+    "changingBlock": "changingBlock_icon",
+    "explosiveBlock": "explosiveBlock_icon",
+]
+
+// MARK: - ObjectiveIconNode
 class ObjectiveIconNode: SKNode {
     private let icon: SKSpriteNode
     private let value: SKLabelNode
     
     init(type: ObjectiveIcon) {
-        // Usar imagen en lugar de emoji
+        // Cargamos la textura
         let iconTexture = SKTexture(imageNamed: type.imageName)
+        
+        // Mantener relación de aspecto
+        let originalSize = iconTexture.size()
+        let w = originalSize.width
+        let h = originalSize.height
+        
+        // Ratio para ajustar la dimensión más larga a 'iconSize'
+        let maxDim: CGFloat = TopBarLayout.iconSize
+        let scale = max(w, h) > 0 ? (maxDim / max(w, h)) : 1.0
+        
+        let finalWidth = w * scale
+        let finalHeight = h * scale
+        
         icon = SKSpriteNode(texture: iconTexture)
-        icon.size = CGSize(width: TopBarLayout.iconSize, height: TopBarLayout.iconSize)
+        icon.size = CGSize(width: finalWidth, height: finalHeight)
         
         value = SKLabelNode(fontNamed: "Helvetica")
         
         super.init()
         
-        // Configurar icono
+        // Posicionamos el icono y la etiqueta
         icon.position = CGPoint(x: -TopBarLayout.iconTextSpacing/2, y: 0)
         
-        // Configurar valor
         value.fontSize = TopBarLayout.smallFontSize
         value.fontColor = .darkGray
         value.verticalAlignmentMode = .center
@@ -140,7 +164,15 @@ class TimeDisplayNode: SKNode {
         // Crear icono de tiempo
         let iconTexture = SKTexture(imageNamed: "timer_icon")
         timeIcon = SKSpriteNode(texture: iconTexture)
-        timeIcon.size = CGSize(width: TopBarLayout.iconSize, height: TopBarLayout.iconSize)
+        
+        // Mantener la relación de aspecto para el icono del tiempo, si lo deseas
+        let originalSize = iconTexture.size()
+        let w = originalSize.width
+        let h = originalSize.height
+        let maxDim: CGFloat = TopBarLayout.iconSize
+        let scale = max(w, h) > 0 ? (maxDim / max(w, h)) : 1.0
+        
+        timeIcon.size = CGSize(width: w * scale, height: h * scale)
         
         self.timeLabel = SKLabelNode(fontNamed: "Helvetica")
         self.timeLimit = timeLimit
@@ -191,8 +223,13 @@ class TimeDisplayNode: SKNode {
 // MARK: - Panel Base de Objetivos
 class ObjectiveInfoPanel: TopBarBaseNode {
     weak var objectiveTracker: LevelObjectiveTracker?
+    
+    // Icono único para “score”, “time”, etc.
     private var objectiveIconNode: ObjectiveIconNode?
     private var timeIconNode: ObjectiveIconNode?
+    
+    // Lista de iconos por estilo de bloque
+    private var blockIcons: [String: ObjectiveIconNode] = [:]
     
     init(size: CGSize, objectiveTracker: LevelObjectiveTracker) {
         self.objectiveTracker = objectiveTracker
@@ -204,27 +241,81 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func setupBackground() {
+        // No crear fondo blanco para el panel de objetivos
+    }
+    
     func setupPanel() {
         guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
         
-        let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
-        objectiveIconNode = ObjectiveIconNode(type: iconType)
-        if let objIcon = objectiveIconNode {
-            // Ajustamos la posición vertical del primer icono
-            objIcon.position = CGPoint(x: TopBarLayout.padding, y: TopBarLayout.verticalSpacing * 2)
-            addChild(objIcon)
-        }
+        let contentContainer = SKNode()
+        contentContainer.position = CGPoint(x: TopBarLayout.padding, y: 0)
+        addChild(contentContainer)
         
-        timeIconNode = ObjectiveIconNode(type: .time)
-        if let timeIcon = timeIconNode {
-            // Aumentamos la separación vertical entre iconos
-            timeIcon.position = CGPoint(x: TopBarLayout.padding, y: -TopBarLayout.verticalSpacing * 2)
-            addChild(timeIcon)
+        switch objective.type {
+        case "block_destruction":
+            // Si el objetivo tiene detalles con estilos y cantidades
+            if let details = objective.details {
+                var offsetY: CGFloat = 0
+                
+                for (blockType, _) in details {
+                    let iconNode = createBlockIconNode(for: blockType)
+                    iconNode.position = CGPoint(x: 0, y: offsetY)
+                    offsetY -= (TopBarLayout.iconSize + 10)
+                    contentContainer.addChild(iconNode)
+                    
+                    blockIcons[blockType] = iconNode
+                }
+            }
+            // Si además hay límite de tiempo
+            if objective.timeLimit != nil {
+                timeIconNode = ObjectiveIconNode(type: .time)
+                if let timeIcon = timeIconNode {
+                    timeIcon.position = CGPoint(x: 0, y: -120)
+                    contentContainer.addChild(timeIcon)
+                }
+            }
+            
+        default:
+            let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
+            objectiveIconNode = ObjectiveIconNode(type: iconType)
+            if let objIcon = objectiveIconNode {
+                objIcon.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
+                contentContainer.addChild(objIcon)
+            }
+            
+            timeIconNode = ObjectiveIconNode(type: .time)
+            if let timeIcon = timeIconNode {
+                timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.verticalSpacing * 2)
+                contentContainer.addChild(timeIcon)
+            }
         }
     }
     
-    override func setupBackground() {
-        // No crear fondo blanco para el panel de objetivos
+    private func createBlockIconNode(for blockType: String) -> ObjectiveIconNode {
+        let imageName = blockStyleIcons[blockType] ?? "default_block_icon"
+        let iconTexture = SKTexture(imageNamed: imageName)
+        
+        // Mantener la relación de aspecto
+        let originalSize = iconTexture.size()
+        let w = originalSize.width
+        let h = originalSize.height
+        let maxDim: CGFloat = TopBarLayout.iconSize
+        let scale = max(w, h) > 0 ? (maxDim / max(w, h)) : 1.0
+        
+        let finalWidth = w * scale
+        let finalHeight = h * scale
+        
+        // Creamos un icono .blocks
+        let node = ObjectiveIconNode(type: .blocks)
+        
+        // Reemplazamos textura y tamaño del SKSpriteNode “existingIcon”
+        if let existingIcon = node.children.first as? SKSpriteNode {
+            existingIcon.texture = iconTexture
+            existingIcon.size = CGSize(width: finalWidth, height: finalHeight)
+        }
+        
+        return node
     }
     
     private func getObjectiveIconType(for objectiveType: String) -> ObjectiveIcon {
@@ -240,37 +331,59 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     func updateInfo(with progress: ObjectiveProgress) {
         guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
         
-        // Actualizar el valor del objetivo
         switch objective.type {
-        case "score":
-            objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
-        case "total_notes":
-            objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
-        case "note_accuracy":
-            let accuracy = Int(progress.averageAccuracy * 100)
-            objectiveIconNode?.updateValue("\(accuracy)%")
-        case "block_destruction", "total_blocks":
-            objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
-        default:
-            break
-        }
-        
-        // Actualizar el tiempo - mostrando siempre el tiempo restante
-        if let timeLimit = objective.timeLimit {
-            let timeLimitInterval = TimeInterval(timeLimit)
-            let remainingTime = max(timeLimitInterval - progress.timeElapsed, 0)
-            let minutes = Int(remainingTime) / 60
-            let seconds = Int(remainingTime) % 60
-            timeIconNode?.updateValue(String(format: "%02d:%02d", minutes, seconds))
-            
-            if remainingTime < 30 {
-                timeIconNode?.updateValueColor(SKColor.red)
-            } else {
-                timeIconNode?.updateValueColor(SKColor.darkGray)
+        case "block_destruction":
+            if let details = objective.details {
+                for (blockType, required) in details {
+                    let destroyed = progress.blocksByType[blockType, default: 0]
+                    if let iconNode = blockIcons[blockType] {
+                        let text = "\(destroyed)/\(required)"
+                        iconNode.updateValue(text)
+                    }
+                }
             }
+            if let timeLimit = objective.timeLimit {
+                updateTimeIcon(progress: progress, timeLimit: timeLimit)
+            } else {
+                timeIconNode?.updateValue("∞")
+            }
+            
+        default:
+            switch objective.type {
+            case "score":
+                objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
+            case "total_notes":
+                objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
+            case "note_accuracy":
+                let accuracy = Int(progress.averageAccuracy * 100)
+                objectiveIconNode?.updateValue("\(accuracy)%")
+            case "block_destruction", "total_blocks":
+                objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
+            default:
+                break
+            }
+            
+            if let timeLimit = objective.timeLimit {
+                updateTimeIcon(progress: progress, timeLimit: timeLimit)
+            } else {
+                timeIconNode?.updateValue("∞")
+            }
+        }
+    }
+    
+    private func updateTimeIcon(progress: ObjectiveProgress, timeLimit: Int) {
+        let timeLimitInterval = TimeInterval(timeLimit)
+        let remainingTime = max(timeLimitInterval - progress.timeElapsed, 0)
+        let minutes = Int(remainingTime) / 60
+        let seconds = Int(remainingTime) % 60
+        let timeText = String(format: "%02d:%02d", minutes, seconds)
+        
+        timeIconNode?.updateValue(timeText)
+        
+        if remainingTime < 30 {
+            timeIconNode?.updateValueColor(.red)
         } else {
-            timeIconNode?.updateValue("∞")
-            timeIconNode?.updateValueColor(SKColor.darkGray)
+            timeIconNode?.updateValueColor(.darkGray)
         }
     }
 }
@@ -282,156 +395,102 @@ class ObjectivePanelFactory {
     }
 }
 
-
+// MARK: - Preview
 #if DEBUG
 import SwiftUI
 
-// MARK: - Previews
-struct TopBarComponentsPreview: PreviewProvider {
+/// Vista previa que muestra varios ObjectiveInfoPanel en una misma escena
+struct ObjectivePanelsPreview: PreviewProvider {
     static var previews: some View {
-        TopBarComponentsPreviewScene()
+        ObjectivePanelsPreviewContainer()
+            .frame(width: 600, height: 300)
+            .previewDisplayName("Todos los tipos de Objetivos")
     }
 }
 
-struct TopBarComponentsPreviewScene: View {
+struct ObjectivePanelsPreviewContainer: View {
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                Color.gray.opacity(0.1).edgesIgnoringSafeArea(.all)
-                
-                SpriteView(scene: createPreviewScene(size: geometry.size))
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                  
-            }
+            SpriteView(scene: createPreviewScene(size: geometry.size))
+                .background(Color.gray.opacity(0.2))
         }
-        .previewDisplayName("TopBars Layout")
     }
     
     private func createPreviewScene(size: CGSize) -> SKScene {
         let scene = SKScene(size: size)
-        scene.backgroundColor = .clear
+        scene.scaleMode = .resizeFill
+        scene.backgroundColor = .lightGray
         
-        // Crear nivel de ejemplo
-        let level = GameLevel(
-            levelId: 1,
-            name: "Nivel de prueba",
-            maxScore: 600,
-            allowedStyles: ["default"],
-            fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
-            lives: Lives(
-                initial: 3,
-                extraLives: ExtraLives(
-                    scoreThresholds: [500, 1000],
-                    maxExtra: 2
-                )
-            ),
-            objectives: Objectives(
-                primary: Objective(
-                    type: "score",
-                    target: 1000,
-                    timeLimit: 180,
-                    minimumAccuracy: nil,
-                    details: nil
-                )
-            ),
-            blocks: [:]
-        )
+        let panelSpacing: CGFloat = 10
+        let objectiveTypes: [String] = [
+            "score",
+            "total_notes",
+            "note_accuracy",
+            "block_destruction",
+            "total_blocks"
+        ]
         
-        let mockObjectiveTracker = LevelObjectiveTracker(level: level)
+        let totalPanels = CGFloat(objectiveTypes.count)
+        let panelWidth = (size.width - (panelSpacing * (totalPanels + 1))) / totalPanels
+        let panelHeight: CGFloat = min(size.height * 0.8, 100)
         
-        // Configurar las dimensiones según el nuevo layout
-        let safeWidth = size.width - 16 // 8 pts de margen en cada lado
-        let topBarWidth = safeWidth * 0.47 // 47% del ancho disponible
-        let topBarHeight: CGFloat = 60
-        let yPosition = size.height - topBarHeight/2 - 6 // 6 pts desde arriba
+        var currentX = panelSpacing
         
-        // Crear TopBar izquierda (principal)
-        let leftBar = TopBar.create(
-            width: topBarWidth,
-            height: topBarHeight,
-            position: CGPoint(x: 8 + topBarWidth/2, y: yPosition),
-            type: .main
-        )
-        
-        // Crear TopBar derecha (objetivos)
-        let rightBar = TopBar.create(
-            width: topBarWidth,
-            height: topBarHeight,
-            position: CGPoint(x: size.width - 8 - topBarWidth/2, y: yPosition),
-            type: .objectives
-        )
-        
-        // Configurar ambas barras
-        leftBar.configure(withLevel: level, objectiveTracker: mockObjectiveTracker)
-        rightBar.configure(withLevel: level, objectiveTracker: mockObjectiveTracker)
-        
-        // Simular algunos datos
-        leftBar.updateScore(500)
-        leftBar.updateLives(2)
-        
-        // Actualizar el panel de objetivos
-        let progress = ObjectiveProgress(
-            score: 500,
-            notesHit: 25,
-            accuracySum: 85.0,
-            accuracyCount: 1,
-            totalBlocksDestroyed: 25,
-            timeElapsed: 60
-        )
-        
-        // Usar el método público
-        rightBar.updateObjectiveInfo(with: progress)
-        
-        // Añadir barras a la escena
-        scene.addChild(leftBar)
-        scene.addChild(rightBar)
-        
-        // Añadir líneas guía para visualizar los márgenes (solo en preview)
-        addGuideLines(to: scene, size: size)
+        for (index, type) in objectiveTypes.enumerated() {
+            var objectiveDetails: [String: Int]? = nil
+            var allowedStyles: [String] = []
+            var blocksDestroyed: [String: Int] = [:]
+            
+            if type == "block_destruction" {
+                objectiveDetails = ["defaultBlock": 5, "iceBlock": 3, "hardiceBlock": 7]
+                allowedStyles = ["defaultBlock", "iceBlock", "hardiceBlock"]
+                blocksDestroyed = ["defaultBlock": 2, "iceBlock": 3, "hardiceBlock": 5]
+            }
+            
+            let objective = Objective(
+                type: type,
+                target: 1000,
+                timeLimit: 180,
+                minimumAccuracy: nil,
+                details: objectiveDetails
+            )
+            
+            let level = GameLevel(
+                levelId: index + 1,
+                name: "Nivel de prueba",
+                maxScore: 500,
+                allowedStyles: allowedStyles,
+                fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
+                lives: Lives(
+                    initial: 3,
+                    extraLives: ExtraLives(scoreThresholds: [], maxExtra: 0)
+                ),
+                objectives: Objectives(primary: objective),
+                blocks: [:]
+            )
+            
+            let tracker = LevelObjectiveTracker(level: level)
+            var progress = ObjectiveProgress(
+                score: 350,
+                notesHit: 40,
+                accuracySum: 0.9,
+                accuracyCount: 1,
+                blocksByType: blocksDestroyed,
+                totalBlocksDestroyed: blocksDestroyed.values.reduce(0, +),
+                timeElapsed: 60
+            )
+            
+            let panelSize = CGSize(width: panelWidth, height: panelHeight)
+            let panel = ObjectivePanelFactory.createPanel(for: objective, size: panelSize, tracker: tracker)
+            panel.updateInfo(with: progress)
+            
+            panel.position = CGPoint(x: currentX + panelWidth/2, y: size.height/2)
+            scene.addChild(panel)
+            
+            currentX += (panelWidth + panelSpacing)
+        }
         
         return scene
     }
-    
-    private func addGuideLines(to scene: SKScene, size: CGSize) {
-        // Líneas verticales para mostrar los márgenes
-        let leftMargin = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
-        leftMargin.position = CGPoint(x: 8, y: size.height/2)
-        leftMargin.fillColor = .red
-        leftMargin.alpha = 0.3
-        scene.addChild(leftMargin)
-        
-        let rightMargin = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
-        rightMargin.position = CGPoint(x: size.width - 8, y: size.height/2)
-        rightMargin.fillColor = .red
-        rightMargin.alpha = 0.3
-        scene.addChild(rightMargin)
-        
-        // Línea central para mostrar la separación
-        let centerLine = SKShapeNode(rectOf: CGSize(width: 1, height: size.height))
-        centerLine.position = CGPoint(x: size.width/2, y: size.height/2)
-        centerLine.fillColor = .red
-        centerLine.alpha = 0.3
-        scene.addChild(centerLine)
-    }
-}
-
-
-// Vista previa adicional con diferentes tamaños de pantalla
-struct TopBarComponentsPreview_MultipleDevices: PreviewProvider {
-static var previews: some View {
-    Group {
-        TopBarComponentsPreviewScene()
-            .previewDevice("iPhone 14")
-            .previewDisplayName("iPhone 14")
-        
-        TopBarComponentsPreviewScene()
-            .previewDevice("iPhone 14 Pro Max")
-            .previewDisplayName("iPhone 14 Pro Max")
-        
-        TopBarComponentsPreviewScene()
-            .previewDevice("iPad Pro (11-inch)")
-            .previewDisplayName("iPad Pro 11\"")
-    }
-}
 }
 #endif

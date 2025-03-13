@@ -2,12 +2,11 @@
 //  GameEngine.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 7/3/25.
+//  Created by Jose R. García on 13/3/25.
 //
 
 import Foundation
 import SpriteKit
-
 
 class GameEngine: ObservableObject {
     // MARK: - Published Properties
@@ -53,35 +52,40 @@ class GameEngine: ObservableObject {
     // Seguimiento de bloques por estilo en el nivel actual
     private var blockHitsByStyle: [String: Int] = [:]
     
-    
     // MARK: - Initialization
+    /// Inicializa el GameEngine con el TunerEngine y el BlocksManager (que puede ser nil)
     init(tunerEngine: TunerEngine = .shared, blockManager: BlocksManager?) {
         self.tunerEngine = tunerEngine
         self.blockManager = blockManager
         gameState = .countdown
+        print("GameEngine inicializado. Estado inicial: \(gameState)")
     }
     
     // MARK: - Game Control
+    /// Inicia una nueva partida, reseteando todas las métricas y configurando el nivel actual.
     func startNewGame() {
-        guard let currentLevel = gameManager.currentLevel else { return }
+        guard let currentLevel = gameManager.currentLevel else {
+            print("No se pudo iniciar el juego: no hay nivel actual")
+            return
+        }
         
-        // Resetear estado del juego
+        print("Iniciando nueva partida para el nivel \(currentLevel.levelId)")
         resetGameState()
         
-        // Inicializar contador de bloques por estilo
+        // Reiniciar contadores por estilo de bloque
         blockHitsByStyle.removeAll()
         for style in currentLevel.allowedStyles {
             blockHitsByStyle[style] = 0
         }
         
-        // Inicializar métricas de la partida
+        // Inicializar métricas de partida
         gameStartTime = Date()
         notesHitInGame = 0
         bestStreakInGame = 0
         totalAccuracyInGame = 0.0
         accuracyMeasurements = 0
         
-        // Inicializar el tracker de objetivos
+        // Crear tracker para objetivos
         objectiveTracker = LevelObjectiveTracker(level: currentLevel)
         
         // Configurar vidas y puntuación
@@ -92,45 +96,44 @@ class GameEngine: ObservableObject {
         // Iniciar generación de bloques
         blockManager?.startBlockGeneration()
         
-        // Cambiar estado
+        // Cambiar estado del juego a 'playing'
         gameState = .playing
         
         print("🎮 Nuevo juego iniciado - Nivel: \(currentLevel.levelId)")
     }
     
+    /// Pausa la partida actual.
     func pauseGame() {
         guard case .playing = gameState else { return }
         gameState = .paused
         blockManager?.stopBlockGeneration()
+        print("Juego pausado")
     }
     
+    /// Reanuda la partida pausada.
     func resumeGame() {
         guard case .paused = gameState else { return }
         gameState = .playing
         blockManager?.startBlockGeneration()
+        print("Juego reanudado")
     }
     
+    /// Finaliza la partida, calcula estadísticas y actualiza el perfil del usuario.
     func endGame(reason: GameOverReason) {
         gameState = .gameOver(reason: reason)
         blockManager?.stopBlockGeneration()
         
-        // Calcular métricas finales
         let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
-        let averageAccuracy = accuracyMeasurements > 0 ?
-        totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
-        
-        // Determinar si la partida fue ganada o perdida
+        let averageAccuracy = accuracyMeasurements > 0 ? totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
         let requiredScore = gameManager.currentLevel?.requiredScore ?? 0
         let isGameWon = reason != .blocksOverflow && score >= requiredScore
         
-        // Actualizar contadores de partidas
         if isGameWon {
             gamesWon += 1
         } else {
             gamesLost += 1
         }
         
-        // Actualizar estadísticas del usuario
         let userProfile = UserProfile.load()
         var updatedProfile = userProfile
         updatedProfile.updateStatistics(
@@ -144,42 +147,33 @@ class GameEngine: ObservableObject {
             gamesLost: gamesLost
         )
         
-        // Imprimir estadísticas para debug
-        print("📊 Estadísticas de la partida:")
-        print("⏱️ Tiempo jugado: \(Int(playTime))s")
-        print("🎯 Notas acertadas: \(notesHitInGame)")
-        print("🔥 Mejor racha: \(bestStreakInGame)")
-        print("📏 Precisión promedio: \(Int(averageAccuracy * 100))%")
-        print("🎮 Estado: \(isGameWon ? "Victoria" : "Derrota")")
-        print("📈 Total partidas - Ganadas: \(gamesWon), Perdidas: \(gamesLost)")
+        print("📊 Estadísticas finales:")
+        print("Tiempo jugado: \(Int(playTime))s, Notas acertadas: \(notesHitInGame), Mejor racha: \(bestStreakInGame), Precisión: \(Int(averageAccuracy * 100))%")
+        print("Estado: \(isGameWon ? "Victoria" : "Derrota")")
+        print("Total partidas - Ganadas: \(gamesWon), Perdidas: \(gamesLost)")
         
-        // Imprimir estadísticas finales de bloques por estilo
-        print("📊 Resumen final de bloques por estilo:")
+        let totalBlocksAcertados = blockHitsByStyle.values.reduce(0, +)
+        print("Bloques acertados: \(totalBlocksAcertados)")
         for (style, count) in blockHitsByStyle {
-            print("  • \(style): \(count) bloques acertados")
+            print("• \(style): \(count)")
         }
         
         resetGameState()
     }
     
-    
     // MARK: - Note Processing
+    /// Compara la nota detectada con el objetivo y delega el manejo correcto o incorrecto.
     func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
-        guard case .playing = gameState,
-              !isInSuccessState,
-              !isShowingError else {
+        guard case .playing = gameState, !isInSuccessState, !isShowingError else {
             return
         }
         
-        guard let currentBlock = blockManager?.getCurrentBlock(),
-              isActive else {
+        guard let currentBlock = blockManager?.getCurrentBlock(), isActive else {
+            print("No se procesará nota: no hay bloque activo o no está activa")
             return
         }
         
-        print("🎯 Comparando notas:")
-        print("   Detectada: \(currentNote)")
-        print("   Objetivo: \(currentBlock.note)")
-        print("   Desviación: \(deviation)")
+        print("🎯 Comparando nota detectada (\(currentNote)) con objetivo (\(currentBlock.note)), desviación: \(deviation)")
         
         if currentNote == currentBlock.note {
             handleCorrectNote(deviation: deviation, block: currentBlock)
@@ -189,19 +183,19 @@ class GameEngine: ObservableObject {
     }
     
     // MARK: - Note Handling
+    /// Maneja la nota correcta: actualiza el progreso del bloque y, si se cumplen los requisitos, registra el éxito.
     private func handleCorrectNote(deviation: Double, block: BlockInfo) {
         if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
             handleSuccess(deviation: deviation, blockConfig: block.config)
         } else {
             noteState = .correct(deviation: deviation)
         }
-        
         combo += 1
     }
     
+    /// Maneja el caso de nota incorrecta: reduce vidas y reinicia el progreso del bloque.
     private func handleWrongNote() {
         guard !isShowingError else { return }
-        
         isShowingError = true
         lives -= 1
         combo = 0
@@ -213,78 +207,63 @@ class GameEngine: ObservableObject {
             return
         }
         
-        // Resetear estado de error después de un tiempo
         DispatchQueue.main.asyncAfter(deadline: .now() + TimeConstants.errorDisplayTime) { [weak self] in
-            guard let self = self else { return }
-            self.isShowingError = false
-            self.noteState = .waiting
+            self?.isShowingError = false
+            self?.noteState = .waiting
         }
     }
     
+    /// Maneja el éxito al completar el bloque: actualiza estadísticas, suma puntos y verifica objetivos.
     private func handleSuccess(deviation: Double, blockConfig: Block) {
         isInSuccessState = true
         
-        // Incrementar contador de bloques por estilo
         if let currentBlock = blockManager?.getCurrentBlock() {
             blockHitsByStyle[currentBlock.style] = (blockHitsByStyle[currentBlock.style] ?? 0) + 1
-            
-            // Debug: imprimir contadores actualizados
-            print("📊 Bloques acertados por estilo:")
+            print("📊 Bloques acertados actualizados:")
             for (style, count) in blockHitsByStyle {
-                print("  • \(style): \(count)")
+                print("• \(style): \(count)")
             }
         }
         
-        // Actualizar progreso de objetivos
-                objectiveTracker?.updateProgress(
-                    score: score,
-                    noteHit: true,
-                    accuracy: calculateAccuracy(deviation: deviation),
-                    blockDestroyed: blockConfig.style
-                )
-                
-        // Comprobar si se ha completado el objetivo
-        if let primaryComplete = objectiveTracker?.checkObjectives(),
-           primaryComplete {
-            // Victoria si el objetivo principal está completo
+        objectiveTracker?.updateProgress(
+            score: score,
+            noteHit: true,
+            accuracy: calculateAccuracy(deviation: deviation),
+            blockDestroyed: blockConfig.style
+        )
+        
+        if let primaryComplete = objectiveTracker?.checkObjectives(), primaryComplete {
             endGame(reason: .victory)
         }
         
-        // Calcular puntuación con bonus por combo
         let accuracy = calculateAccuracy(deviation: deviation)
         let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
         let comboBonus = calculateComboBonus(baseScore: baseScore)
         let finalScore = baseScore + comboBonus
-        
-        // Actualizar puntuación
         score += finalScore
         
-        // Comprobar vidas extra
         checkForExtraLife(currentScore: score)
         
-        // Notificar éxito
         noteState = .success(
             multiplier: finalScore / blockConfig.basePoints,
             message: "\(message) (\(combo)x Combo!)"
         )
         
-        // Resetear estado después de un breve delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self = self else { return }
-            self.isInSuccessState = false
-            self.noteState = .waiting
+            self?.isInSuccessState = false
+            self?.noteState = .waiting
         }
     }
     
     // MARK: - Score Calculation
+    /// Calcula la precisión a partir de la desviación.
     private func calculateAccuracy(deviation: Double) -> Double {
         let absDeviation = abs(deviation)
-        if absDeviation > TimeConstants.acceptableDeviation {
-            return 0.0
-        }
+        if absDeviation > TimeConstants.acceptableDeviation { return 0.0 }
         return 1.0 - (absDeviation / TimeConstants.acceptableDeviation)
     }
     
+    /// Calcula la puntuación base y un mensaje en función de la precisión.
     private func calculateScore(accuracy: Double, blockConfig: Block) -> (score: Int, message: String) {
         guard let thresholds = gameManager.gameConfig?.accuracyThresholds else {
             return (blockConfig.basePoints, "¡Bien!")
@@ -301,18 +280,19 @@ class GameEngine: ObservableObject {
         return (0, "Fallo")
     }
     
+    /// Calcula el bono por combo.
     private func calculateComboBonus(baseScore: Int) -> Int {
-        let comboMultiplier = min(combo, 10) // Máximo multiplicador de 10x
-        return baseScore * (comboMultiplier - 1) / 2 // Bonus más equilibrado
+        let comboMultiplier = min(combo, 10)
+        return baseScore * (comboMultiplier - 1) / 2
     }
     
     // MARK: - Lives Management
+    /// Verifica y concede vidas extra si se alcanza el umbral de puntuación.
     private func checkForExtraLife(currentScore: Int) {
         for threshold in scoreThresholdsForExtraLives {
             if currentScore >= threshold && lives < (gameManager.currentLevel?.lives.initial ?? 3) + maxExtraLives {
                 lives += 1
-                print("🎉 ¡Vida extra ganada! Vidas actuales: \(lives)")
-                
+                print("🎉 Vida extra ganada. Vidas actuales: \(lives)")
                 if let index = scoreThresholdsForExtraLives.firstIndex(of: threshold) {
                     scoreThresholdsForExtraLives.remove(at: index)
                 }
@@ -322,40 +302,63 @@ class GameEngine: ObservableObject {
     }
     
     // MARK: - State Management
+    /// Resetea todas las métricas y estados de la partida.
     private func resetGameState() {
         score = 0
         combo = 0
         isShowingError = false
         isInSuccessState = false
         noteState = .waiting
-        
-        // Resetear métricas
         gameStartTime = nil
         notesHitInGame = 0
         bestStreakInGame = 0
         totalAccuracyInGame = 0.0
         accuracyMeasurements = 0
-        
-        // Resetear contadores de bloques por estilo
         blockHitsByStyle.removeAll()
+        print("🔄 Estado del juego reseteado.")
     }
     
     // MARK: - Block Monitoring
+    /// Comprueba si algún bloque ha alcanzado la zona límite (danger zone).
     func checkBlocksPosition() {
         if blockManager?.hasBlocksBelowLimit() == true {
-            print("🔥 Game Over: Bloques han alcanzado la zona límite")
+            print("🔥 Game Over: Bloques han alcanzado la zona de peligro.")
             endGame(reason: .blocksOverflow)
         }
     }
     
-    // Añadir nuevo método para obtener el progreso
+    /// Retorna el progreso del objetivo actual.
     func getLevelProgress() -> Double {
         return objectiveTracker?.getProgress() ?? 0
     }
     
-    // Método público para consultar los bloques acertados por estilo
+    /// Devuelve el resumen de bloques acertados por estilo.
     func getBlockHitsByStyle() -> [String: Int] {
         return blockHitsByStyle
     }
+}
+
+// MARK: - AudioControllerDelegate
+extension GameEngine: AudioControllerDelegate {
+    /// Recibe la nota detectada y la procesa.
+    func audioController(_ controller: AudioController, didDetectNote note: String, frequency: Float, amplitude: Float, deviation: Double) {
+        print("AudioControllerDelegate - Nota detectada: \(note), Frecuencia: \(frequency)")
+        self.checkNote(currentNote: note, deviation: deviation, isActive: true)
+    }
     
+    /// Se invoca cuando se detecta silencio.
+    func audioControllerDidDetectSilence(_ controller: AudioController) {
+        print("AudioControllerDelegate - Silencio detectado.")
+        self.checkNote(currentNote: "-", deviation: 0, isActive: false)
+    }
+    
+    /// Devuelve el tiempo requerido para mantener la nota, consultando el bloque actual.
+    func audioControllerRequiredHoldTime(_ controller: AudioController) -> TimeInterval {
+        if let currentBlock = blockManager?.getCurrentBlock() {
+            print("AudioControllerDelegate - Required hold time para el bloque actual: \(currentBlock.config.requiredTime) segundos")
+            return currentBlock.config.requiredTime
+        }
+        print("AudioControllerDelegate - No hay bloque activo, se retorna 1.0 segundo por defecto")
+        return 1.0
+    }
 }

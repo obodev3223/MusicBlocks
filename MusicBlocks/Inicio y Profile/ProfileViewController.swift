@@ -167,7 +167,6 @@ class ProfileViewController: UIViewController {
     }
     
     /// Maneja la visualización del alert para editar el nombre de usuario
-    /// Maneja la visualización del alert para editar el nombre de usuario
     private func showEditUsernameAlert(currentUsername: String) {
         // Asegurarnos de que estamos en el hilo principal
         DispatchQueue.main.async {
@@ -247,7 +246,7 @@ extension ProfileViewController: ProfileHeaderViewDelegate {
     func profileHeaderViewDidTapAvatar(_ view: ProfileHeaderView) {
         let avatarPicker = AvatarPickerViewController(
             selectedAvatar: profile.avatarName,
-            availableAvatars: ["avatar1", "avatar2", "avatar3", "avatar8"]
+            availableAvatars: ["avatar1", "avatar2", "avatar3", "avatar4", "avatar5", "avatar6", "avatar7", "avatar8", "avatar9", "avatar10", "avatar11", "avatar12", "avatar13", "avatar14"]
         )
         avatarPicker.delegate = self
         let nav = UINavigationController(rootViewController: avatarPicker)
