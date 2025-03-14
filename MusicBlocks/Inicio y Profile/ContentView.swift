@@ -12,46 +12,40 @@ import SpriteKit
 struct ContentView: View {
     @StateObject private var audioController = AudioController.sharedInstance
     @State private var gameVersion: String = "--" // Valor por defecto
+    @State private var navigateToGame = false  // Controla la navegación al juego
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 30) {
                 Spacer()
                 
                 // Logo
                 VStack(spacing: 15) {
                     Image("logoMusicBlocks")
-                        .resizable() // Permite que la imagen sea redimensionable
-                        .scaledToFit() // Mantiene la proporción de la imagen
-                        .frame(width: 320, height: 320) // Establece el tamaño deseado
-                    
-                    
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 320, height: 320)
                 }
                 .padding(.bottom, 20)
                 
                 // Botones de navegación
                 VStack(spacing: 20) {
-                                    NavigationLink(destination: MusicBlocksSceneView()) {
-                                        HStack {
-                                            Image(systemName: "gamecontroller")
-                                            Text("Jugar")
-                                                .font(.headline)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding()
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 15)
-                                                .fill(Color.red)
-                                        )
-                                        .foregroundColor(.white)
-                                    }
-                    // Agregamos un onTapGesture para detener la música de fondo al pulsar "Jugar"
-                                        .simultaneousGesture(TapGesture().onEnded {
-                                            audioController.stopBackgroundMusic()
-                                            audioController.playButtonSound()
-                                        })
-                    
-                    // Reemplazamos el NavigationLink con un botón personalizado
+                    Button(action: {
+                        startGameSequence()
+                    }) {
+                        HStack {
+                            Image(systemName: "gamecontroller")
+                            Text("Jugar")
+                                .font(.headline)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(
+                            RoundedRectangle(cornerRadius: 15)
+                                .fill(Color.red)
+                        )
+                        .foregroundColor(.white)
+                    }
                     Button(action: {
                         audioController.playButtonSound()
                         // Presentar el ProfileViewController
@@ -83,39 +77,60 @@ struct ContentView: View {
                 Spacer()
                 
                 Text(gameVersion)
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                                    .padding(.bottom, 20)
+                    .font(.caption)
+                    .foregroundColor(.red)
+                    .padding(.bottom, 20)
             }
             .background(Color.white.ignoresSafeArea())
-            .navigationTitle("")
             .navigationBarHidden(true)
+            // Navega a MusicBlocksSceneView cuando navigateToGame sea true
+            .navigationDestination(isPresented: $navigateToGame) {
+                MusicBlocksSceneView()
+            }
         }
         .onAppear {
             setupAudio()
             loadGameVersion()
-            // Iniciar la música de fondo al aparecer el menú
-                        audioController.startBackgroundMusic()
+            // Iniciar la música de fondo en el menú
+            audioController.startBackgroundMusic()
         }
         .onDisappear {
             audioController.stop()
         }
     }
     
+    /// Solicita acceso al micrófono si es necesario.
     private func setupAudio() {
         AVCaptureDevice.requestAccess(for: .audio) { granted in
             if granted {
                 DispatchQueue.main.async {
-//                    audioController.start()
+                    // Puedes iniciar alguna acción extra si lo deseas.
                 }
             }
         }
     }
+    
+    /// Carga la versión del juego desde el archivo JSON.
     private func loadGameVersion() {
         if let gameConfig = GameLevelProcessor.loadGameLevelsFromFile() {
-            // Añadimos "v" al inicio de la versión
             DispatchQueue.main.async {
                 self.gameVersion = "v\(gameConfig.gameVersion)"
+            }
+        }
+    }
+    
+    /// Secuencia para iniciar el juego:
+    /// 1. Reproduce el sonido de clic.
+    /// 2. Después de 0.2 s, inicia el fade out de la música (duración 0.5 s).
+    /// 3. Tras 0.6 s en total, navega a la escena del juego.
+    private func startGameSequence() {
+        audioController.playButtonSound()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            audioController.stopBackgroundMusic(duration: 0.3)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                navigateToGame = true
             }
         }
     }

@@ -81,8 +81,8 @@
             "max_score": 500,
             "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
             "falling_speed": {
-                "initial": 8.0,  // Velocidad de caida inicial
-                "increment": 0.0 // Incremento de velocidad de caida
+                "initial": 8.0,  // Velocidad de caida inicial 8.0 segundos
+                "increment": 0.0 // Incremento de velocidad de caida. Quitar 0.0 segundos en cada bloque
             },
             "lives": {
                 "initial": 3,  // Número de vidas al inicio del nivel
@@ -119,8 +119,8 @@
             "max_score": 600,
             "allowed_styles": ["defaultBlock", "iceBlock"],
             "falling_speed": {
-                "initial": 8.0,  // Velocidad de caida inicial
-                "increment": 0.0 // Incremento de velocidad de caida
+                "initial": 7.0,  // Velocidad de caida inicial
+                "increment": 0.1 // Incremento de velocidad de caida
             },
             "lives": {
                 "initial": 3,  // Número de vidas al inicio del nivel
@@ -170,8 +170,8 @@
             "max_score": 700,
             "allowed_styles": ["defaultBlock", "hardIceBlock", "ghostBlock"],
             "falling_speed": {
-                "initial": 7.0,  // Velocidad de caida inicial
-                "increment": 0.0 // Incremento de velocidad de caida
+                "initial": 6.0,  // Velocidad de caida inicial
+                "increment": 0.2 // Incremento de velocidad de caida
             },
             "lives": {
                 "initial": 3,  // Número de vidas al inicio del nivel

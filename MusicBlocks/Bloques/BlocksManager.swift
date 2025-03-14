@@ -2,7 +2,7 @@
 //  BlocksManager.swift
 //  MusicBlocks
 //
-//  Creado por Jose R. García el 7/3/25.
+//  Creado por Jose R. García el 14/3/25.
 //  Versión modificada: Se han añadido mensajes de debug para seguir el flujo de todas las funciones.
 //
 
@@ -19,51 +19,51 @@ class BlocksManager {
     private var mainAreaHeight: CGFloat = 0
     private let gameManager = GameManager.shared
     
-    // Nuevas propiedades para la generación de bloques
-    private var spawnAction: SKAction?
-    private var isGeneratingBlocks: Bool = false
-    
-    // Añadir propiedades para la velocidad
-    private var currentFallingSpeed: Double
-    private var speedIncrement: Double
+    // Para controlar la generación de bloques
+        private var spawnAction: SKAction?
+        private var isGeneratingBlocks: Bool = false
+        
+        // Ahora interpretamos estos como tiempos en SEGUNDOS:
+        // spawnInterval = “tiempo entre bloques”
+        // spawnIntervalDecrement = “segundos que restamos tras cada bloque”
+        private var spawnInterval: TimeInterval
+        private var spawnIntervalDecrement: TimeInterval
     
     // MARK: - Constants
-    private struct Constants {
-        static let spawnInterval: TimeInterval = 2.5
-        static let initialDelay: TimeInterval = 1.0
-        static let bottomLimitRatio: CGFloat = 0.15
-    }
-    
-    // MARK: - Initialization
-    init(blockSize: CGSize = CGSize(width: 280, height: 120),
-         blockSpacing: CGFloat = 1.0,
-         mainAreaNode: SKNode?,
-         mainAreaHeight: CGFloat) {
-        self.blockSize = blockSize
-        self.blockSpacing = blockSpacing
-        self.mainAreaNode = mainAreaNode
-        self.mainAreaHeight = mainAreaHeight
-        
-        // Inicializar velocidades desde el nivel actual
-        if let fallingSpeed = GameManager.shared.currentLevel?.fallingSpeed {
-            self.currentFallingSpeed = fallingSpeed.initial
-            self.speedIncrement = fallingSpeed.increment
-        } else {
-            self.currentFallingSpeed = 8.0  // valor por defecto
-            self.speedIncrement = 0.0
+        private struct Constants {
+            static let initialDelay: TimeInterval = 1.0
+            static let minSpawnInterval: TimeInterval = 1.5
         }
-        print("🔧 BlocksManager inicializado. blockSize: \(blockSize), mainAreaHeight: \(mainAreaHeight), velocidad inicial: \(currentFallingSpeed)")
-    }
-    
-    // MARK: - Block Generation Control
-    
-    // Actualizar el intervalo de generación basado en la velocidad
-    private func calculateSpawnInterval() -> TimeInterval {
-        let interval = max(4.0 - (currentFallingSpeed / 10.0), 1.5)
-        print("🔄 Intervalo de spawn calculado: \(interval) segundos (velocidad: \(currentFallingSpeed))")
-        return interval
-    }
         
+        // MARK: - Initialization
+        init(blockSize: CGSize = CGSize(width: 280, height: 120),
+             blockSpacing: CGFloat = 1.0,
+             mainAreaNode: SKNode?,
+             mainAreaHeight: CGFloat) {
+            
+            self.blockSize = blockSize
+            self.blockSpacing = blockSpacing
+            self.mainAreaNode = mainAreaNode
+            self.mainAreaHeight = mainAreaHeight
+            
+            // Leemos la “velocidad” del nivel, pero la usamos como spawnInterval (segundos).
+            if let fallingSpeed = GameManager.shared.currentLevel?.fallingSpeed {
+                // Por ejemplo: initial=8.0 => 8s entre bloques, increment=2.0 => restar 2s cada bloque
+                self.spawnInterval = fallingSpeed.initial
+                self.spawnIntervalDecrement = fallingSpeed.increment
+            } else {
+                // Valores por defecto
+                self.spawnInterval = 4.0
+                self.spawnIntervalDecrement = 0.0
+            }
+            
+            print("🔧 BlocksManager inicializado. blockSize: \(blockSize), " +
+                  "mainAreaHeight: \(mainAreaHeight), " +
+                  "spawnInterval inicial: \(spawnInterval) s, " +
+                  "decremento: \(spawnIntervalDecrement) s")
+        }
+    
+    // MARK: - Iniciando generación de bloques
     func startBlockGeneration() {
         print("▶️ startBlockGeneration llamado.")
         guard !isGeneratingBlocks else {
@@ -72,38 +72,48 @@ class BlocksManager {
         }
         isGeneratingBlocks = true
         
-        let spawnInterval = calculateSpawnInterval()
+        // Esperamos un delay inicial (opcional)
+        let initialDelay = SKAction.wait(forDuration: 1.0) // Por ejemplo 1s
         
-        // Esperar el delay inicial y luego comenzar la generación continua
-        let initialDelay = SKAction.wait(forDuration: Constants.initialDelay)
-        let startGenerating = SKAction.run { [weak self] in
-            guard let self = self else { return }
-            print("🟢 Comenzando la generación de bloques.")
-            
-            self.spawnAction = SKAction.repeatForever(
-                SKAction.sequence([
-                    SKAction.run { [weak self] in
-                        guard let self = self else { return }
-                        print("🟡 Llamada a spawnBlock desde spawnAction.")
-                        self.spawnBlock()
-                        // Incrementar la velocidad después de cada bloque
-                        self.currentFallingSpeed += self.speedIncrement
-                        print("🚀 Velocidad incrementada a: \(self.currentFallingSpeed)")
-                    },
-                    SKAction.wait(forDuration: spawnInterval)
-                ])
-            )
-            
-            self.mainAreaNode?.run(self.spawnAction!, withKey: "spawnSequence")
-            print("🔁 spawnAction iniciado con intervalo: \(spawnInterval)")
+        // Cuando acabe el delay, llamamos a spawnLoop()
+        let beginAction = SKAction.run { [weak self] in
+            self?.spawnLoop()
         }
         
-        let sequence = SKAction.sequence([initialDelay, startGenerating])
+        let sequence = SKAction.sequence([initialDelay, beginAction])
         mainAreaNode?.run(sequence)
         
-        print("✅ Generación de bloques iniciada - Velocidad inicial: \(currentFallingSpeed)")
+        print("✅ Generación de bloques iniciada - spawnInterval: \(spawnInterval) s")
     }
 
+    /// Bucle “recursivo” que genera 1 bloque, actualiza el spawnInterval
+    /// y programa la siguiente aparición.
+    private func spawnLoop() {
+        // 1) Verificar si seguimos generando
+        guard isGeneratingBlocks else {
+            print("🛑 Generación detenida, no se continúa el loop.")
+            return
+        }
+        
+        // 2) Generar el bloque
+        spawnBlock()
+        
+        // 3) Ajustar spawnInterval (acelerar)
+        let newInterval = max(spawnInterval - spawnIntervalDecrement, Constants.minSpawnInterval)
+        spawnInterval = newInterval
+        print("🚀 Nuevo spawnInterval = \(spawnInterval) s (restado \(spawnIntervalDecrement))")
+        
+        // 4) Programar la siguiente aparición usando el spawnInterval actual
+        let wait = SKAction.wait(forDuration: spawnInterval)
+        let nextCall = SKAction.run { [weak self] in
+            self?.spawnLoop()
+        }
+        let sequence = SKAction.sequence([wait, nextCall])
+        
+        mainAreaNode?.run(sequence)
+    }
+
+    /// Detener la generación
     func stopBlockGeneration() {
         print("⏹️ stopBlockGeneration llamado.")
         guard isGeneratingBlocks else {
@@ -111,7 +121,8 @@ class BlocksManager {
             return
         }
         isGeneratingBlocks = false
-        mainAreaNode?.removeAction(forKey: "spawnSequence")
+        // También puedes remover todas las acciones del mainAreaNode si quieres
+        mainAreaNode?.removeAllActions()
         print("✅ Generación de bloques detenida.")
     }
     
@@ -193,65 +204,42 @@ class BlocksManager {
     
     // MARK: - Block Creation Methods
     func spawnBlock() {
-        print("➡️ spawnBlock llamado.")
-        guard let mainAreaNode = mainAreaNode,
-              isGeneratingBlocks else {
-            print("❌ No se pueden generar bloques: generación detenida o mainAreaNode es nil")
-            return
-        }
-        
-        print("Generando nuevo bloque. Bloques actuales: \(blocks.count)")
-        
-        // Verificar espacio solo si hay bloques previos
-        if let firstBlock = blocks.first {
-            let topLimit = mainAreaHeight/2 - blockSize.height/2
-            let firstBlockTopEdge = firstBlock.position.y + blockSize.height/2
-            
-            if abs(firstBlockTopEdge - topLimit) < blockSpacing {
-                print("⏸️ Esperando espacio para nuevo bloque. topLimit: \(topLimit), firstBlockTopEdge: \(firstBlockTopEdge)")
+            print("➡️ spawnBlock llamado.")
+            guard let mainAreaNode = mainAreaNode,
+                  isGeneratingBlocks else {
+                print("❌ No se pueden generar bloques: generación detenida o mainAreaNode es nil")
                 return
             }
-        }
-        
-        let newBlock = createBlock()
-        
-        if let blockInfo = createBlockInfo(for: newBlock) {
-            let startY = mainAreaHeight/2 - blockSize.height/2
-            newBlock.position = CGPoint(x: 0, y: startY)
-            mainAreaNode.addChild(newBlock)
-            blocks.insert(newBlock, at: 0)
-            blockInfos.insert(blockInfo, at: 0)
             
-            print("✅ Bloque añadido en posición Y: \(startY) - Velocidad actual: \(currentFallingSpeed)")
-            updateBlockPositions()
-        } else {
-            print("❌ Error al crear la metadata del bloque.")
+            // Verificar espacio
+            if let firstBlock = blocks.first {
+                let topLimit = mainAreaHeight/2 - blockSize.height/2
+                let firstBlockTopEdge = firstBlock.position.y + blockSize.height/2
+                
+                if abs(firstBlockTopEdge - topLimit) < blockSpacing {
+                    print("⏸️ Esperando espacio para nuevo bloque.")
+                    return
+                }
+            }
+            
+            let newBlock = createBlock()
+            
+            if let blockInfo = createBlockInfo(for: newBlock) {
+                let startY = mainAreaHeight/2 - blockSize.height/2
+                newBlock.position = CGPoint(x: 0, y: startY)
+                mainAreaNode.addChild(newBlock)
+                blocks.insert(newBlock, at: 0)
+                blockInfos.insert(blockInfo, at: 0)
+                
+                print("✅ Bloque añadido en posición Y: \(startY)")
+                updateBlockPositions()
+            } else {
+                print("❌ Error al crear la metadata del bloque.")
+            }
         }
-    }
-    
-    // Método para actualizar el intervalo de generación durante el juego
-    private func updateSpawnInterval(to newInterval: TimeInterval) {
-        print("🔄 Actualizando intervalo de spawn a: \(newInterval)")
-        // No llamar a stopBlockGeneration() aquí
-        
-        // Remover solo la acción específica de spawn
-        mainAreaNode?.removeAction(forKey: "spawnSequence")
-        
-        spawnAction = SKAction.repeatForever(
-            SKAction.sequence([
-                SKAction.run { [weak self] in
-                    self?.spawnBlock()
-                },
-                SKAction.wait(forDuration: newInterval)
-            ])
-        )
-        
-        mainAreaNode?.run(spawnAction!, withKey: "spawnSequence")
-        print("✅ spawnAction actualizado.")
-    }
     
     private func createBlockInfo(for block: SKNode) -> BlockInfo? {
-        print("📋 Creando BlockInfo para bloque.")
+//        print("📋 Creando BlockInfo para bloque.")
         guard let userData = block.userData,
               let noteData = userData.value(forKey: "noteName") as? String,
               let styleData = userData.value(forKey: "blockStyle") as? String,
@@ -276,7 +264,7 @@ class BlocksManager {
     
     // MARK: - Block Visual Components
     private func createBlockContainer(with style: BlockStyle) -> SKNode {
-        print("🖼️ Creando contenedor para bloque con estilo: \(style)")
+//        print("🖼️ Creando contenedor para bloque con estilo: \(style)")
         let container = SKNode()
         container.zPosition = 0
         
@@ -290,18 +278,18 @@ class BlocksManager {
                 cornerRadius: style.cornerRadius
             )
             container.addChild(shadowNode)
-            print("🖼️ Sombra añadida al contenedor.")
+//            print("🖼️ Sombra añadida al contenedor.")
         }
         
         let background = createBackground(with: style)
         container.addChild(background)
-        print("🖼️ Fondo añadido al contenedor.")
+//        print("🖼️ Fondo añadido al contenedor.")
         
         return container
     }
     
     private func createShadowNode(color: SKColor, offset: CGSize, blur: CGFloat, cornerRadius: CGFloat) -> SKNode {
-        print("🖌️ Creando shadowNode con color: \(color), offset: \(offset), blur: \(blur)")
+//        print("🖌️ Creando shadowNode con color: \(color), offset: \(offset), blur: \(blur)")
         let shadowNode = SKEffectNode()
         shadowNode.shouldRasterize = true
         shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": blur])
@@ -319,7 +307,7 @@ class BlocksManager {
     }
     
     private func createBackground(with style: BlockStyle) -> SKNode {
-        print("🖌️ Creando background para bloque con estilo: \(style)")
+//        print("🖌️ Creando background para bloque con estilo: \(style)")
         let background = SKShapeNode(rectOf: blockSize, cornerRadius: style.cornerRadius)
         background.fillColor = style.backgroundColor
         background.strokeColor = style.borderColor
@@ -329,7 +317,7 @@ class BlocksManager {
         if let texture = style.fillTexture {
             background.fillTexture = texture
             background.alpha = style.textureOpacity
-            print("🖼️ Texture aplicada al background.")
+//            print("🖼️ Texture aplicada al background.")
         }
         
         return background

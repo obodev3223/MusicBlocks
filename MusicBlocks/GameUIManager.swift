@@ -47,7 +47,7 @@ class GameUIManager {
         static let sideBarHeightRatio: CGFloat = 0.4
         
         // TopBars específicas
-        static let topBarWidthRatio: CGFloat = 0.485  // Aumentado de 0.47 para que sean más anchas
+        static let topBarWidthRatio: CGFloat = 0.490  // Aumentado de 0.47 para que sean más anchas
         static let topBarSpacing: CGFloat = 4         // Reducido de 8 para que estén más juntas
         
         // Efectos visuales
@@ -64,11 +64,11 @@ class GameUIManager {
     }
     
     // MARK: - Public Methods
-        func setupUI() {
-            setupBackground()
-            setupLayout()
-        }
-        
+    func setupUI() {
+        setupBackground()
+        setupLayout()
+    }
+    
     func updateUI(score: Int, lives: Int) {
         leftTopBarNode?.updateScore(score)
         leftTopBarNode?.updateLives(lives)
@@ -84,33 +84,33 @@ class GameUIManager {
             rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
     }
-
+    
     
     // MARK: - Setup Methods
-        private func setupBackground() {
-            guard let scene = scene else { return }
-            backgroundPattern = BackgroundPatternNode(size: scene.size)
-            backgroundPattern.zPosition = -10
-            scene.addChild(backgroundPattern)
-        }
+    private func setupBackground() {
+        guard let scene = scene else { return }
+        backgroundPattern = BackgroundPatternNode(size: scene.size)
+        backgroundPattern.zPosition = -10
+        scene.addChild(backgroundPattern)
+    }
+    
+    private func setupLayout() {
+        guard let scene = scene else { return }
         
-        private func setupLayout() {
-            guard let scene = scene else { return }
-            
-            let safeWidth = scene.size.width - Layout.margins.left - Layout.margins.right
-            let safeHeight = scene.size.height - Layout.margins.top - Layout.margins.bottom
-            
-            let topBarHeight = safeHeight * Layout.topBarHeightRatio
-            let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
-            let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
-            let sideBarWidth = safeWidth * Layout.sideBarWidthRatio
-            let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
-            
-            setupTopBars(width: safeWidth, height: topBarHeight)
-            setupMainArea(width: mainAreaWidth, height: mainAreaHeight, topBarHeight: topBarHeight)
-            setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
-        }
+        let safeWidth = scene.size.width - Layout.margins.left - Layout.margins.right
+        let safeHeight = scene.size.height - Layout.margins.top - Layout.margins.bottom
         
+        let topBarHeight = safeHeight * Layout.topBarHeightRatio
+        let mainAreaHeight = safeHeight * Layout.mainAreaHeightRatio
+        let mainAreaWidth = safeWidth * Layout.mainAreaWidthRatio
+        let sideBarWidth = safeWidth * Layout.sideBarWidthRatio
+        let sideBarHeight = safeHeight * Layout.sideBarHeightRatio
+        
+        setupTopBars(width: safeWidth, height: topBarHeight)
+        setupMainArea(width: mainAreaWidth, height: mainAreaHeight, topBarHeight: topBarHeight)
+        setupSideBars(width: sideBarWidth, height: sideBarHeight, topBarHeight: topBarHeight)
+    }
+    
     private func setupTopBars(width: CGFloat, height: CGFloat) {
         guard let scene = scene else { return }
         let safeAreaTop = (scene.view?.safeAreaInsets.top ?? 0)
@@ -160,10 +160,10 @@ class GameUIManager {
             scene.addChild(rightBar)
             
             // Debug de posiciones
-//            print("Left TopBar position: \(leftXPosition)")
-//            print("Right TopBar position: \(rightXPosition)")
-//            print("TopBar width: \(topBarWidth)")
-//            print("Scene width: \(scene.size.width)")
+            //            print("Left TopBar position: \(leftXPosition)")
+            //            print("Right TopBar position: \(rightXPosition)")
+            //            print("TopBar width: \(topBarWidth)")
+            //            print("Scene width: \(scene.size.width)")
         }
     }
     
@@ -191,9 +191,9 @@ class GameUIManager {
         mainAreaNode = mainContent
         scene.addChild(containerNode)
         
-      //  print("MainArea configurada - Tamaño: \(width)x\(height)")
+        //  print("MainArea configurada - Tamaño: \(width)x\(height)")
     }
-
+    
     private func addDangerZone(to container: SKNode, width: CGFloat, height: CGFloat) {
         guard let scene = scene else { return }
         
@@ -282,7 +282,7 @@ class GameUIManager {
         
         setupStabilityIndicators(in: leftBar, at: position, width: width, height: height)
     }
-
+    
     private func setupRightSideBar(width: CGFloat, height: CGFloat) {
         guard let scene = scene else { return }
         let position = CGPoint(
@@ -415,23 +415,23 @@ class GameUIManager {
     func getMainAreaDimensions() -> (width: CGFloat, height: CGFloat) {
         return (mainAreaWidth, mainAreaHeight)
     }
-            
-        // Método adicional para actualizar el progreso del objetivo
-        func updateObjectiveProgress(
-            score: Int? = nil,
-            noteHit: Bool? = nil,
-            accuracy: Double? = nil,
-            blockDestroyed: String? = nil,
-            deltaTime: TimeInterval? = nil
-        ) {
-            objectiveTracker?.updateProgress(
-                score: score,
-                noteHit: noteHit,
-                accuracy: accuracy,
-                blockDestroyed: blockDestroyed,
-                deltaTime: deltaTime
-            )
-        }
+    
+    // Método adicional para actualizar el progreso del objetivo
+    func updateObjectiveProgress(
+        score: Int? = nil,
+        noteHit: Bool? = nil,
+        accuracy: Double? = nil,
+        blockDestroyed: String? = nil,
+        deltaTime: TimeInterval? = nil
+    ) {
+        objectiveTracker?.updateProgress(
+            score: score,
+            noteHit: noteHit,
+            accuracy: accuracy,
+            blockDestroyed: blockDestroyed,
+            deltaTime: deltaTime
+        )
+    }
     
     public func configureTopBars(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
         leftTopBarNode?.configure(withLevel: level, objectiveTracker: objectiveTracker)

@@ -125,18 +125,15 @@ class MusicBlocksScene: SKScene {
     private func startGameplay() {
         print("Iniciando gameplay")
         
-        // Inicializar el motor del juego AQUÍ, después del overlay
+        // Inicializar el motor del juego (esto ya configura las métricas y genera bloques)
         gameEngine.startNewGame()
         
-        // Iniciar el audio
-        Task {
-            print("🎤 Iniciando motor de audio...")
-            await MainActor.run {
-                audioController.start()
-                print("✅ Motor de audio iniciado")
-                self.blocksManager.startBlockGeneration()
-                print("✅ Gameplay iniciado")
-            }
+        // Esperar un pequeño retraso para que el fade out de la música de fondo finalice antes de iniciar el audio.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            self.audioController.start()
+            print("✅ Motor de audio iniciado")
+            self.blocksManager.startBlockGeneration()
+            print("✅ Gameplay iniciado")
         }
     }
     
