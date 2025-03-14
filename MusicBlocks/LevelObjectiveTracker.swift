@@ -34,23 +34,23 @@ class LevelObjectiveTracker {
                        accuracy: Double? = nil,
                        blockDestroyed: String? = nil,
                        deltaTime: TimeInterval? = nil) {
-        // Actualizar score - SIEMPRE actualizar si se proporciona
+        // Actualizar score - Para objetivos tipo "score"
         if let score = score {
             currentProgress.score = score
         }
         
-        // Actualizar notas acertadas
+        // Actualizar notas acertadas - Para objetivos tipo "total_notes"
         if let noteHit = noteHit, noteHit {
             currentProgress.notesHit += 1
         }
         
-        // Actualizar precisión
+        // Actualizar precisión - Para objetivos tipo "note_accuracy"
         if let accuracy = accuracy {
             currentProgress.accuracySum += accuracy
             currentProgress.accuracyCount += 1
         }
         
-        // Actualizar bloques destruidos (eliminar duplicado)
+        // Actualizar bloques destruidos - Para objetivos tipo "block_destruction" y "total_blocks"
         if let blockType = blockDestroyed {
             currentProgress.blocksByType[blockType, default: 0] += 1
             currentProgress.totalBlocksDestroyed += 1

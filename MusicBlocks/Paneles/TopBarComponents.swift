@@ -349,19 +349,19 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             }
             
         default:
-            switch objective.type {
-            case "score":
-                objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
-            case "total_notes":
-                objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
-            case "note_accuracy":
-                let accuracy = Int(progress.averageAccuracy * 100)
-                objectiveIconNode?.updateValue("\(accuracy)%")
-            case "block_destruction", "total_blocks":
-                objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
-            default:
-                break
-            }
+                switch objective.type {
+                case "score":
+                    objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
+                case "total_notes":
+                    objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
+                case "note_accuracy":
+                    let accuracy = Int(progress.averageAccuracy * 100)
+                    objectiveIconNode?.updateValue("\(accuracy)%")
+                case "block_destruction", "total_blocks":
+                    objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
+                default:
+                    break
+                }
             
             if let timeLimit = objective.timeLimit {
                 updateTimeIcon(progress: progress, timeLimit: timeLimit)

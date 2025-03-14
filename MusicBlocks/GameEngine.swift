@@ -215,53 +215,56 @@ class GameEngine: ObservableObject {
     
     /// Maneja el éxito al completar el bloque: actualiza estadísticas, suma puntos y verifica objetivos.
     private func handleSuccess(deviation: Double, blockConfig: Block) {
-            isInSuccessState = true
-            
-            if let currentBlock = blockManager?.getCurrentBlock() {
-                blockHitsByStyle[currentBlock.style] = (blockHitsByStyle[currentBlock.style] ?? 0) + 1
-                print("📊 Bloques acertados actualizados:")
-                for (style, count) in blockHitsByStyle {
-                    print("• \(style): \(count)")
-                }
-            }
-            
-            let accuracy = calculateAccuracy(deviation: deviation)
-            let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
-            let comboBonus = calculateComboBonus(baseScore: baseScore)
-            let finalScore = baseScore + comboBonus
-            score += finalScore
-            
-            checkForExtraLife(currentScore: score)
-            
-            // Actualizar el objective tracker con el nuevo score DESPUÉS de incrementarlo
-            objectiveTracker?.updateProgress(
-                score: score,  // Actualizar con el score incrementado
-                noteHit: true,
-                accuracy: accuracy,
-                blockDestroyed: blockConfig.style
-            )
-            
-            // Enviar notificación de actualización de puntaje
-            NotificationCenter.default.post(
-                name: NSNotification.Name("ScoreUpdated"),
-                object: nil,
-                userInfo: ["score": score]
-            )
-            
-            if let primaryComplete = objectiveTracker?.checkObjectives(), primaryComplete {
-                endGame(reason: .victory)
-            }
-            
-            noteState = .success(
-                multiplier: finalScore / blockConfig.basePoints,
-                message: "\(message) (\(combo)x Combo!)"
-            )
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.isInSuccessState = false
-                self?.noteState = .waiting
+        isInSuccessState = true
+        
+        if let currentBlock = blockManager?.getCurrentBlock() {
+            blockHitsByStyle[currentBlock.style] = (blockHitsByStyle[currentBlock.style] ?? 0) + 1
+            print("📊 Bloques acertados actualizados:")
+            for (style, count) in blockHitsByStyle {
+                print("• \(style): \(count)")
             }
         }
+        
+        let accuracy = calculateAccuracy(deviation: deviation)
+        let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
+        let comboBonus = calculateComboBonus(baseScore: baseScore)
+        let finalScore = baseScore + comboBonus
+        score += finalScore
+        
+        checkForExtraLife(currentScore: score)
+        
+        // Obtener el estilo del bloque actual
+        let blockStyle = blockManager?.getCurrentBlock()?.style ?? "defaultBlock"
+        
+        // Actualizar TODOS los datos relevantes para CUALQUIER tipo de objetivo
+        objectiveTracker?.updateProgress(
+            score: score,             // Para objetivos tipo "score"
+            noteHit: true,            // Para objetivos tipo "total_notes"
+            accuracy: accuracy,       // Para objetivos tipo "note_accuracy"
+            blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
+        )
+        
+        // Enviar notificación de actualización de puntaje
+        NotificationCenter.default.post(
+            name: NSNotification.Name("ScoreUpdated"),
+            object: nil,
+            userInfo: ["score": score]
+        )
+        
+        if let primaryComplete = objectiveTracker?.checkObjectives(), primaryComplete {
+            endGame(reason: .victory)
+        }
+        
+        noteState = .success(
+            multiplier: finalScore / blockConfig.basePoints,
+            message: "\(message) (\(combo)x Combo!)"
+        )
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.isInSuccessState = false
+            self?.noteState = .waiting
+        }
+    }
     
     // MARK: - Score Calculation
     /// Calcula la precisión a partir de la desviación.

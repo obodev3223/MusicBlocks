@@ -53,21 +53,22 @@ class MusicBlocksScene: SKScene {
     }
     
     // MARK: - Score Update Handler
-        @objc func handleScoreUpdate(_ notification: Notification) {
-            if let score = notification.userInfo?["score"] as? Int {
-                // Actualizar inmediatamente la UI con el nuevo puntaje
-                uiManager.updateUI(score: score, lives: gameEngine.lives)
-                
-                // Si hay un objective tracker, asegurar que también se actualice
-                if let tracker = objectiveTracker {
-                    // La actualización del score en el tracker se hace en GameEngine,
-                    // aquí solo necesitamos obtener el progreso actualizado y reflejar
-                    // los cambios en la UI
-                    let progress = tracker.getCurrentProgress()
-                    uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
-                }
+    @objc func handleScoreUpdate(_ notification: Notification) {
+        if let score = notification.userInfo?["score"] as? Int {
+            // Actualizar inmediatamente la UI con el nuevo puntaje
+            uiManager.updateUI(score: score, lives: gameEngine.lives)
+            
+            // Si hay un objective tracker, asegurar que también se actualice
+            if let tracker = objectiveTracker {
+                // La actualización de todos los datos del tracker (notesHit, accuracy, blocks)
+                // ya se ha hecho en GameEngine antes de enviar esta notificación,
+                // aquí solo necesitamos obtener el progreso actualizado y reflejar
+                // los cambios en la UI
+                let progress = tracker.getCurrentProgress()
+                uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
             }
         }
+    }
     
     // MARK: - Setup Methods
         private func setupManagers() {
