@@ -2,7 +2,7 @@
 //  MusicBlocksScene.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 7/3/25.
+//  Created by Jose R. García on 14/3/25.
 //
 
 import SpriteKit
@@ -32,6 +32,14 @@ class MusicBlocksScene: SKScene {
         
         setupManagers()
         setupGame()
+        
+        // Añadir observador para actualizaciones de puntaje
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleScoreUpdate(_:)),
+            name: NSNotification.Name("ScoreUpdated"),
+            object: nil
+        )
     }
     
     override func willMove(from view: SKView) {
@@ -39,50 +47,73 @@ class MusicBlocksScene: SKScene {
         print("⏹️ Deteniendo juego")
         audioController.stop()
         blocksManager.stopBlockGeneration()
+        
+        // Eliminar observador al salir de la escena
+        NotificationCenter.default.removeObserver(self)
     }
     
+    // MARK: - Score Update Handler
+        @objc func handleScoreUpdate(_ notification: Notification) {
+            if let score = notification.userInfo?["score"] as? Int {
+                // Actualizar inmediatamente la UI con el nuevo puntaje
+                uiManager.updateUI(score: score, lives: gameEngine.lives)
+                
+                // Si hay un objective tracker, asegurar que también se actualice
+                if let tracker = objectiveTracker {
+                    // La actualización del score en el tracker se hace en GameEngine,
+                    // aquí solo necesitamos obtener el progreso actualizado y reflejar
+                    // los cambios en la UI
+                    let progress = tracker.getCurrentProgress()
+                    uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+                }
+            }
+        }
+    
     // MARK: - Setup Methods
-    private func setupManagers() {
-        // Primero cargar el nivel inicial
-        let userProfile = UserProfile.load()
-        _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
-        
-        // Crear tracker para el nivel actual
-        if let currentLevel = gameManager.currentLevel {
-            objectiveTracker = LevelObjectiveTracker(level: currentLevel)
+        private func setupManagers() {
+            // Primero cargar el nivel inicial
+            let userProfile = UserProfile.load()
+            _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
+            
+            // Crear tracker para el nivel actual
+            if let currentLevel = gameManager.currentLevel {
+                objectiveTracker = LevelObjectiveTracker(level: currentLevel)
+            }
+            
+            // Inicializar UI Manager
+            uiManager = GameUIManager(scene: self)
+            
+            // Obtener dimensiones del área principal
+            let (mainAreaWidth, mainAreaHeight) = uiManager.getMainAreaDimensions()
+            
+            // Inicializar BlocksManager
+            blocksManager = BlocksManager(
+                blockSize: CGSize(
+                    width: mainAreaWidth * 0.9,
+                    height: mainAreaHeight * 0.15
+                ),
+                blockSpacing: mainAreaHeight * 0.02,
+                mainAreaNode: uiManager.getMainAreaNode(),
+                mainAreaHeight: mainAreaHeight
+            )
+            
+            // Inicializar GameEngine
+            gameEngine = GameEngine(blockManager: blocksManager)
+            
+            // Asignar el tracker de objetivos al motor de juego
+            gameEngine.objectiveTracker = objectiveTracker
+            
+            // Configurar el delegado de audio
+            guard let engine = gameEngine else {
+                fatalError("GameEngine no se ha inicializado correctamente")
+            }
+            audioController.delegate = engine
+            
+            // IMPORTANTE: Actualizar UI con las vidas iniciales después de que todo esté configurado
+            if let currentLevel = gameManager.currentLevel {
+                uiManager.updateUI(score: 0, lives: currentLevel.lives.initial)
+            }
         }
-        
-        // Inicializar UI Manager
-        uiManager = GameUIManager(scene: self)
-        
-        // Obtener dimensiones del área principal
-        let (mainAreaWidth, mainAreaHeight) = uiManager.getMainAreaDimensions()
-        
-        // Inicializar BlocksManager
-        blocksManager = BlocksManager(
-            blockSize: CGSize(
-                width: mainAreaWidth * 0.9,
-                height: mainAreaHeight * 0.15
-            ),
-            blockSpacing: mainAreaHeight * 0.02,
-            mainAreaNode: uiManager.getMainAreaNode(),
-            mainAreaHeight: mainAreaHeight
-        )
-        
-        // Inicializar GameEngine
-        gameEngine = GameEngine(blockManager: blocksManager)
-        
-        // Configurar el delegado de audio
-        guard let engine = gameEngine else {
-            fatalError("GameEngine no se ha inicializado correctamente")
-        }
-        audioController.delegate = engine
-        
-        // IMPORTANTE: Actualizar UI con las vidas iniciales después de que todo esté configurado
-        if let currentLevel = gameManager.currentLevel {
-            uiManager.updateUI(score: 0, lives: currentLevel.lives.initial)
-        }
-    }
     
     private func setupGame() {
         // Cargar nivel desde el perfil del usuario

@@ -23,51 +23,44 @@ class LevelObjectiveTracker {
     }
 
         
-        func getPrimaryObjective() -> Objective {
-            return primaryObjective
-        }
+    func getPrimaryObjective() -> Objective {
+        return primaryObjective
+    }
     
     // MARK: - Progress Updates
     
     func updateProgress(score: Int? = nil,
-                           noteHit: Bool? = nil,
-                           accuracy: Double? = nil,
-                           blockDestroyed: String? = nil,
-                           deltaTime: TimeInterval? = nil) {
-            // Actualizar score
-            if let score = score {
-                currentProgress.score = score
-            }
-            
-            // Actualizar notas acertadas
-            if let noteHit = noteHit, noteHit {
-                currentProgress.notesHit += 1
-            }
-            
-            // Actualizar precisión
-            if let accuracy = accuracy {
-                currentProgress.accuracySum += accuracy
-                currentProgress.accuracyCount += 1
-            }
-            
-            // Actualizar bloques destruidos
-            if let blockType = blockDestroyed {
-                currentProgress.blocksByType[blockType, default: 0] += 1
-                currentProgress.totalBlocksDestroyed += 1
-            }
+                       noteHit: Bool? = nil,
+                       accuracy: Double? = nil,
+                       blockDestroyed: String? = nil,
+                       deltaTime: TimeInterval? = nil) {
+        // Actualizar score - SIEMPRE actualizar si se proporciona
+        if let score = score {
+            currentProgress.score = score
+        }
         
-        // Actualizar tipo de bloque destruido
+        // Actualizar notas acertadas
+        if let noteHit = noteHit, noteHit {
+            currentProgress.notesHit += 1
+        }
+        
+        // Actualizar precisión
+        if let accuracy = accuracy {
+            currentProgress.accuracySum += accuracy
+            currentProgress.accuracyCount += 1
+        }
+        
+        // Actualizar bloques destruidos (eliminar duplicado)
         if let blockType = blockDestroyed {
             currentProgress.blocksByType[blockType, default: 0] += 1
             currentProgress.totalBlocksDestroyed += 1
         }
-
-            
-            // Actualizar tiempo
-            if let deltaTime = deltaTime {
-                currentProgress.timeElapsed += deltaTime
-            }
+        
+        // Actualizar tiempo
+        if let deltaTime = deltaTime {
+            currentProgress.timeElapsed += deltaTime
         }
+    }
     
     // MARK: - Objective Checking
     
