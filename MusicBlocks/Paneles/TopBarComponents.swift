@@ -2,7 +2,7 @@
 //  TopBarComponents.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 9/3/25.
+//  Created by Jose R. García on 14/3/25.
 //
 
 import SpriteKit
@@ -22,6 +22,12 @@ private enum TopBarLayout {
     static let panelHeight: CGFloat = 60
     /// Tamaño máximo para la dimensión más larga del icono.
     static let iconSize: CGFloat = 18
+    
+    // Nuevos valores para layout de columnas en total_blocks
+    static let columnWidth: CGFloat = 80          // Ancho de cada columna
+    static let rowSpacing: CGFloat = 20           // Espacio vertical entre filas
+    static let maxItemsPerColumn: Int = 2         // Máximo de items por columna
+    static let maxColumns: Int = 3                // Máximo de columnas permitidas
 }
 
 // MARK: - Estructuras de Datos
@@ -221,15 +227,19 @@ class TimeDisplayNode: SKNode {
 }
 
 // MARK: - Panel Base de Objetivos
+// MARK: - Panel Base de Objetivos
 class ObjectiveInfoPanel: TopBarBaseNode {
     weak var objectiveTracker: LevelObjectiveTracker?
     
-    // Icono único para “score”, “time”, etc.
+    // Icono único para "score", "time", etc.
     private var objectiveIconNode: ObjectiveIconNode?
     private var timeIconNode: ObjectiveIconNode?
     
     // Lista de iconos por estilo de bloque
     private var blockIcons: [String: ObjectiveIconNode] = [:]
+    
+    // Contenedor para el objetivo "block_destruction"
+    private var blockDestructionContainer: SKNode?
     
     init(size: CGSize, objectiveTracker: LevelObjectiveTracker) {
         self.objectiveTracker = objectiveTracker
@@ -254,24 +264,22 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         
         switch objective.type {
         case "block_destruction":
+            // Para block_destruction, creamos un contenedor especial que organizará los bloques en columnas
+            let container = SKNode()
+            contentContainer.addChild(container)
+            blockDestructionContainer = container
+            
             // Si el objetivo tiene detalles con estilos y cantidades
             if let details = objective.details {
-                var offsetY: CGFloat = 0
-                
-                for (blockType, _) in details {
-                    let iconNode = createBlockIconNode(for: blockType)
-                    iconNode.position = CGPoint(x: 0, y: offsetY)
-                    offsetY -= (TopBarLayout.iconSize + 10)
-                    contentContainer.addChild(iconNode)
-                    
-                    blockIcons[blockType] = iconNode
-                }
+                // Los bloques se organizarán en el método updateBlockDestructionLayout
+                // que llamaremos desde updateInfo
             }
+            
             // Si además hay límite de tiempo
             if objective.timeLimit != nil {
                 timeIconNode = ObjectiveIconNode(type: .time)
                 if let timeIcon = timeIconNode {
-                    timeIcon.position = CGPoint(x: 0, y: -120)
+                    timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.verticalSpacing * 6) // Posicionarlo más abajo para dar espacio a las columnas
                     contentContainer.addChild(timeIcon)
                 }
             }
@@ -309,7 +317,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         // Creamos un icono .blocks
         let node = ObjectiveIconNode(type: .blocks)
         
-        // Reemplazamos textura y tamaño del SKSpriteNode “existingIcon”
+        // Reemplazamos textura y tamaño del SKSpriteNode "existingIcon"
         if let existingIcon = node.children.first as? SKSpriteNode {
             existingIcon.texture = iconTexture
             existingIcon.size = CGSize(width: finalWidth, height: finalHeight)
@@ -334,14 +342,10 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         switch objective.type {
         case "block_destruction":
             if let details = objective.details {
-                for (blockType, required) in details {
-                    let destroyed = progress.blocksByType[blockType, default: 0]
-                    if let iconNode = blockIcons[blockType] {
-                        let text = "\(destroyed)/\(required)"
-                        iconNode.updateValue(text)
-                    }
-                }
+                // Actualizar el layout de los bloques en formato de columnas
+                updateBlockDestructionLayout(with: progress, details: details)
             }
+            
             if let timeLimit = objective.timeLimit {
                 updateTimeIcon(progress: progress, timeLimit: timeLimit)
             } else {
@@ -349,19 +353,19 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             }
             
         default:
-                switch objective.type {
-                case "score":
-                    objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
-                case "total_notes":
-                    objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
-                case "note_accuracy":
-                    let accuracy = Int(progress.averageAccuracy * 100)
-                    objectiveIconNode?.updateValue("\(accuracy)%")
-                case "block_destruction", "total_blocks":
-                    objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
-                default:
-                    break
-                }
+            switch objective.type {
+            case "score":
+                objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
+            case "total_notes":
+                objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
+            case "note_accuracy":
+                let accuracy = Int(progress.averageAccuracy * 100)
+                objectiveIconNode?.updateValue("\(accuracy)%")
+            case "total_blocks":
+                objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
+            default:
+                break
+            }
             
             if let timeLimit = objective.timeLimit {
                 updateTimeIcon(progress: progress, timeLimit: timeLimit)
@@ -369,6 +373,66 @@ class ObjectiveInfoPanel: TopBarBaseNode {
                 timeIconNode?.updateValue("∞")
             }
         }
+    }
+    
+    // Método para actualizar el layout de block_destruction en formato de columnas
+    private func updateBlockDestructionLayout(with progress: ObjectiveProgress, details: [String: Int]) {
+        // Limpiar el contenedor existente si hay uno
+        blockDestructionContainer?.removeAllChildren()
+        guard let container = blockDestructionContainer else { return }
+        
+        // Filtrar los bloques que están en los detalles del objetivo
+        let blockTypes = Array(details.keys)
+        
+        // Si no hay bloques, no hacer nada
+        if blockTypes.isEmpty { return }
+        
+        // Calcular cuántas columnas necesitamos (máximo 3)
+        let totalItems = blockTypes.count
+        let columnsNeeded = min((totalItems + 1) / 2, TopBarLayout.maxColumns) // Redondeamos hacia arriba (+1) y dividimos por 2
+        
+        // Calcular posición inicial
+        var startX: CGFloat = 0
+        
+        // Si tenemos más de una columna, alineamos desde la izquierda
+        if columnsNeeded > 1 {
+            startX = -((CGFloat(columnsNeeded - 1) * TopBarLayout.columnWidth) / 2)
+        }
+        
+        var currentX = startX
+        var currentY: CGFloat = TopBarLayout.rowSpacing // Primera fila
+        var itemsInCurrentColumn = 0
+        
+        // Organizar bloques en columnas
+        for blockType in blockTypes {
+            // Si completamos 2 items en la columna actual, pasamos a la siguiente columna
+            if itemsInCurrentColumn >= TopBarLayout.maxItemsPerColumn {
+                currentX += TopBarLayout.columnWidth
+                currentY = TopBarLayout.rowSpacing // Volvemos a la primera fila
+                itemsInCurrentColumn = 0
+            }
+            
+            // Crear nodo para este bloque
+            let iconNode = createBlockIconNode(for: blockType)
+            
+            // Posicionar según la columna y fila actual
+            let yPos = currentY - (CGFloat(itemsInCurrentColumn) * TopBarLayout.rowSpacing)
+            iconNode.position = CGPoint(x: currentX, y: yPos)
+            
+            // Actualizar valor mostrando cantidad actual y objetivo
+            let destroyed = progress.blocksByType[blockType, default: 0]
+            let required = details[blockType] ?? 0
+            iconNode.updateValue("\(destroyed)/\(required)")
+            
+            // Añadir al contenedor
+            container.addChild(iconNode)
+            
+            // Actualizar contadores
+            itemsInCurrentColumn += 1
+        }
+        
+        // Posicionar el contenedor
+        container.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
     }
     
     private func updateTimeIcon(progress: ObjectiveProgress, timeLimit: Int) {
@@ -388,109 +452,216 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     }
 }
 
-// MARK: - Fábrica de Paneles
-class ObjectivePanelFactory {
-    static func createPanel(for objective: Objective, size: CGSize, tracker: LevelObjectiveTracker) -> ObjectiveInfoPanel {
-        return ObjectiveInfoPanel(size: size, objectiveTracker: tracker)
+    // MARK: - Fábrica de Paneles
+    class ObjectivePanelFactory {
+        static func createPanel(for objective: Objective, size: CGSize, tracker: LevelObjectiveTracker) -> ObjectiveInfoPanel {
+            return ObjectiveInfoPanel(size: size, objectiveTracker: tracker)
+        }
     }
-}
 
 // MARK: - Preview
 #if DEBUG
 import SwiftUI
 
-/// Vista previa que muestra varios ObjectiveInfoPanel en una misma escena
+/// Vista previa que muestra cada ObjectiveInfoPanel en una escena separada
 struct ObjectivePanelsPreview: PreviewProvider {
     static var previews: some View {
-        ObjectivePanelsPreviewContainer()
-            .frame(width: 600, height: 300)
-            .previewDisplayName("Todos los tipos de Objetivos")
+        VStack {
+            ScoreObjectivePreviewContainer()
+                .frame(height: 150)
+                .padding(.bottom, 10)
+                .previewDisplayName("Score Objective")
+            
+            TotalNotesObjectivePreviewContainer()
+                .frame(height: 150)
+                .padding(.bottom, 10)
+                .previewDisplayName("Total Notes Objective")
+            
+            NoteAccuracyObjectivePreviewContainer()
+                .frame(height: 150)
+                .padding(.bottom, 10)
+                .previewDisplayName("Note Accuracy Objective")
+            
+            BlockDestructionObjectivePreviewContainer()
+                .frame(height: 150)
+                .padding(.bottom, 10)
+                .previewDisplayName("Block Destruction Objective (Columnas)")
+            
+            TotalBlocksObjectivePreviewContainer()
+                .frame(height: 150)
+                .previewDisplayName("Total Blocks Objective")
+        }
     }
 }
 
-struct ObjectivePanelsPreviewContainer: View {
+// Contenedor base para reutilizar código
+protocol ObjectivePreviewContainer: View {
+    var objectiveType: String { get }
+    func createObjectiveDetails() -> [String: Int]?
+    func createBlocksDestroyed() -> [String: Int]
+    func createAllowedStyles() -> [String]
+}
+
+extension ObjectivePreviewContainer {
+    func createPreviewScene(size: CGSize) -> SKScene {
+        let scene = SKScene(size: size)
+        scene.scaleMode = .resizeFill
+        scene.backgroundColor = .lightGray
+        
+        let objectiveDetails = createObjectiveDetails()
+        let allowedStyles = createAllowedStyles()
+        let blocksDestroyed = createBlocksDestroyed()
+        
+        let objective = Objective(
+            type: objectiveType,
+            target: 1000,
+            timeLimit: 180,
+            minimumAccuracy: objectiveType == "note_accuracy" ? 0.85 : nil,
+            details: objectiveDetails
+        )
+        
+        let level = GameLevel(
+            levelId: 1,
+            name: "Nivel de prueba",
+            maxScore: 500,
+            allowedStyles: allowedStyles,
+            fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
+            lives: Lives(
+                initial: 3,
+                extraLives: ExtraLives(scoreThresholds: [], maxExtra: 0)
+            ),
+            objectives: Objectives(primary: objective),
+            blocks: [:]
+        )
+        
+        let tracker = LevelObjectiveTracker(level: level)
+        var progress = ObjectiveProgress(
+            score: 350,
+            notesHit: 40,
+            accuracySum: 85.0,
+            accuracyCount: 100,
+            blocksByType: blocksDestroyed,
+            totalBlocksDestroyed: blocksDestroyed.values.reduce(0, +),
+            timeElapsed: 60
+        )
+        
+        let panelSize = CGSize(width: size.width * 0.8, height: size.height * 0.7)
+        let panel = ObjectivePanelFactory.createPanel(for: objective, size: panelSize, tracker: tracker)
+        panel.updateInfo(with: progress)
+        
+        panel.position = CGPoint(x: size.width/2, y: size.height/2)
+        scene.addChild(panel)
+        
+        return scene
+    }
+}
+
+// Implementaciones específicas para cada tipo de objetivo
+struct ScoreObjectivePreviewContainer: View, ObjectivePreviewContainer {
+    var objectiveType: String { "score" }
+    
+    func createObjectiveDetails() -> [String: Int]? { nil }
+    func createBlocksDestroyed() -> [String: Int] { [:] }
+    func createAllowedStyles() -> [String] { [] }
+    
     var body: some View {
         GeometryReader { geometry in
             SpriteView(scene: createPreviewScene(size: geometry.size))
                 .background(Color.gray.opacity(0.2))
         }
     }
+}
+
+struct TotalNotesObjectivePreviewContainer: View, ObjectivePreviewContainer {
+    var objectiveType: String { "total_notes" }
     
-    private func createPreviewScene(size: CGSize) -> SKScene {
-        let scene = SKScene(size: size)
-        scene.scaleMode = .resizeFill
-        scene.backgroundColor = .lightGray
-        
-        let panelSpacing: CGFloat = 10
-        let objectiveTypes: [String] = [
-            "score",
-            "total_notes",
-            "note_accuracy",
-            "block_destruction",
-            "total_blocks"
-        ]
-        
-        let totalPanels = CGFloat(objectiveTypes.count)
-        let panelWidth = (size.width - (panelSpacing * (totalPanels + 1))) / totalPanels
-        let panelHeight: CGFloat = min(size.height * 0.8, 100)
-        
-        var currentX = panelSpacing
-        
-        for (index, type) in objectiveTypes.enumerated() {
-            var objectiveDetails: [String: Int]? = nil
-            var allowedStyles: [String] = []
-            var blocksDestroyed: [String: Int] = [:]
-            
-            if type == "block_destruction" {
-                objectiveDetails = ["defaultBlock": 5, "iceBlock": 3, "hardiceBlock": 7]
-                allowedStyles = ["defaultBlock", "iceBlock", "hardiceBlock"]
-                blocksDestroyed = ["defaultBlock": 2, "iceBlock": 3, "hardiceBlock": 5]
-            }
-            
-            let objective = Objective(
-                type: type,
-                target: 1000,
-                timeLimit: 180,
-                minimumAccuracy: nil,
-                details: objectiveDetails
-            )
-            
-            let level = GameLevel(
-                levelId: index + 1,
-                name: "Nivel de prueba",
-                maxScore: 500,
-                allowedStyles: allowedStyles,
-                fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
-                lives: Lives(
-                    initial: 3,
-                    extraLives: ExtraLives(scoreThresholds: [], maxExtra: 0)
-                ),
-                objectives: Objectives(primary: objective),
-                blocks: [:]
-            )
-            
-            let tracker = LevelObjectiveTracker(level: level)
-            var progress = ObjectiveProgress(
-                score: 350,
-                notesHit: 40,
-                accuracySum: 0.9,
-                accuracyCount: 1,
-                blocksByType: blocksDestroyed,
-                totalBlocksDestroyed: blocksDestroyed.values.reduce(0, +),
-                timeElapsed: 60
-            )
-            
-            let panelSize = CGSize(width: panelWidth, height: panelHeight)
-            let panel = ObjectivePanelFactory.createPanel(for: objective, size: panelSize, tracker: tracker)
-            panel.updateInfo(with: progress)
-            
-            panel.position = CGPoint(x: currentX + panelWidth/2, y: size.height/2)
-            scene.addChild(panel)
-            
-            currentX += (panelWidth + panelSpacing)
+    func createObjectiveDetails() -> [String: Int]? { nil }
+    func createBlocksDestroyed() -> [String: Int] { [:] }
+    func createAllowedStyles() -> [String] { [] }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            SpriteView(scene: createPreviewScene(size: geometry.size))
+                .background(Color.gray.opacity(0.2))
         }
-        
-        return scene
+    }
+}
+
+struct NoteAccuracyObjectivePreviewContainer: View, ObjectivePreviewContainer {
+    var objectiveType: String { "note_accuracy" }
+    
+    func createObjectiveDetails() -> [String: Int]? { nil }
+    func createBlocksDestroyed() -> [String: Int] { [:] }
+    func createAllowedStyles() -> [String] { [] }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            SpriteView(scene: createPreviewScene(size: geometry.size))
+                .background(Color.gray.opacity(0.2))
+        }
+    }
+}
+
+struct BlockDestructionObjectivePreviewContainer: View, ObjectivePreviewContainer {
+    var objectiveType: String { "block_destruction" }
+    
+    func createObjectiveDetails() -> [String: Int]? {
+        return [
+       //     "defaultBlock": 5,
+            "iceBlock": 3,
+            "hardiceBlock": 7,
+            "ghostBlock": 4,
+            "changingBlock": 6,
+            "explosiveBlock": 2
+        ]
+    }
+    
+    func createBlocksDestroyed() -> [String: Int] {
+        return [
+      //      "defaultBlock": 2,
+            "iceBlock": 3,
+            "hardiceBlock": 5,
+            "ghostBlock": 1,
+            "changingBlock": 4,
+            "explosiveBlock": 0
+        ]
+    }
+    
+    func createAllowedStyles() -> [String] {
+        return ["defaultBlock", "iceBlock", "hardiceBlock", "ghostBlock", "changingBlock", "explosiveBlock"]
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            SpriteView(scene: createPreviewScene(size: geometry.size))
+                .background(Color.gray.opacity(0.2))
+        }
+    }
+}
+
+struct TotalBlocksObjectivePreviewContainer: View, ObjectivePreviewContainer {
+    var objectiveType: String { "total_blocks" }
+    
+    func createObjectiveDetails() -> [String: Int]? { nil }
+    
+    func createBlocksDestroyed() -> [String: Int] {
+        // Para total_blocks solo importa el total, no los detalles por tipo
+        return [
+            "defaultBlock": 3,
+            "iceBlock": 5,
+            "hardiceBlock": 2,
+        ]
+    }
+    
+    func createAllowedStyles() -> [String] {
+        return ["defaultBlock", "iceBlock", "hardiceBlock"]
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            SpriteView(scene: createPreviewScene(size: geometry.size))
+                .background(Color.gray.opacity(0.2))
+        }
     }
 }
 #endif
