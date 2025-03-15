@@ -18,7 +18,7 @@ class MusicBlocksScene: SKScene {
     private var gameEngine: GameEngine!
     private var blocksManager: BlocksManager!
     private var uiManager: GameUIManager!
-    private var objectiveTracker: LevelObjectiveTracker?
+    var objectiveTracker: LevelObjectiveTracker?
     
     // MARK: - Game State
     private var lastUpdateTime: TimeInterval = 0
@@ -66,18 +66,21 @@ class MusicBlocksScene: SKScene {
         // Actualizar UI principal
         uiManager.updateUI(score: score, lives: lives)
         
-        // Verificar si es una actualización de tiempo
-        let isTimeUpdate = userData["timeUpdate"] as? Bool ?? false
+        // Verificar si es una actualización de tiempo (eliminar esta línea o reemplazarla)
+        // let isTimeUpdate = userData["timeUpdate"] as? Bool ?? false
         
         // Siempre obtener el progreso más reciente
-        if let progress = objectiveTracker?.getCurrentProgress() {
-            // Si hay tiempo explícito en la notificación, usarlo
+        if let tracker = objectiveTracker {
             if let timeElapsed = userData["timeElapsed"] as? TimeInterval {
-                var updatedProgress = progress
-                updatedProgress.timeElapsed = timeElapsed
-                uiManager.rightTopBarNode?.updateObjectiveInfo(with: updatedProgress)
+                // Actualizar directamente en el tracker para asegurar coherencia
+                tracker.updateProgress(deltaTime: 0) // Solo para forzar una actualización sin incrementar
+                
+                // Obtener el progreso actualizado
+                let progress = tracker.getCurrentProgress()
+                uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
             } else {
-                // Caso normal: usar el progreso como está
+                // Actualización normal
+                let progress = tracker.getCurrentProgress()
                 uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
             }
         }
@@ -251,22 +254,24 @@ class MusicBlocksScene: SKScene {
     }
 
     // Añadir este método para actualizar la información del tiempo
-    private func updateTimeDisplay() {
-        // Comprobación de seguridad
-        guard let tracker = objectiveTracker, case .playing = gameEngine.gameState else { return }
+    func updateUI(score: Int, lives: Int) {
+        leftTopBarNode?.updateScore(score)
+        leftTopBarNode?.updateLives(lives)
         
-        // Actualizar el tiempo en el tracker
-        tracker.updateProgress(deltaTime: timeUpdateInterval)
-        
-        // Forzar una actualización de la UI
-        let progress = tracker.getCurrentProgress()
-        
-        // Debug para verificar que se actualiza
-        print("⏱️ Tiempo actualizado: \(progress.timeElapsed) segundos (restantes: \(Int(180 - progress.timeElapsed))s)")
-        
-        // Actualizar la UI explícitamente
-        DispatchQueue.main.async {
-            self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+        // Actualizar la puntuación en el tracker sin afectar el tiempo
+        if let tracker = objectiveTracker {
+            // Obtener el estado actual
+            let currentProgress = tracker.getCurrentProgress()
+            
+            // Actualizar solo el score, no el tiempo
+            tracker.updateProgress(score: score)
+            
+            // Debug
+            print("⏱️ Tiempo en updateUI: \(currentProgress.timeElapsed)")
+            
+            // Obtener progreso actualizado y actualizar la UI
+            let updatedProgress = tracker.getCurrentProgress()
+            rightTopBarNode?.updateObjectiveInfo(with: updatedProgress)
         }
     }
     

@@ -34,11 +34,12 @@ class LevelObjectiveTracker {
                        accuracy: Double? = nil,
                        blockDestroyed: String? = nil,
                        deltaTime: TimeInterval? = nil) {
+        // Guardar el tiempo transcurrido actual
+        let currentTimeElapsed = currentProgress.timeElapsed
         
-        // Solo modificamos los campos específicamente proporcionados
+        // Actualizar score - Para objetivos tipo "score"
         if let score = score {
             currentProgress.score = score
-            print("📊 Score actualizado a: \(score)")
         }
         
         // Actualizar notas acertadas - Para objetivos tipo "total_notes"
@@ -58,18 +59,28 @@ class LevelObjectiveTracker {
             currentProgress.totalBlocksDestroyed += 1
         }
         
-        // Imprimir el tiempo actualizado para debug
+        // Actualizar tiempo - Aquí está la mejora clave
         if let deltaTime = deltaTime {
-                currentProgress.timeElapsed += deltaTime
-                print("⏱️ Tiempo actualizado en LevelObjectiveTracker: \(currentProgress.timeElapsed)")
-            }
+            currentProgress.timeElapsed += deltaTime
+            print("⏱️ Tiempo actualizado en LevelObjectiveTracker: \(currentProgress.timeElapsed)")
+        } else {
+            // Si no se proporciona deltaTime, asegurar que el tiempo no se pierde
+            currentProgress.timeElapsed = currentTimeElapsed
         }
+    }
     
     func resetProgress() {
         self.currentProgress = ObjectiveProgress()
-        // Inicializar contadores para cada estilo permitido en el nivel
-        for style in primaryObjective.details?.keys ?? [] {
-            currentProgress.blocksByType[style] = 0
+        
+        // Comprobar si hay detalles en el objetivo primario
+        if let details = primaryObjective.details {
+            // Inicializar contadores para cada estilo permitido en el nivel
+            for style in details.keys {
+                currentProgress.blocksByType[style] = 0
+            }
+        } else {
+            // Si no hay detalles específicos, iniciamos currentProgress.blocksByType como un diccionario vacío
+            currentProgress.blocksByType = [:]
         }
     }
     
