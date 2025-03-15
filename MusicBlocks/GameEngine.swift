@@ -85,8 +85,12 @@ class GameEngine: ObservableObject {
         totalAccuracyInGame = 0.0
         accuracyMeasurements = 0
         
-        // Crear tracker para objetivos
-        objectiveTracker = LevelObjectiveTracker(level: currentLevel)
+        // En lugar de crear una nueva instancia, usamos la existente si ya hay una
+            if objectiveTracker == nil {
+                objectiveTracker = LevelObjectiveTracker(level: currentLevel)
+            } else {
+                objectiveTracker?.resetProgress() // Método nuevo que deberás implementar
+            }
         
         // Configurar vidas y puntuación
             lives = currentLevel.lives.initial
@@ -429,7 +433,7 @@ extension GameEngine: AudioControllerDelegate {
     
     /// Se invoca cuando se detecta silencio.
     func audioControllerDidDetectSilence(_ controller: AudioController) {
-        print("AudioControllerDelegate - Silencio detectado.")
+      //  print("AudioControllerDelegate - Silencio detectado.")
         self.checkNote(currentNote: "-", deviation: 0, isActive: false)
     }
     

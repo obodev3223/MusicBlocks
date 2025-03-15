@@ -34,9 +34,11 @@ class LevelObjectiveTracker {
                        accuracy: Double? = nil,
                        blockDestroyed: String? = nil,
                        deltaTime: TimeInterval? = nil) {
-        // Actualizar score - Para objetivos tipo "score"
+        
+        // Solo modificamos los campos específicamente proporcionados
         if let score = score {
             currentProgress.score = score
+            print("📊 Score actualizado a: \(score)")
         }
         
         // Actualizar notas acertadas - Para objetivos tipo "total_notes"
@@ -56,10 +58,18 @@ class LevelObjectiveTracker {
             currentProgress.totalBlocksDestroyed += 1
         }
         
-        // Actualizar tiempo
+        // Imprimir el tiempo actualizado para debug
         if let deltaTime = deltaTime {
-            currentProgress.timeElapsed += deltaTime
-            print("⏱️ Tiempo actualizado en LevelObjectiveTracker: \(currentProgress.timeElapsed)")
+                currentProgress.timeElapsed += deltaTime
+                print("⏱️ Tiempo actualizado en LevelObjectiveTracker: \(currentProgress.timeElapsed)")
+            }
+        }
+    
+    func resetProgress() {
+        self.currentProgress = ObjectiveProgress()
+        // Inicializar contadores para cada estilo permitido en el nivel
+        for style in primaryObjective.details?.keys ?? [] {
+            currentProgress.blocksByType[style] = 0
         }
     }
     

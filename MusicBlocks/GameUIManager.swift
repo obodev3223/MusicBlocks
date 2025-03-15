@@ -73,13 +73,23 @@ class GameUIManager {
         leftTopBarNode?.updateScore(score)
         leftTopBarNode?.updateLives(lives)
         
-        // Crear un objeto ObjectiveProgress con los datos actuales
+        // IMPORTANTE: Solo actualizar el score en el tracker SIN sobrescribir el tiempo
         if let tracker = objectiveTracker {
-            tracker.updateProgress(score: score)
+            // Actualizar solo el score
+            var currentProgress = tracker.getCurrentProgress()
+            currentProgress.score = score  // Esto NO debe afectar al timeElapsed
             
-            // Obtener el progreso actual directamente (sin if let)
+            // Debug
+            print("⏱️ updateUI con score \(score), tiempo: \(currentProgress.timeElapsed)")
+            
+            // Actualizar la UI con el progreso completo
+            rightTopBarNode?.updateObjectiveInfo(with: currentProgress)
+        }
+    }
+    
+    func updateTimeUI() {
+        if let tracker = objectiveTracker {
             let progress = tracker.getCurrentProgress()
-            print("⏱️ Tiempo en updateUI: \(progress.timeElapsed)")
             rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
     }

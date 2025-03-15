@@ -124,12 +124,7 @@ class MusicBlocksScene: SKScene {
             // Primero cargar el nivel inicial
             let userProfile = UserProfile.load()
             _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
-            
-            // Crear tracker para el nivel actual
-            if let currentLevel = gameManager.currentLevel {
-                objectiveTracker = LevelObjectiveTracker(level: currentLevel)
-            }
-            
+                        
             // Inicializar UI Manager
             uiManager = GameUIManager(scene: self)
             
@@ -152,6 +147,17 @@ class MusicBlocksScene: SKScene {
             
             // Asignar el tracker de objetivos al motor de juego
             gameEngine.objectiveTracker = objectiveTracker
+            
+            // Crear o reutilizar el tracker de objetivos
+               if let currentLevel = gameManager.currentLevel {
+                   objectiveTracker = LevelObjectiveTracker(level: currentLevel)
+                   
+                   // Importante: asignar la MISMA instancia al GameEngine
+                   gameEngine.objectiveTracker = objectiveTracker
+                   
+                   // Y asignarla también al UIManager
+                   uiManager.objectiveTracker = objectiveTracker
+               }
             
             // Configurar el delegado de audio
             guard let engine = gameEngine else {
@@ -246,24 +252,21 @@ class MusicBlocksScene: SKScene {
 
     // Añadir este método para actualizar la información del tiempo
     private func updateTimeDisplay() {
-        if let tracker = objectiveTracker {
-            // Incrementar el tiempo en el tracker
-            tracker.updateProgress(deltaTime: timeUpdateInterval)
-            
-            // Obtener el progreso actual después de actualizar el tiempo
-            let progress = tracker.getCurrentProgress()
-            
-            // Enviar una notificación con todos los datos relevantes, incluyendo el timeElapsed
-            NotificationCenter.default.post(
-                name: NSNotification.Name("GameDataUpdated"),
-                object: nil,
-                userInfo: [
-                    "score": gameEngine.score,
-                    "lives": gameEngine.lives,
-                    "timeUpdate": true,  // Flag para indicar que es una actualización de tiempo
-                    "timeElapsed": progress.timeElapsed  // Incluir explícitamente el tiempo transcurrido
-                ]
-            )
+        // Comprobación de seguridad
+        guard let tracker = objectiveTracker, case .playing = gameEngine.gameState else { return }
+        
+        // Actualizar el tiempo en el tracker
+        tracker.updateProgress(deltaTime: timeUpdateInterval)
+        
+        // Forzar una actualización de la UI
+        let progress = tracker.getCurrentProgress()
+        
+        // Debug para verificar que se actualiza
+        print("⏱️ Tiempo actualizado: \(progress.timeElapsed) segundos (restantes: \(Int(180 - progress.timeElapsed))s)")
+        
+        // Actualizar la UI explícitamente
+        DispatchQueue.main.async {
+            self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
     }
     
