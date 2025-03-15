@@ -63,20 +63,28 @@ class MusicBlocksScene: SKScene {
         let score = userData["score"] as? Int ?? gameEngine.score
         let lives = userData["lives"] as? Int ?? gameEngine.lives
         
-        // Actualizar UI principal
+        print("🔄 handleGameDataUpdate: score=\(score), lives=\(lives)")
+        
+        // Actualizar UI principal - Esta llamada debería propagar los cambios a todos los componentes
         uiManager.updateUI(score: score, lives: lives)
+        
+        // Forzar la actualización de la barra de progreso
+        if let progress = objectiveTracker?.getProgress() {
+            print("🔄 Actualizando barra de progreso: \(progress * 100)%")
+            DispatchQueue.main.async {
+                self.uiManager.leftTopBarNode?.updateProgress(progress: progress)
+            }
+        }
         
         // Siempre obtener el progreso más reciente
         if let tracker = objectiveTracker {
+            // Manejar actualizaciones de tiempo si están presentes
             if let timeElapsed = userData["timeElapsed"] as? TimeInterval {
-                // Actualizar directamente en el tracker para asegurar coherencia
-                tracker.updateProgress(deltaTime: 0) // Solo para forzar una actualización sin incrementar
-                
-                // Obtener el progreso actualizado
                 let progress = tracker.getCurrentProgress()
+                print("🔄 Actualizando UI con tiempo: \(timeElapsed)")
                 uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
             } else {
-                // Actualización normal
+                // Actualización normal del panel de objetivos
                 let progress = tracker.getCurrentProgress()
                 uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
             }
@@ -87,8 +95,10 @@ class MusicBlocksScene: SKScene {
             if noteState == "success" {
                 let multiplier = userData["multiplier"] as? Int ?? 1
                 let message = userData["message"] as? String ?? "¡Bien!"
+                print("🔄 Mostrando overlay de éxito: \(message), multiplier: \(multiplier)")
                 uiManager.showSuccessOverlay(multiplier: multiplier, message: message)
             } else if noteState == "wrong" {
+                print("🔄 Mostrando overlay de fallo")
                 uiManager.showFailureOverlay()
             }
         }

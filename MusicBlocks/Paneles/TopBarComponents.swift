@@ -470,7 +470,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         let timeText = String(format: "%02d:%02d", minutes, seconds)
         
         // Imprimir para debug
-        print("⏱️ Actualizando tiempo: \(timeText) (restante: \(Int(remainingTime))s)")
+ //       print("⏱️ Actualizando tiempo: \(timeText) (restante: \(Int(remainingTime))s)")
         
         timeIconNode?.updateValue(timeText)
         

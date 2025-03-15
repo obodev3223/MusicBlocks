@@ -260,15 +260,18 @@ class SuccessOverlayNode: GameOverlayNode {
     init(size: CGSize, multiplier: Int, message: String) {
         super.init(size: size)
         
+        // Debug
+        print("🎮 Creando SuccessOverlayNode: multiplier=\(multiplier), mensaje='\(message)'")
+        
         let checkmarkNode = SKLabelNode(text: "✓")
-        checkmarkNode.fontSize = 30 // Tamaño reducido
+        checkmarkNode.fontSize = 30
         checkmarkNode.fontName = "Helvetica-Bold"
         checkmarkNode.fontColor = getColor(for: multiplier)
-        checkmarkNode.position = CGPoint(x: -60, y: 0) // Ajustado horizontalmente
+        checkmarkNode.position = CGPoint(x: -60, y: 0)
         contentNode.addChild(checkmarkNode)
         
         let messageNode = SKLabelNode(text: message)
-        messageNode.fontSize = 16 // Tamaño reducido
+        messageNode.fontSize = 16
         messageNode.fontName = "Helvetica-Bold"
         messageNode.fontColor = getColor(for: multiplier)
         messageNode.position = CGPoint(x: 0, y: 0)
@@ -276,10 +279,10 @@ class SuccessOverlayNode: GameOverlayNode {
         
         if multiplier > 1 {
             let multiplierNode = SKLabelNode(text: "x\(multiplier)")
-            multiplierNode.fontSize = 18 // Tamaño reducido
+            multiplierNode.fontSize = 18
             multiplierNode.fontName = "Helvetica-Bold"
             multiplierNode.fontColor = .orange
-            multiplierNode.position = CGPoint(x: 60, y: 0) // Ajustado horizontalmente
+            multiplierNode.position = CGPoint(x: 60, y: 0)
             contentNode.addChild(multiplierNode)
         }
     }

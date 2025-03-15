@@ -75,7 +75,7 @@ class TunerEngine {
         
         // Solo se considera válida si la nota no es un silencio ("-")
         if note != "-" && noteHoldAccumulator >= requiredHoldTime {
-            print("TunerEngine - Éxito: la nota \(note) se mantuvo estable por \(noteHoldAccumulator) segundos (requerido: \(requiredHoldTime) segundos)")
+            print("􀑪 TunerEngine - Éxito: la nota \(note) se mantuvo estable por \(noteHoldAccumulator) segundos (requerido: \(requiredHoldTime) segundos)")
             noteHoldAccumulator = 0  // Reiniciar el acumulador al alcanzar el tiempo requerido
             return true
         }

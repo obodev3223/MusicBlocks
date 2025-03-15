@@ -209,19 +209,22 @@ class GameEngine: ObservableObject {
     /// Compara la nota detectada con el objetivo y delega el manejo correcto o incorrecto.
     func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
         guard case .playing = gameState, !isInSuccessState, !isShowingError else {
+            print("⚠️ CheckNote: Estado no válido - inSuccessState: \(isInSuccessState), showingError: \(isShowingError), gameState: \(gameState)")
             return
         }
         
         guard let currentBlock = blockManager?.getCurrentBlock(), isActive else {
-            print("No se procesará nota: no hay bloque activo o no está activa")
+            print("ℹ️ CheckNote: No hay bloque activo o nota no activa - isActive: \(isActive)")
             return
         }
         
-        print("🎯 Comparando nota detectada (\(currentNote)) con objetivo (\(currentBlock.note)), desviación: \(deviation)")
+        print("🎯 CheckNote: Comparando nota \(currentNote) con objetivo \(currentBlock.note), desviación: \(deviation)")
         
         if currentNote == currentBlock.note {
+            print("✓ ACIERTO: Nota correcta \(currentNote) == \(currentBlock.note)")
             handleCorrectNote(deviation: deviation, block: currentBlock)
         } else {
+            print("✗ FALLO: Nota incorrecta \(currentNote) ≠ \(currentBlock.note)")
             handleWrongNote()
         }
     }
@@ -276,11 +279,19 @@ class GameEngine: ObservableObject {
             }
         }
         
+        // Calcular precisión y puntuación
         let accuracy = calculateAccuracy(deviation: deviation)
         let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
         let comboBonus = calculateComboBonus(baseScore: baseScore)
         let finalScore = baseScore + comboBonus
         score += finalScore
+        
+        // El mensaje formateado debe ser coherente
+        let comboMessage = combo > 1 ? " (\(combo)x Combo!)" : ""
+        let finalMessage = "\(message)\(comboMessage)"
+        
+        // DEBUG
+        print("🎯 ÉXITO: \(message) con precisión \(Int(accuracy*100))%, puntos: \(finalScore), combo: \(combo)")
         
         checkForExtraLife(currentScore: score)
         
@@ -288,15 +299,14 @@ class GameEngine: ObservableObject {
         let blockStyle = blockManager?.getCurrentBlock()?.style ?? "defaultBlock"
         
         // Actualizar TODOS los datos relevantes para CUALQUIER tipo de objetivo
-            objectiveTracker?.updateProgress(
-                score: score,             // Para objetivos tipo "score"
-                noteHit: true,            // Para objetivos tipo "total_notes"
-                accuracy: accuracy,       // Para objetivos tipo "note_accuracy"
-                blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
-            )
+        objectiveTracker?.updateProgress(
+            score: score,             // Para objetivos tipo "score"
+            noteHit: true,            // Para objetivos tipo "total_notes"
+            accuracy: accuracy,       // Para objetivos tipo "note_accuracy"
+            blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
+        )
             
         // Enviar notificación con TODOS los datos relevantes
-        // Enviar notificación después de actualizar el tracker
         NotificationCenter.default.post(
             name: NSNotification.Name("GameDataUpdated"),
             object: nil,
@@ -306,7 +316,7 @@ class GameEngine: ObservableObject {
                 "combo": combo,
                 "noteState": "success",
                 "multiplier": finalScore / blockConfig.basePoints,
-                "message": "\(message) + \(combo)x Combo",  // Formato más claro
+                "message": finalMessage,  // Usar el mensaje coherente
                 "blockDestroyed": blockStyle,
                 "accuracy": accuracy
             ]
@@ -316,9 +326,10 @@ class GameEngine: ObservableObject {
             endGame(reason: .victory)
         }
         
+        // También actualizar el noteState para coherencia
         noteState = .success(
             multiplier: finalScore / blockConfig.basePoints,
-            message: "\(message) (\(combo)x Combo!)"
+            message: finalMessage  // Usar el mismo mensaje coherente
         )
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in

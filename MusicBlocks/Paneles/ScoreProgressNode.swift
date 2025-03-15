@@ -123,6 +123,18 @@ class ScoreProgressNode: SKNode {
         }
     }
     
+    // Actualizar directamente el progreso (0.0 - 1.0)
+    func updateProgressDirect(progress: Double) {
+        let clampedProgress = min(max(progress, 0.0), 1.0)
+        self.progress = clampedProgress
+        
+        // Actualizar la barra de progreso
+        progressBar.xScale = CGFloat(clampedProgress)
+        
+        // Actualizar las estrellas
+        updateStars(progress: clampedProgress)
+    }
+    
     private func animateProgressBar(score: Int, maxScore: Int) {
         let fraction = min(CGFloat(score) / CGFloat(maxScore), 1.0)
         let fillWidth = barWidth * fraction

@@ -286,6 +286,24 @@ class TopBar: SKNode {
             objectivePanel?.updateInfo(with: progress)
         }
     }
+    
+    // MARK: - Actualización de Progreso
+    func updateProgress(progress: Double) {
+        // Solo actualizar en la barra principal
+        if type == .main, let progressNode = scoreProgressNode {
+            if let currentLevel = GameManager.shared.currentLevel {
+                // Calcular la puntuación actual basada en el progreso y la puntuación máxima
+                let maxScore = currentLevel.maxScore
+                let currentScore = Int(progress * Double(maxScore))
+                
+                // Actualizar directamente con el porcentaje de progreso (0.0 - 1.0)
+                progressNode.updateProgressDirect(progress: progress)
+                
+                // Debug
+                print("🌟 Actualizando barra de progreso: \(Int(progress * 100))% (score \(currentScore)/\(maxScore))")
+            }
+        }
+    }
 }
 
 

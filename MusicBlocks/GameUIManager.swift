@@ -70,19 +70,20 @@ class GameUIManager {
     }
     
     func updateUI(score: Int, lives: Int) {
+        print("📊 GameUIManager.updateUI: score=\(score), lives=\(lives)")
+        
+        // Actualizar TopBar izquierdo (puntuación y vidas)
         leftTopBarNode?.updateScore(score)
         leftTopBarNode?.updateLives(lives)
         
-        // IMPORTANTE: Solo actualizar el score en el tracker SIN sobrescribir el tiempo
+        // Forzar actualización de la barra de progreso si hay un tracker
         if let tracker = objectiveTracker {
-            // Actualizar solo el score
-            var currentProgress = tracker.getCurrentProgress()
-            currentProgress.score = score  // Esto NO debe afectar al timeElapsed
+            let progress = tracker.getProgress()
+            print("📊 Actualizando barra de progreso en updateUI: \(Int(progress*100))%")
+            leftTopBarNode?.updateProgress(progress: progress)
             
-            // Debug
-            print("⏱️ updateUI con score \(score), tiempo: \(currentProgress.timeElapsed)")
-            
-            // Actualizar la UI con el progreso completo
+            // Obtener el estado actual para panel derecho
+            let currentProgress = tracker.getCurrentProgress()
             rightTopBarNode?.updateObjectiveInfo(with: currentProgress)
         }
     }
@@ -365,6 +366,9 @@ class GameUIManager {
         guard let scene = scene else { return }
         currentOverlay?.removeFromParent()
         
+        // Debug
+        print("🎮 Mostrando overlay de éxito: \(message), multiplier: \(multiplier)")
+        
         let overlaySize = CGSize(width: 350, height: 60)
         let overlay = SuccessOverlayNode(
             size: overlaySize,
@@ -376,7 +380,7 @@ class GameUIManager {
         
         overlay.show(in: scene, overlayPosition: .bottom)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak overlay] in
             overlay?.hide()
         }
     }
