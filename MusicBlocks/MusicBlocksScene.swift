@@ -66,9 +66,20 @@ class MusicBlocksScene: SKScene {
         // Actualizar UI principal
         uiManager.updateUI(score: score, lives: lives)
         
-        // Manejar la actualización de objetivos solo una vez
+        // Verificar si es una actualización de tiempo
+        let isTimeUpdate = userData["timeUpdate"] as? Bool ?? false
+        
+        // Siempre obtener el progreso más reciente
         if let progress = objectiveTracker?.getCurrentProgress() {
-            uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+            // Si hay tiempo explícito en la notificación, usarlo
+            if let timeElapsed = userData["timeElapsed"] as? TimeInterval {
+                var updatedProgress = progress
+                updatedProgress.timeElapsed = timeElapsed
+                uiManager.rightTopBarNode?.updateObjectiveInfo(with: updatedProgress)
+            } else {
+                // Caso normal: usar el progreso como está
+                uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+            }
         }
         
         // Manejar overlays según información en la notificación
@@ -236,16 +247,21 @@ class MusicBlocksScene: SKScene {
     // Añadir este método para actualizar la información del tiempo
     private func updateTimeDisplay() {
         if let tracker = objectiveTracker {
+            // Incrementar el tiempo en el tracker
             tracker.updateProgress(deltaTime: timeUpdateInterval)
             
-            // Forzar actualización más completa usando una notificación
+            // Obtener el progreso actual después de actualizar el tiempo
             let progress = tracker.getCurrentProgress()
+            
+            // Enviar una notificación con todos los datos relevantes, incluyendo el timeElapsed
             NotificationCenter.default.post(
                 name: NSNotification.Name("GameDataUpdated"),
                 object: nil,
                 userInfo: [
                     "score": gameEngine.score,
-                    "lives": gameEngine.lives
+                    "lives": gameEngine.lives,
+                    "timeUpdate": true,  // Flag para indicar que es una actualización de tiempo
+                    "timeElapsed": progress.timeElapsed  // Incluir explícitamente el tiempo transcurrido
                 ]
             )
         }

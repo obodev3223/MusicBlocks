@@ -343,39 +343,31 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     func updateInfo(with progress: ObjectiveProgress) {
         guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
         
+        // Primero, manejar siempre la actualización del tiempo si existe límite
+        if let timeLimit = objective.timeLimit {
+            updateTimeIcon(progress: progress, timeLimit: timeLimit)
+        } else {
+            timeIconNode?.updateValue("∞")
+        }
+        
+        // Luego actualizar los elementos específicos según el tipo
         switch objective.type {
         case "block_destruction":
             if let details = objective.details {
-                // Actualizar el layout de los bloques en formato de columnas
                 updateBlockDestructionLayout(with: progress, details: details)
             }
             
-            if let timeLimit = objective.timeLimit {
-                updateTimeIcon(progress: progress, timeLimit: timeLimit)
-            } else {
-                timeIconNode?.updateValue("∞")
-            }
-            
+        case "score":
+            objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
+        case "total_notes":
+            objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
+        case "note_accuracy":
+            let accuracy = Int(progress.averageAccuracy * 100)
+            objectiveIconNode?.updateValue("\(accuracy)%")
+        case "total_blocks":
+            objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
         default:
-            switch objective.type {
-            case "score":
-                objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
-            case "total_notes":
-                objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
-            case "note_accuracy":
-                let accuracy = Int(progress.averageAccuracy * 100)
-                objectiveIconNode?.updateValue("\(accuracy)%")
-            case "total_blocks":
-                objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
-            default:
-                break
-            }
-            
-            if let timeLimit = objective.timeLimit {
-                updateTimeIcon(progress: progress, timeLimit: timeLimit)
-            } else {
-                timeIconNode?.updateValue("∞")
-            }
+            break
         }
     }
     
@@ -477,8 +469,12 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         let seconds = Int(remainingTime) % 60
         let timeText = String(format: "%02d:%02d", minutes, seconds)
         
+        // Imprimir para debug
+        print("⏱️ Actualizando tiempo: \(timeText) (restante: \(Int(remainingTime))s)")
+        
         timeIconNode?.updateValue(timeText)
         
+        // Actualizar color según tiempo restante
         if remainingTime < 30 {
             timeIconNode?.updateValueColor(.red)
         } else {

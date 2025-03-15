@@ -77,10 +77,9 @@ class GameUIManager {
         if let tracker = objectiveTracker {
             tracker.updateProgress(score: score)
             
-            // Obtener el progreso actual directamente
+            // Obtener el progreso actual directamente (sin if let)
             let progress = tracker.getCurrentProgress()
-            
-            // Actualizar el panel de objetivos con estos datos
+            print("⏱️ Tiempo en updateUI: \(progress.timeElapsed)")
             rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
     }

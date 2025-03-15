@@ -59,6 +59,7 @@ class LevelObjectiveTracker {
         // Actualizar tiempo
         if let deltaTime = deltaTime {
             currentProgress.timeElapsed += deltaTime
+            print("⏱️ Tiempo actualizado en LevelObjectiveTracker: \(currentProgress.timeElapsed)")
         }
     }
     
