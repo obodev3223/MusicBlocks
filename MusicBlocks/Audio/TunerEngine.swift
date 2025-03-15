@@ -71,7 +71,7 @@ class TunerEngine {
         lastDetectionTime = currentTime
         
         // Mensaje de debug para seguir el acumulador
-        print("TunerEngine - Nota detectada: \(note), acumulador de hold: \(noteHoldAccumulator) segundos")
+        print("􀑪 TunerEngine - Nota detectada: \(note), acumulador de hold: \(noteHoldAccumulator) segundos")
         
         // Solo se considera válida si la nota no es un silencio ("-")
         if note != "-" && noteHoldAccumulator >= requiredHoldTime {

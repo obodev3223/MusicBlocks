@@ -70,7 +70,7 @@ class GameUIManager {
     }
     
     func updateUI(score: Int, lives: Int) {
-        print("📊 GameUIManager.updateUI: score=\(score), lives=\(lives)")
+        GameLogger.shared.uiUpdate("GameUIManager: score=\(score), lives=\(lives)")
         
         // Actualizar TopBar izquierdo (puntuación y vidas)
         leftTopBarNode?.updateScore(score)
@@ -79,7 +79,7 @@ class GameUIManager {
         // Forzar actualización de la barra de progreso si hay un tracker
         if let tracker = objectiveTracker {
             let progress = tracker.getProgress()
-            print("📊 Actualizando barra de progreso en updateUI: \(Int(progress*100))%")
+            GameLogger.shared.uiUpdate("Barra de progreso: \(Int(progress*100))%")
             leftTopBarNode?.updateProgress(progress: progress)
             
             // Obtener el estado actual para panel derecho

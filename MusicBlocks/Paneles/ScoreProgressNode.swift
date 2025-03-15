@@ -126,13 +126,18 @@ class ScoreProgressNode: SKNode {
     // Actualizar directamente el progreso (0.0 - 1.0)
     func updateProgressDirect(progress: Double) {
         let clampedProgress = min(max(progress, 0.0), 1.0)
-        self.progress = clampedProgress
         
         // Actualizar la barra de progreso
-        progressBar.xScale = CGFloat(clampedProgress)
+        let newWidth = barWidth * CGFloat(clampedProgress)
+        let resizeAction = SKAction.resize(toWidth: newWidth, duration: Layout.animationDuration)
+        resizeAction.timingMode = .easeOut
+        progressFill.run(resizeAction)
         
         // Actualizar las estrellas
-        updateStars(progress: clampedProgress)
+        updateStars(score: Int(clampedProgress * 1000), maxScore: 1000)
+        
+        // Debug
+        GameLogger.shared.scoreUpdate("ScoreProgressNode: progreso \(Int(clampedProgress * 100))%")
     }
     
     private func animateProgressBar(score: Int, maxScore: Int) {
@@ -168,7 +173,7 @@ class ScoreProgressNode: SKNode {
         // Evitamos cambios innecesarios
         guard lit != currentlyLit else { return }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak star] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak star] in
             // Verificación adicional de seguridad
             guard let star = star, star.parent != nil else { return }
             

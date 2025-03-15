@@ -377,12 +377,14 @@ class BlocksManager {
     }
     
     func getCurrentBlock() -> BlockInfo? {
-        print("🔍 Consultando bloque actual...")
+        GameLogger.shared.blockMovement("Consultando bloque actual...")
+        
         if let current = blockInfos.last {
-            print("🔍 Bloque actual: nota \(current.note), estilo \(current.style)")
+            GameLogger.shared.blockMovement("Bloque actual: nota \(current.note), estilo \(current.style)")
         } else {
-            print("🔍 No hay bloque actual.")
+            GameLogger.shared.blockMovement("No hay bloque actual.")
         }
+        
         return blockInfos.last
     }
     

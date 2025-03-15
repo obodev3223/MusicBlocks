@@ -214,7 +214,7 @@ class GameEngine: ObservableObject {
         }
         
         guard let currentBlock = blockManager?.getCurrentBlock(), isActive else {
-            print("ℹ️ CheckNote: No hay bloque activo o nota no activa - isActive: \(isActive)")
+            GameLogger.shared.noteDetection("CheckNote: No hay bloque activo o nota no activa - isActive: \(isActive)")
             return
         }
         

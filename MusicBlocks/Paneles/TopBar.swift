@@ -299,8 +299,8 @@ class TopBar: SKNode {
                 // Actualizar directamente con el porcentaje de progreso (0.0 - 1.0)
                 progressNode.updateProgressDirect(progress: progress)
                 
-                // Debug
-                print("🌟 Actualizando barra de progreso: \(Int(progress * 100))% (score \(currentScore)/\(maxScore))")
+                // Debug usando GameLogger en vez de print
+                GameLogger.shared.scoreUpdate("TopBar: progreso \(Int(progress * 100))% (score \(currentScore)/\(maxScore))")
             }
         }
     }
