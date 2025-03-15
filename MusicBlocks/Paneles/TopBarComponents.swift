@@ -424,7 +424,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
          var itemsInCurrentColumn = 0
          
          // Organizar bloques en columnas
-         for (index, item) in displayItems.enumerated() {
+        for (_, item) in displayItems.enumerated() {
              // Si completamos 2 items en la columna actual, pasamos a la siguiente columna
              if itemsInCurrentColumn >= TopBarLayout.maxItemsPerColumn {
                  currentX += TopBarLayout.columnWidth
@@ -570,7 +570,7 @@ extension ObjectivePreviewContainer {
         )
         
         let tracker = LevelObjectiveTracker(level: level)
-        var progress = ObjectiveProgress(
+        let progress = ObjectiveProgress(
             score: 350,
             notesHit: 40,
             accuracySum: 85.0,
@@ -706,7 +706,7 @@ struct BlockDestructionObjectivePreviewContainer: View, ObjectivePreviewContaine
         )
         
         let tracker = LevelObjectiveTracker(level: level)
-        var progress = ObjectiveProgress(
+        let progress = ObjectiveProgress(
             score: 350,
             notesHit: 40,
             accuracySum: 85.0,

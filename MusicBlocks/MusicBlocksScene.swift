@@ -55,18 +55,33 @@ class MusicBlocksScene: SKScene {
     // MARK: - Score Update Handler
     @objc func handleGameDataUpdate(_ notification: Notification) {
         let userData = notification.userInfo ?? [:]
-        
-        // Extraer datos del userInfo
         let score = userData["score"] as? Int ?? gameEngine.score
+        let lives = userData["lives"] as? Int ?? gameEngine.lives
         
-        // Actualizar inmediatamente la UI con el nuevo puntaje y vidas
-        uiManager.updateUI(score: score, lives: gameEngine.lives)
+        // Actualizar la UI principal
+        uiManager.updateUI(score: score, lives: lives)
         
-        // Si hay un objective tracker, asegurar que todos los cambios
-        // se reflejen inmediatamente en la UI
-        if let tracker = objectiveTracker {
-            let progress = tracker.getCurrentProgress()
-            uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+        // Manejar overlays según información en la notificación
+        if userData["noteState"] as? String == "success" {
+            let multiplier = userData["multiplier"] as? Int ?? 1
+            let message = userData["message"] as? String ?? "¡Bien!"
+            uiManager.showSuccessOverlay(multiplier: multiplier, message: message)
+        } else if userData["noteState"] as? String == "wrong" {
+            uiManager.showFailureOverlay()
+        }
+        
+        // Manejar game over
+        if let gameOver = userData["gameOver"] as? Bool, gameOver {
+            let isVictory = userData["isVictory"] as? Bool ?? false
+            let reasonMessage = userData["reasonMessage"] as? String ?? (isVictory ? "¡Victoria!" : "Fin del juego")
+            
+            uiManager.showGameOverOverlay(
+                score: score,
+                message: reasonMessage,
+                isVictory: isVictory
+            ) { [weak self] in
+                self?.setupGame()
+            }
         }
     }
     

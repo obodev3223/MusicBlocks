@@ -28,10 +28,10 @@ enum GameState {
     case gameOver(reason: GameOverReason)
 }
 
-enum GameOverReason {
-    case noLives
-    case blocksOverflow
-    case victory
+enum GameOverReason: String {
+    case noLives = "noLives"
+    case blocksOverflow = "blocksOverflow"
+    case victory = "victory"
     
     var message: String {
         switch self {
@@ -50,6 +50,14 @@ enum GameOverReason {
         }
         return false
     }
+}
+
+// En GameTypes.swift
+enum NoteStateType: String {
+    case waiting = "waiting"
+    case correct = "correct"
+    case wrong = "wrong"
+    case success = "success"
 }
 
 

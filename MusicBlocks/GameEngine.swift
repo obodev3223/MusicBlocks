@@ -280,11 +280,9 @@ class GameEngine: ObservableObject {
             name: NSNotification.Name("GameDataUpdated"),
             object: nil,
             userInfo: [
-                "score": score,
-                "noteHit": true,
-                "accuracy": accuracy,
-                "blockDestroyed": blockStyle,
-                "combo": combo
+                "lives": lives,
+                "combo": combo,
+                "noteState": "wrong"
             ]
         )
         
