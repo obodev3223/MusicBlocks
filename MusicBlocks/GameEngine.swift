@@ -293,18 +293,6 @@ class GameEngine: ObservableObject {
             
         // Enviar notificación con TODOS los datos relevantes
         // Enviar notificación después de actualizar el tracker
-        // INCORRECTO:
-        NotificationCenter.default.post(
-            name: NSNotification.Name("GameDataUpdated"),
-            object: nil,
-            userInfo: [
-                "lives": lives,
-                "combo": combo,
-                "noteState": "wrong" // ERROR: Esto debería ser "success", no "wrong"
-            ]
-        )
-
-        // CORRECTO:
         NotificationCenter.default.post(
             name: NSNotification.Name("GameDataUpdated"),
             object: nil,

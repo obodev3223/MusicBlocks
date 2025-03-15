@@ -62,8 +62,8 @@ class MusicBlocksScene: SKScene {
         
         // Extraer datos con valores por defecto adecuados
         let userData = notification.userInfo ?? [:]
-        let score = userData["score"] as? Int ?? gameEngine.score
-        let lives = userData["lives"] as? Int ?? gameEngine.lives
+        let score = gameEngine.score
+        let lives = gameEngine.lives
         
         // Actualizar UI principal
         uiManager.updateUI(score: score, lives: lives)
@@ -236,13 +236,18 @@ class MusicBlocksScene: SKScene {
     // Añadir este método para actualizar la información del tiempo
     private func updateTimeDisplay() {
         if let tracker = objectiveTracker {
-            // Incrementar el tiempo transcurrido
             tracker.updateProgress(deltaTime: timeUpdateInterval)
             
-            // Esto ya debería desencadenar una notificación que actualizará la UI
-            // Pero por si acaso, podemos forzar una actualización
+            // Forzar actualización más completa usando una notificación
             let progress = tracker.getCurrentProgress()
-            uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+            NotificationCenter.default.post(
+                name: NSNotification.Name("GameDataUpdated"),
+                object: nil,
+                userInfo: [
+                    "score": gameEngine.score,
+                    "lives": gameEngine.lives
+                ]
+            )
         }
     }
     
