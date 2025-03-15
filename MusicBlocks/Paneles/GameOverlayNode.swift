@@ -218,8 +218,14 @@ class LevelStartOverlayNode: GameOverlayNode {
             
             if self.secondsRemaining <= 0 {
                 timer.invalidate()
-                self.hide()
-                self.startAction?()
+                
+                // SOLUCIÓN: Añadir un pequeño retraso entre ocultar el overlay y llamar al startAction
+                self.hide(duration: 0.3)
+                
+                // Esperar a que termine la animación de ocultamiento antes de iniciar el gameplay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    self.startAction?()
+                }
             }
         }
     }
