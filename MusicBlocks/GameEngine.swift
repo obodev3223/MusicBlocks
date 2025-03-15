@@ -302,7 +302,7 @@ class GameEngine: ObservableObject {
                 "combo": combo,
                 "noteState": "success",
                 "multiplier": finalScore / blockConfig.basePoints,
-                "message": "\(message) (\(combo)x Combo!)",
+                "message": "\(message) + \(combo)x Combo",  // Formato más claro
                 "blockDestroyed": blockStyle,
                 "accuracy": accuracy
             ]
@@ -350,7 +350,12 @@ class GameEngine: ObservableObject {
     
     /// Calcula el bono por combo.
     private func calculateComboBonus(baseScore: Int) -> Int {
+        // Limitar el multiplicador de combo a 10x como máximo
         let comboMultiplier = min(combo, 10)
+        
+        // La fórmula de bono:
+        // Si el combo es 1, no hay bono adicional
+        // Si el combo es mayor, se aplica un bono progresivo
         return baseScore * (comboMultiplier - 1) / 2
     }
     

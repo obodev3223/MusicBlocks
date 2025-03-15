@@ -56,14 +56,12 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Score Update Handler
     @objc func handleGameDataUpdate(_ notification: Notification) {
-        // Evitar procesamiento recursivo con una variable de instancia
         if isProcessingNotification { return }
         isProcessingNotification = true
         
-        // Extraer datos con valores por defecto adecuados
         let userData = notification.userInfo ?? [:]
-        let score = gameEngine.score
-        let lives = gameEngine.lives
+        let score = userData["score"] as? Int ?? gameEngine.score
+        let lives = userData["lives"] as? Int ?? gameEngine.lives
         
         // Actualizar UI principal
         uiManager.updateUI(score: score, lives: lives)
@@ -74,12 +72,14 @@ class MusicBlocksScene: SKScene {
         }
         
         // Manejar overlays según información en la notificación
-        if userData["noteState"] as? String == "success" {
-            let multiplier = userData["multiplier"] as? Int ?? 1
-            let message = userData["message"] as? String ?? "¡Bien!"
-            uiManager.showSuccessOverlay(multiplier: multiplier, message: message)
-        } else if userData["noteState"] as? String == "wrong" {
-            uiManager.showFailureOverlay()
+        if let noteState = userData["noteState"] as? String {
+            if noteState == "success" {
+                let multiplier = userData["multiplier"] as? Int ?? 1
+                let message = userData["message"] as? String ?? "¡Bien!"
+                uiManager.showSuccessOverlay(multiplier: multiplier, message: message)
+            } else if noteState == "wrong" {
+                uiManager.showFailureOverlay()
+            }
         }
         
         // Manejar game over
