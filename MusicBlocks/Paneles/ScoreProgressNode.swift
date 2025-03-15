@@ -12,6 +12,7 @@ class ScoreProgressNode: SKNode {
     private var progressBar: SKShapeNode
     private var progressFill: SKShapeNode
     private var stars: [SKSpriteNode] = []
+    private var litStars: [Bool] = [] // Añadir un array para seguir el estado de las estrellas
     
     // MARK: - Layout Constants
     private enum Layout {
@@ -50,6 +51,9 @@ class ScoreProgressNode: SKNode {
             cornerRadius: (Layout.barHeight - 2) / 2
         )
         
+        // Inicializar el array de estado de estrellas con todas apagadas
+        litStars = Array(repeating: false, count: Layout.maxStars)
+        
         super.init()
         setupNodes()
     }
@@ -74,7 +78,7 @@ class ScoreProgressNode: SKNode {
         addChild(progressBar)
     }
     
-    /// Barra “relleno” que crece desde x=0 hacia la derecha
+    /// Barra "relleno" que crece desde x=0 hacia la derecha
     private func setupProgressFill() {
         progressFill.fillColor = Layout.progressFillColor
         progressFill.strokeColor = .clear
@@ -137,11 +141,13 @@ class ScoreProgressNode: SKNode {
         
         guard lit != currentlyLit else { return }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak star] in
+            guard let star = star else { return }
+            
             let scaleDown = SKAction.scale(to: Layout.starAnimationScale,
                                            duration: Layout.starAnimationDuration)
-            let changeTexture = SKAction.run { [weak star] in
-                star?.texture = SKTexture(imageNamed: lit ? "star_filled" : "star_empty")
+            let changeTexture = SKAction.run {
+                star.texture = SKTexture(imageNamed: lit ? "star_filled" : "star_empty")
             }
             let scaleUp = SKAction.scale(to: 1.0,
                                          duration: Layout.starAnimationDuration)

@@ -274,15 +274,32 @@ class GameEngine: ObservableObject {
                 blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
             )
             
-            // Enviar notificación con TODOS los datos relevantes
+        // Enviar notificación con TODOS los datos relevantes
         // Enviar notificación después de actualizar el tracker
+        // INCORRECTO:
         NotificationCenter.default.post(
             name: NSNotification.Name("GameDataUpdated"),
             object: nil,
             userInfo: [
                 "lives": lives,
                 "combo": combo,
-                "noteState": "wrong"
+                "noteState": "wrong" // ERROR: Esto debería ser "success", no "wrong"
+            ]
+        )
+
+        // CORRECTO:
+        NotificationCenter.default.post(
+            name: NSNotification.Name("GameDataUpdated"),
+            object: nil,
+            userInfo: [
+                "score": score,
+                "lives": lives,
+                "combo": combo,
+                "noteState": "success",
+                "multiplier": finalScore / blockConfig.basePoints,
+                "message": "\(message) (\(combo)x Combo!)",
+                "blockDestroyed": blockStyle,
+                "accuracy": accuracy
             ]
         )
         

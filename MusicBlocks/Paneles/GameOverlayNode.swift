@@ -61,23 +61,23 @@ class GameOverlayNode: SKNode {
     
     // Replace the existing show method in GameOverlayNode
     func show(in scene: SKScene, overlayPosition: OverlayPosition = .center, duration: TimeInterval = 0.3) {
-            // Set initial state
-            alpha = 0
-            setScale(0.5)
-            
-            // Set position using the enum method
-            self.position = overlayPosition.getPosition(in: scene)
-            
-            // Ensure overlay is above other content
-            zPosition = 100
-            
-            let appearAction = SKAction.group([
-                SKAction.fadeIn(withDuration: duration),
-                SKAction.scale(to: 1.0, duration: duration)
-            ])
-            
-            run(appearAction)
-        }
+        // Set initial state
+        alpha = 0
+        setScale(0.5)
+        
+        // Set position using the enum method
+        self.position = overlayPosition.getPosition(in: scene)
+        
+        // Ensure overlay is above other content
+        zPosition = 100
+        
+        let appearAction = SKAction.group([
+            SKAction.fadeIn(withDuration: duration),
+            SKAction.scale(to: 1.0, duration: duration)
+        ])
+        
+        run(appearAction)
+    }
     
     func hide(duration: TimeInterval = 0.3) {
         let disappearAction = SKAction.group([
@@ -169,32 +169,32 @@ class LevelStartOverlayNode: GameOverlayNode {
         backgroundNode.alpha = 0.9
         contentNode.addChild(backgroundNode)
     }
-        
-        // Función auxiliar para generar un fondo con gradiente
-        private func generateGradientImage(from startColor: UIColor, to endColor: UIColor, size: CGSize) -> UIImage {
-            let gradientLayer = CAGradientLayer()
-            gradientLayer.frame = CGRect(origin: .zero, size: size)
-            gradientLayer.colors = [startColor.cgColor, endColor.cgColor]
-            gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
-            gradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
-            
-            UIGraphicsBeginImageContext(size)
-            gradientLayer.render(in: UIGraphicsGetCurrentContext()!)
-            let image = UIGraphicsGetImageFromCurrentImageContext()
-            UIGraphicsEndImageContext()
-            
-            return image ?? UIImage()
-        }
-        
-        required init?(coder aDecoder: NSCoder) {
-            fatalError("init(coder:) has not been implemented")
-        }
     
-    override func show(in scene: SKScene, overlayPosition: OverlayPosition = .center, duration: TimeInterval = 0.3) {
-            super.show(in: scene, overlayPosition: overlayPosition, duration: duration)
-            startCountdown()
-        }
+    // Función auxiliar para generar un fondo con gradiente
+    private func generateGradientImage(from startColor: UIColor, to endColor: UIColor, size: CGSize) -> UIImage {
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.frame = CGRect(origin: .zero, size: size)
+        gradientLayer.colors = [startColor.cgColor, endColor.cgColor]
+        gradientLayer.startPoint = CGPoint(x: 0.5, y: 0.0)
+        gradientLayer.endPoint = CGPoint(x: 0.5, y: 1.0)
         
+        UIGraphicsBeginImageContext(size)
+        gradientLayer.render(in: UIGraphicsGetCurrentContext()!)
+        let image = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return image ?? UIImage()
+    }
+    
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    override func show(in scene: SKScene, overlayPosition: OverlayPosition = .center, duration: TimeInterval = 0.5) {
+        super.show(in: scene, overlayPosition: overlayPosition, duration: duration)
+        startCountdown()
+    }
+    
     private func startCountdown() {
         // Establecer el color inicial según el valor inicial (5)
         updateCountdownColor()
@@ -223,7 +223,7 @@ class LevelStartOverlayNode: GameOverlayNode {
             }
         }
     }
-
+    
     private func updateCountdownColor() {
         // Asignar colores según el valor de la cuenta atrás
         switch secondsRemaining {
@@ -241,13 +241,13 @@ class LevelStartOverlayNode: GameOverlayNode {
             countdownLabel?.fontColor = UIColor.white
         }
     }
-        
-        override func hide(duration: TimeInterval = 0.3) {
-            countdownTimer?.invalidate()
-            countdownTimer = nil
-            super.hide(duration: duration)
-        }
+    
+    override func hide(duration: TimeInterval = 0.3) {
+        countdownTimer?.invalidate()
+        countdownTimer = nil
+        super.hide(duration: duration)
     }
+}
 
 // MARK: - Success Overlay
 class SuccessOverlayNode: GameOverlayNode {
