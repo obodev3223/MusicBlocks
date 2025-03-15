@@ -16,7 +16,7 @@ class GameUIManager {
     var leftTopBarNode: TopBar?
     var rightTopBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
-    private var objectiveTracker: LevelObjectiveTracker?
+    var objectiveTracker: LevelObjectiveTracker?
     
     // Indicadores
     var stabilityIndicatorNode: StabilityIndicatorNode!

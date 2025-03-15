@@ -66,9 +66,6 @@ class MusicBlocksScene: SKScene {
         // Actualizar UI principal
         uiManager.updateUI(score: score, lives: lives)
         
-        // Verificar si es una actualización de tiempo (eliminar esta línea o reemplazarla)
-        // let isTimeUpdate = userData["timeUpdate"] as? Bool ?? false
-        
         // Siempre obtener el progreso más reciente
         if let tracker = objectiveTracker {
             if let timeElapsed = userData["timeElapsed"] as? TimeInterval {
@@ -123,56 +120,53 @@ class MusicBlocksScene: SKScene {
     }
     
     // MARK: - Setup Methods
-        private func setupManagers() {
-            // Primero cargar el nivel inicial
-            let userProfile = UserProfile.load()
-            _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
-                        
-            // Inicializar UI Manager
-            uiManager = GameUIManager(scene: self)
+    private func setupManagers() {
+        // Primero cargar el nivel inicial
+        let userProfile = UserProfile.load()
+        _ = gameManager.loadLevel(userProfile.statistics.currentLevel)
+                    
+        // Inicializar UI Manager
+        uiManager = GameUIManager(scene: self)
+        
+        // Obtener dimensiones del área principal
+        let (mainAreaWidth, mainAreaHeight) = uiManager.getMainAreaDimensions()
+        
+        // Inicializar BlocksManager
+        blocksManager = BlocksManager(
+            blockSize: CGSize(
+                width: mainAreaWidth * 0.9,
+                height: mainAreaHeight * 0.15
+            ),
+            blockSpacing: mainAreaHeight * 0.02,
+            mainAreaNode: uiManager.getMainAreaNode(),
+            mainAreaHeight: mainAreaHeight
+        )
+        
+        // Inicializar GameEngine
+        gameEngine = GameEngine(blockManager: blocksManager)
+        
+        // Crear o reutilizar el tracker de objetivos
+        if let currentLevel = gameManager.currentLevel {
+            objectiveTracker = LevelObjectiveTracker(level: currentLevel)
             
-            // Obtener dimensiones del área principal
-            let (mainAreaWidth, mainAreaHeight) = uiManager.getMainAreaDimensions()
-            
-            // Inicializar BlocksManager
-            blocksManager = BlocksManager(
-                blockSize: CGSize(
-                    width: mainAreaWidth * 0.9,
-                    height: mainAreaHeight * 0.15
-                ),
-                blockSpacing: mainAreaHeight * 0.02,
-                mainAreaNode: uiManager.getMainAreaNode(),
-                mainAreaHeight: mainAreaHeight
-            )
-            
-            // Inicializar GameEngine
-            gameEngine = GameEngine(blockManager: blocksManager)
-            
-            // Asignar el tracker de objetivos al motor de juego
+            // Importante: asignar la MISMA instancia al GameEngine
             gameEngine.objectiveTracker = objectiveTracker
             
-            // Crear o reutilizar el tracker de objetivos
-               if let currentLevel = gameManager.currentLevel {
-                   objectiveTracker = LevelObjectiveTracker(level: currentLevel)
-                   
-                   // Importante: asignar la MISMA instancia al GameEngine
-                   gameEngine.objectiveTracker = objectiveTracker
-                   
-                   // Y asignarla también al UIManager
-                   uiManager.objectiveTracker = objectiveTracker
-               }
-            
-            // Configurar el delegado de audio
-            guard let engine = gameEngine else {
-                fatalError("GameEngine no se ha inicializado correctamente")
-            }
-            audioController.delegate = engine
-            
-            // IMPORTANTE: Actualizar UI con las vidas iniciales después de que todo esté configurado
-            if let currentLevel = gameManager.currentLevel {
-                uiManager.updateUI(score: 0, lives: currentLevel.lives.initial)
-            }
+            // Y asignarla también al UIManager
+            uiManager.objectiveTracker = objectiveTracker
         }
+        
+        // Configurar el delegado de audio
+        guard let engine = gameEngine else {
+            fatalError("GameEngine no se ha inicializado correctamente")
+        }
+        audioController.delegate = engine
+        
+        // IMPORTANTE: Actualizar UI con las vidas iniciales después de que todo esté configurado
+        if let currentLevel = gameManager.currentLevel {
+            uiManager.updateUI(score: 0, lives: currentLevel.lives.initial)
+        }
+    }
     
     private func setupGame() {
         // Cargar nivel desde el perfil del usuario
@@ -253,25 +247,24 @@ class MusicBlocksScene: SKScene {
         }
     }
 
-    // Añadir este método para actualizar la información del tiempo
-    func updateUI(score: Int, lives: Int) {
-        leftTopBarNode?.updateScore(score)
-        leftTopBarNode?.updateLives(lives)
+    // Método para actualizar la información del tiempo
+    private func updateTimeDisplay() {
+        guard case .playing = gameEngine.gameState else { return }
         
-        // Actualizar la puntuación en el tracker sin afectar el tiempo
         if let tracker = objectiveTracker {
-            // Obtener el estado actual
-            let currentProgress = tracker.getCurrentProgress()
+            // Incrementar el tiempo en el tracker
+            tracker.updateProgress(deltaTime: timeUpdateInterval)
             
-            // Actualizar solo el score, no el tiempo
-            tracker.updateProgress(score: score)
+            // Obtener el progreso actualizado
+            let progress = tracker.getCurrentProgress()
             
             // Debug
-            print("⏱️ Tiempo en updateUI: \(currentProgress.timeElapsed)")
+            print("⏱️ Tiempo actualizado: \(progress.timeElapsed) segundos (restantes: \(Int(180 - progress.timeElapsed))s)")
             
-            // Obtener progreso actualizado y actualizar la UI
-            let updatedProgress = tracker.getCurrentProgress()
-            rightTopBarNode?.updateObjectiveInfo(with: updatedProgress)
+            // Actualizar directamente el componente de UI
+            DispatchQueue.main.async {
+                self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+            }
         }
     }
     
@@ -363,9 +356,9 @@ class MusicBlocksScene: SKScene {
         )
         
         // Actualizar la información del objetivo en la UI
-            if let progress = objectiveTracker?.getCurrentProgress() {
-                uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
-            }
+        if let progress = objectiveTracker?.getCurrentProgress() {
+            uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+        }
     }
     
     func audioControllerDidDetectSilence(_ controller: AudioController) {
@@ -380,7 +373,6 @@ class MusicBlocksScene: SKScene {
             isActive: false
         )
     }
-    
 }
 
 // MARK: - Environment Values
@@ -428,6 +420,7 @@ struct MusicBlocksSceneView: View {
                 .navigationBarHidden(true)
         }
     }
+
 }
 
 #if DEBUG
