@@ -214,10 +214,13 @@ class TopBar: SKNode {
     
     // MARK: - Score y Vidas
     func updateScore(_ newScore: Int) {
-        if type == .main,
-           let currentLevel = GameManager.shared.currentLevel {
-            scoreProgressNode?.updateProgress(score: newScore, maxScore: currentLevel.maxScore)
-        }
+        // No actualizar si el scoreProgressNode aún no está inicializado
+        guard type == .main,
+              let scoreNode = scoreProgressNode,
+              let currentLevel = GameManager.shared.currentLevel,
+              currentLevel.maxScore > 0 else { return }
+        
+        scoreNode.updateProgress(score: newScore, maxScore: currentLevel.maxScore)
     }
     
     func updateLives(_ newLives: Int) {

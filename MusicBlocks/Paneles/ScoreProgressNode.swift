@@ -109,9 +109,18 @@ class ScoreProgressNode: SKNode {
     }
     
     // MARK: - Update Methods
+
     func updateProgress(score: Int, maxScore: Int) {
+        // Si el maxScore es 0, no hacemos nada para evitar divisiones por cero
+        guard maxScore > 0 else { return }
+        
+        // Solo animamos la barra de progreso al inicio (cuando score = 0)
         animateProgressBar(score: score, maxScore: maxScore)
-        updateStars(score: score, maxScore: maxScore)
+        
+        // Solo actualizamos las estrellas si hay puntuación
+        if score > 0 {
+            updateStars(score: score, maxScore: maxScore)
+        }
     }
     
     private func animateProgressBar(score: Int, maxScore: Int) {
@@ -136,21 +145,36 @@ class ScoreProgressNode: SKNode {
     }
     
     private func updateStar(at index: Int, lit: Bool, delay: TimeInterval) {
+        // Comprobamos que index está dentro de los límites
+        guard index < stars.count && index >= 0 else { return }
+        
         let star = stars[index]
+        
+        // Comprobación de seguridad para la textura
         let currentlyLit = star.texture?.description.contains("filled") ?? false
         
+        // Evitamos cambios innecesarios
         guard lit != currentlyLit else { return }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak star] in
-            guard let star = star else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self, weak star] in
+            // Verificación adicional de seguridad
+            guard let star = star, star.parent != nil else { return }
+            
+            // Crear texturas con comprobación
+            let newTexture: SKTexture? = lit ?
+                SKTexture(imageNamed: "star_filled") :
+                SKTexture(imageNamed: "star_empty")
+            
+            // Solo proceder si la textura se creó correctamente
+            guard newTexture != nil else { return }
             
             let scaleDown = SKAction.scale(to: Layout.starAnimationScale,
-                                           duration: Layout.starAnimationDuration)
+                                         duration: Layout.starAnimationDuration)
             let changeTexture = SKAction.run {
-                star.texture = SKTexture(imageNamed: lit ? "star_filled" : "star_empty")
+                star.texture = newTexture
             }
             let scaleUp = SKAction.scale(to: 1.0,
-                                         duration: Layout.starAnimationDuration)
+                                       duration: Layout.starAnimationDuration)
             let sequence = SKAction.sequence([scaleDown, changeTexture, scaleUp])
             star.run(sequence)
         }
