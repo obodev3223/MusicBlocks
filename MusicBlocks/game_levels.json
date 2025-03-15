@@ -63,11 +63,11 @@
     "accuracy_thresholds": {
         "perfect": {
             "threshold": 0.95,
-            "multiplier": 2.0
+            "multiplier": 3.0
         },
         "excellent": {
             "threshold": 0.80,
-            "multiplier": 1.5
+            "multiplier": 2.0
         },
         "good": {
             "threshold": 0.60,
