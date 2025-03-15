@@ -60,13 +60,6 @@ class LevelObjectiveTracker {
         if let deltaTime = deltaTime {
             currentProgress.timeElapsed += deltaTime
         }
-        
-        // Al final, después de todas las actualizaciones, notificar el cambio
-            NotificationCenter.default.post(
-                name: NSNotification.Name("GameDataUpdated"),
-                object: nil,
-                userInfo: [:]  // No necesitamos pasar datos, solo forzar la actualización
-            )
     }
     
     // MARK: - Objective Checking

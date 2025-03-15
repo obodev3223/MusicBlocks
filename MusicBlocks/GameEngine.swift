@@ -134,17 +134,34 @@ class GameEngine: ObservableObject {
         gameState = .gameOver(reason: reason)
         blockManager?.stopBlockGeneration()
         
+        // Determinar el string para la razón
+        let reasonString: String
+        let isVictory: Bool
+        
+        switch reason {
+        case .victory:
+            reasonString = "victory"
+            isVictory = true
+        case .noLives:
+            reasonString = "noLives"
+            isVictory = false
+        case .blocksOverflow:
+            reasonString = "blocksOverflow"
+            isVictory = false
+        }
+        
         // Actualización final de la UI antes de terminar
-           NotificationCenter.default.post(
-               name: NSNotification.Name("GameDataUpdated"),
-               object: nil,
-               userInfo: [
-                   "score": score,
-                   "lives": lives,
-                   "gameOver": true,
-                   "reason": reason.rawValue
-               ]
-           )
+        NotificationCenter.default.post(
+            name: NSNotification.Name("GameDataUpdated"),
+            object: nil,
+            userInfo: [
+                "score": score,
+                "lives": lives,
+                "gameOver": true,
+                "reason": reasonString,
+                "isVictory": isVictory
+            ]
+        )
         
         let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let averageAccuracy = accuracyMeasurements > 0 ? totalAccuracyInGame / Double(accuracyMeasurements) : 0.0

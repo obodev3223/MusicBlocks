@@ -25,6 +25,8 @@ class MusicBlocksScene: SKScene {
     private var lastTimeUpdate: TimeInterval = 0
     private let timeUpdateInterval: TimeInterval = 1.0 // Actualizar cada segundo
     
+    private var isProcessingNotification = false
+    
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
         super.didMove(to: view)
@@ -54,12 +56,22 @@ class MusicBlocksScene: SKScene {
     
     // MARK: - Score Update Handler
     @objc func handleGameDataUpdate(_ notification: Notification) {
+        // Evitar procesamiento recursivo con una variable de instancia
+        if isProcessingNotification { return }
+        isProcessingNotification = true
+        
+        // Extraer datos con valores por defecto adecuados
         let userData = notification.userInfo ?? [:]
         let score = userData["score"] as? Int ?? gameEngine.score
         let lives = userData["lives"] as? Int ?? gameEngine.lives
         
-        // Actualizar la UI principal
+        // Actualizar UI principal
         uiManager.updateUI(score: score, lives: lives)
+        
+        // Manejar la actualización de objetivos solo una vez
+        if let progress = objectiveTracker?.getCurrentProgress() {
+            uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+        }
         
         // Manejar overlays según información en la notificación
         if userData["noteState"] as? String == "success" {
@@ -72,17 +84,28 @@ class MusicBlocksScene: SKScene {
         
         // Manejar game over
         if let gameOver = userData["gameOver"] as? Bool, gameOver {
+            let reasonText = userData["reason"] as? String ?? ""
             let isVictory = userData["isVictory"] as? Bool ?? false
-            let reasonMessage = userData["reasonMessage"] as? String ?? (isVictory ? "¡Victoria!" : "Fin del juego")
+            var message = "Fin del juego"
+            
+            if isVictory {
+                message = "¡Nivel completado!"
+            } else if reasonText == "noLives" {
+                message = "¡Te has quedado sin vidas!"
+            } else if reasonText == "blocksOverflow" {
+                message = "¡Los bloques han alcanzado la zona de peligro!"
+            }
             
             uiManager.showGameOverOverlay(
                 score: score,
-                message: reasonMessage,
+                message: message,
                 isVictory: isVictory
             ) { [weak self] in
                 self?.setupGame()
             }
         }
+        
+        isProcessingNotification = false
     }
     
     // MARK: - Setup Methods
