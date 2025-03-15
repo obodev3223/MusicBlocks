@@ -33,11 +33,11 @@ class MusicBlocksScene: SKScene {
         setupManagers()
         setupGame()
         
-        // Añadir observador para actualizaciones de puntaje
+        // Añadir observador para actualizaciones de todos los datos del juego
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(handleScoreUpdate(_:)),
-            name: NSNotification.Name("ScoreUpdated"),
+            selector: #selector(handleGameDataUpdate(_:)),
+            name: NSNotification.Name("GameDataUpdated"),
             object: nil
         )
     }
@@ -53,20 +53,20 @@ class MusicBlocksScene: SKScene {
     }
     
     // MARK: - Score Update Handler
-    @objc func handleScoreUpdate(_ notification: Notification) {
-        if let score = notification.userInfo?["score"] as? Int {
-            // Actualizar inmediatamente la UI con el nuevo puntaje
-            uiManager.updateUI(score: score, lives: gameEngine.lives)
-            
-            // Si hay un objective tracker, asegurar que también se actualice
-            if let tracker = objectiveTracker {
-                // La actualización de todos los datos del tracker (notesHit, accuracy, blocks)
-                // ya se ha hecho en GameEngine antes de enviar esta notificación,
-                // aquí solo necesitamos obtener el progreso actualizado y reflejar
-                // los cambios en la UI
-                let progress = tracker.getCurrentProgress()
-                uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
-            }
+    @objc func handleGameDataUpdate(_ notification: Notification) {
+        let userData = notification.userInfo ?? [:]
+        
+        // Extraer datos del userInfo
+        let score = userData["score"] as? Int ?? gameEngine.score
+        
+        // Actualizar inmediatamente la UI con el nuevo puntaje y vidas
+        uiManager.updateUI(score: score, lives: gameEngine.lives)
+        
+        // Si hay un objective tracker, asegurar que todos los cambios
+        // se reflejen inmediatamente en la UI
+        if let tracker = objectiveTracker {
+            let progress = tracker.getCurrentProgress()
+            uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
     }
     
@@ -192,17 +192,16 @@ class MusicBlocksScene: SKScene {
 
     // Añadir este método para actualizar la información del tiempo
     private func updateTimeDisplay() {
-        if let progress = objectiveTracker?.getCurrentProgress() {
+        if let tracker = objectiveTracker {
             // Incrementar el tiempo transcurrido
-            objectiveTracker?.updateProgress(deltaTime: timeUpdateInterval)
+            tracker.updateProgress(deltaTime: timeUpdateInterval)
             
-            // Obtener el progreso actualizado después de incrementar el tiempo
-            let updatedProgress = objectiveTracker?.getCurrentProgress() ?? progress
-            
-            // Actualizar el panel de objetivos con el tiempo actualizado
-            uiManager.rightTopBarNode?.updateObjectiveInfo(with: updatedProgress)
+            // Esto ya debería desencadenar una notificación que actualizará la UI
+            // Pero por si acaso, podemos forzar una actualización
+            let progress = tracker.getCurrentProgress()
+            uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
-    } 
+    }
     
     private func updateGameState() {
         // Actualizar indicadores de estabilidad

@@ -89,9 +89,20 @@ class GameEngine: ObservableObject {
         objectiveTracker = LevelObjectiveTracker(level: currentLevel)
         
         // Configurar vidas y puntuación
-        lives = currentLevel.lives.initial
-        maxExtraLives = currentLevel.lives.extraLives.maxExtra
-        scoreThresholdsForExtraLives = currentLevel.lives.extraLives.scoreThresholds
+            lives = currentLevel.lives.initial
+            maxExtraLives = currentLevel.lives.extraLives.maxExtra
+            scoreThresholdsForExtraLives = currentLevel.lives.extraLives.scoreThresholds
+            
+            // Añadir notificación para actualizar la UI con los valores iniciales
+            NotificationCenter.default.post(
+                name: NSNotification.Name("GameDataUpdated"),
+                object: nil,
+                userInfo: [
+                    "score": score,
+                    "lives": lives,
+                    "resetObjectives": true // Flag para indicar reinicio completo
+                ]
+            )
         
         // Iniciar generación de bloques
         blockManager?.startBlockGeneration()
@@ -122,6 +133,18 @@ class GameEngine: ObservableObject {
     func endGame(reason: GameOverReason) {
         gameState = .gameOver(reason: reason)
         blockManager?.stopBlockGeneration()
+        
+        // Actualización final de la UI antes de terminar
+           NotificationCenter.default.post(
+               name: NSNotification.Name("GameDataUpdated"),
+               object: nil,
+               userInfo: [
+                   "score": score,
+                   "lives": lives,
+                   "gameOver": true,
+                   "reason": reason.rawValue
+               ]
+           )
         
         let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let averageAccuracy = accuracyMeasurements > 0 ? totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
@@ -202,6 +225,13 @@ class GameEngine: ObservableObject {
         noteState = .wrong
         blockManager?.resetCurrentBlockProgress()
         
+        // Añadir notificación para actualizar la UI inmediatamente
+        NotificationCenter.default.post(
+            name: NSNotification.Name("GameDataUpdated"),
+            object: nil,
+            userInfo: ["lives": lives, "combo": combo]
+        )
+        
         if lives <= 0 {
             endGame(reason: .noLives)
             return
@@ -237,18 +267,25 @@ class GameEngine: ObservableObject {
         let blockStyle = blockManager?.getCurrentBlock()?.style ?? "defaultBlock"
         
         // Actualizar TODOS los datos relevantes para CUALQUIER tipo de objetivo
-        objectiveTracker?.updateProgress(
-            score: score,             // Para objetivos tipo "score"
-            noteHit: true,            // Para objetivos tipo "total_notes"
-            accuracy: accuracy,       // Para objetivos tipo "note_accuracy"
-            blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
-        )
-        
-        // Enviar notificación de actualización de puntaje
+            objectiveTracker?.updateProgress(
+                score: score,             // Para objetivos tipo "score"
+                noteHit: true,            // Para objetivos tipo "total_notes"
+                accuracy: accuracy,       // Para objetivos tipo "note_accuracy"
+                blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
+            )
+            
+            // Enviar notificación con TODOS los datos relevantes
+        // Enviar notificación después de actualizar el tracker
         NotificationCenter.default.post(
-            name: NSNotification.Name("ScoreUpdated"),
+            name: NSNotification.Name("GameDataUpdated"),
             object: nil,
-            userInfo: ["score": score]
+            userInfo: [
+                "score": score,
+                "noteHit": true,
+                "accuracy": accuracy,
+                "blockDestroyed": blockStyle,
+                "combo": combo
+            ]
         )
         
         if let primaryComplete = objectiveTracker?.checkObjectives(), primaryComplete {
@@ -304,6 +341,14 @@ class GameEngine: ObservableObject {
             if currentScore >= threshold && lives < (gameManager.currentLevel?.lives.initial ?? 3) + maxExtraLives {
                 lives += 1
                 print("🎉 Vida extra ganada. Vidas actuales: \(lives)")
+                
+                // Añadir notificación para actualizar la UI inmediatamente
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("GameDataUpdated"),
+                    object: nil,
+                    userInfo: ["lives": lives]
+                )
+                
                 if let index = scoreThresholdsForExtraLives.firstIndex(of: threshold) {
                     scoreThresholdsForExtraLives.remove(at: index)
                 }
