@@ -23,11 +23,11 @@ private enum TopBarLayout {
     /// Tamaño máximo para la dimensión más larga del icono.
     static let iconSize: CGFloat = 18
     
-    // Nuevos valores para layout de columnas en total_blocks
+    // Valores para layout de columnas en block_destruction
     static let columnWidth: CGFloat = 80          // Ancho de cada columna
     static let rowSpacing: CGFloat = 20           // Espacio vertical entre filas
     static let maxItemsPerColumn: Int = 2         // Máximo de items por columna
-    static let maxColumns: Int = 3                // Máximo de columnas permitidas
+    static let maxColumns: Int = 4                // Aumentado a 4 columnas máximo
 }
 
 // MARK: - Estructuras de Datos
@@ -227,7 +227,6 @@ class TimeDisplayNode: SKNode {
 }
 
 // MARK: - Panel Base de Objetivos
-// MARK: - Panel Base de Objetivos
 class ObjectiveInfoPanel: TopBarBaseNode {
     weak var objectiveTracker: LevelObjectiveTracker?
     
@@ -269,17 +268,21 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             contentContainer.addChild(container)
             blockDestructionContainer = container
             
-            // Si el objetivo tiene detalles con estilos y cantidades
-            if let details = objective.details {
-                // Los bloques se organizarán en el método updateBlockDestructionLayout
-                // que llamaremos desde updateInfo
+            // Ya no creamos el timeIconNode aquí, lo incluiremos en el contenedor de columnas
+            
+        case "total_blocks":
+            // Para total_blocks, solo mostramos el total y opcionalmente el tiempo
+            objectiveIconNode = ObjectiveIconNode(type: .blocks)
+            if let objIcon = objectiveIconNode {
+                objIcon.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
+                contentContainer.addChild(objIcon)
             }
             
-            // Si además hay límite de tiempo
+            // Si hay límite de tiempo
             if objective.timeLimit != nil {
                 timeIconNode = ObjectiveIconNode(type: .time)
                 if let timeIcon = timeIconNode {
-                    timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.verticalSpacing * 6) // Posicionarlo más abajo para dar espacio a las columnas
+                    timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.verticalSpacing * 2)
                     contentContainer.addChild(timeIcon)
                 }
             }
@@ -299,6 +302,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             }
         }
     }
+
     
     private func createBlockIconNode(for blockType: String) -> ObjectiveIconNode {
         let imageName = blockStyleIcons[blockType] ?? "default_block_icon"
@@ -377,63 +381,94 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     
     // Método para actualizar el layout de block_destruction en formato de columnas
     private func updateBlockDestructionLayout(with progress: ObjectiveProgress, details: [String: Int]) {
-        // Limpiar el contenedor existente si hay uno
-        blockDestructionContainer?.removeAllChildren()
-        guard let container = blockDestructionContainer else { return }
-        
-        // Filtrar los bloques que están en los detalles del objetivo
-        let blockTypes = Array(details.keys)
-        
-        // Si no hay bloques, no hacer nada
-        if blockTypes.isEmpty { return }
-        
-        // Calcular cuántas columnas necesitamos (máximo 3)
-        let totalItems = blockTypes.count
-        let columnsNeeded = min((totalItems + 1) / 2, TopBarLayout.maxColumns) // Redondeamos hacia arriba (+1) y dividimos por 2
-        
-        // Calcular posición inicial
-        var startX: CGFloat = 0
-        
-        // Si tenemos más de una columna, alineamos desde la izquierda
-        if columnsNeeded > 1 {
-            startX = -((CGFloat(columnsNeeded - 1) * TopBarLayout.columnWidth) / 2)
-        }
-        
-        var currentX = startX
-        var currentY: CGFloat = TopBarLayout.rowSpacing // Primera fila
-        var itemsInCurrentColumn = 0
-        
-        // Organizar bloques en columnas
-        for blockType in blockTypes {
-            // Si completamos 2 items en la columna actual, pasamos a la siguiente columna
-            if itemsInCurrentColumn >= TopBarLayout.maxItemsPerColumn {
-                currentX += TopBarLayout.columnWidth
-                currentY = TopBarLayout.rowSpacing // Volvemos a la primera fila
-                itemsInCurrentColumn = 0
-            }
-            
-            // Crear nodo para este bloque
-            let iconNode = createBlockIconNode(for: blockType)
-            
-            // Posicionar según la columna y fila actual
-            let yPos = currentY - (CGFloat(itemsInCurrentColumn) * TopBarLayout.rowSpacing)
-            iconNode.position = CGPoint(x: currentX, y: yPos)
-            
-            // Actualizar valor mostrando cantidad actual y objetivo
-            let destroyed = progress.blocksByType[blockType, default: 0]
-            let required = details[blockType] ?? 0
-            iconNode.updateValue("\(destroyed)/\(required)")
-            
-            // Añadir al contenedor
-            container.addChild(iconNode)
-            
-            // Actualizar contadores
-            itemsInCurrentColumn += 1
-        }
-        
-        // Posicionar el contenedor
-        container.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
-    }
+         // Limpiar el contenedor existente si hay uno
+         blockDestructionContainer?.removeAllChildren()
+         guard let container = blockDestructionContainer else { return }
+         
+         guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
+         
+         // Crear una lista de todos los elementos a mostrar (bloques + tiempo si hay límite)
+         var displayItems: [(type: String, label: String, isTimeIcon: Bool)] = []
+         
+         // Añadir bloques
+         for (blockType, required) in details {
+             let destroyed = progress.blocksByType[blockType, default: 0]
+             let text = "\(destroyed)/\(required)"
+             displayItems.append((type: blockType, label: text, isTimeIcon: false))
+         }
+         
+         // Añadir tiempo si hay límite
+         if let timeLimit = objective.timeLimit {
+             let timeLimitInterval = TimeInterval(timeLimit)
+             let remainingTime = max(timeLimitInterval - progress.timeElapsed, 0)
+             let minutes = Int(remainingTime) / 60
+             let seconds = Int(remainingTime) % 60
+             let timeText = String(format: "%02d:%02d", minutes, seconds)
+             displayItems.append((type: "time", label: timeText, isTimeIcon: true))
+         }
+         
+         // Calcular cuántas columnas necesitamos
+         let totalItems = displayItems.count
+         let columnsNeeded = min((totalItems + 1) / 2, TopBarLayout.maxColumns) // Máximo 4 columnas
+         
+         // Calcular posición inicial
+         var startX: CGFloat = 0
+         
+         // Si tenemos más de una columna, alineamos desde la izquierda
+         if columnsNeeded > 1 {
+             startX = -((CGFloat(columnsNeeded - 1) * TopBarLayout.columnWidth) / 2)
+         }
+         
+         var currentX = startX
+         var currentY: CGFloat = TopBarLayout.rowSpacing // Primera fila
+         var itemsInCurrentColumn = 0
+         
+         // Organizar bloques en columnas
+         for (index, item) in displayItems.enumerated() {
+             // Si completamos 2 items en la columna actual, pasamos a la siguiente columna
+             if itemsInCurrentColumn >= TopBarLayout.maxItemsPerColumn {
+                 currentX += TopBarLayout.columnWidth
+                 currentY = TopBarLayout.rowSpacing // Volvemos a la primera fila
+                 itemsInCurrentColumn = 0
+             }
+             
+             // Crear nodo para este elemento
+             let iconNode: ObjectiveIconNode
+             
+             if item.isTimeIcon {
+                 iconNode = ObjectiveIconNode(type: .time)
+             } else {
+                 iconNode = createBlockIconNode(for: item.type)
+             }
+             
+             // Posicionar según la columna y fila actual
+             let yPos = currentY - (CGFloat(itemsInCurrentColumn) * TopBarLayout.rowSpacing)
+             iconNode.position = CGPoint(x: currentX, y: yPos)
+             
+             // Actualizar valor
+             iconNode.updateValue(item.label)
+             
+             // Si es el icono de tiempo y queda poco tiempo, colorear en rojo
+             if item.isTimeIcon {
+                 if let timeLimit = objective.timeLimit {
+                     let timeLimitInterval = TimeInterval(timeLimit)
+                     let remainingTime = max(timeLimitInterval - progress.timeElapsed, 0)
+                     if remainingTime < 30 {
+                         iconNode.updateValueColor(.red)
+                     }
+                 }
+             }
+             
+             // Añadir al contenedor
+             container.addChild(iconNode)
+             
+             // Actualizar contadores
+             itemsInCurrentColumn += 1
+         }
+         
+         // Posicionar el contenedor en la parte superior del panel
+         container.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
+     }
     
     private func updateTimeIcon(progress: ObjectiveProgress, timeLimit: Int) {
         let timeLimitInterval = TimeInterval(timeLimit)
@@ -607,7 +642,7 @@ struct BlockDestructionObjectivePreviewContainer: View, ObjectivePreviewContaine
     
     func createObjectiveDetails() -> [String: Int]? {
         return [
-       //     "defaultBlock": 5,
+            "defaultBlock": 5,
             "iceBlock": 3,
             "hardiceBlock": 7,
             "ghostBlock": 4,
@@ -618,7 +653,7 @@ struct BlockDestructionObjectivePreviewContainer: View, ObjectivePreviewContaine
     
     func createBlocksDestroyed() -> [String: Int] {
         return [
-      //      "defaultBlock": 2,
+            "defaultBlock": 2,
             "iceBlock": 3,
             "hardiceBlock": 5,
             "ghostBlock": 1,
@@ -636,6 +671,59 @@ struct BlockDestructionObjectivePreviewContainer: View, ObjectivePreviewContaine
             SpriteView(scene: createPreviewScene(size: geometry.size))
                 .background(Color.gray.opacity(0.2))
         }
+    }
+    
+    // Sobrescribir la función createPreviewScene para asegurar que incluya tiempo
+    func createPreviewScene(size: CGSize) -> SKScene {
+        let scene = SKScene(size: size)
+        scene.scaleMode = .resizeFill
+        scene.backgroundColor = .lightGray
+        
+        let objectiveDetails = createObjectiveDetails()
+        let allowedStyles = createAllowedStyles()
+        let blocksDestroyed = createBlocksDestroyed()
+        
+        let objective = Objective(
+            type: objectiveType,
+            target: 1000,
+            timeLimit: 180, // Asegurar que tenga límite de tiempo
+            minimumAccuracy: nil,
+            details: objectiveDetails
+        )
+        
+        let level = GameLevel(
+            levelId: 1,
+            name: "Nivel de prueba",
+            maxScore: 500,
+            allowedStyles: allowedStyles,
+            fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
+            lives: Lives(
+                initial: 3,
+                extraLives: ExtraLives(scoreThresholds: [], maxExtra: 0)
+            ),
+            objectives: Objectives(primary: objective),
+            blocks: [:]
+        )
+        
+        let tracker = LevelObjectiveTracker(level: level)
+        var progress = ObjectiveProgress(
+            score: 350,
+            notesHit: 40,
+            accuracySum: 85.0,
+            accuracyCount: 100,
+            blocksByType: blocksDestroyed,
+            totalBlocksDestroyed: blocksDestroyed.values.reduce(0, +),
+            timeElapsed: 60
+        )
+        
+        let panelSize = CGSize(width: size.width * 0.8, height: size.height * 0.7)
+        let panel = ObjectivePanelFactory.createPanel(for: objective, size: panelSize, tracker: tracker)
+        panel.updateInfo(with: progress)
+        
+        panel.position = CGPoint(x: size.width/2, y: size.height/2)
+        scene.addChild(panel)
+        
+        return scene
     }
 }
 
