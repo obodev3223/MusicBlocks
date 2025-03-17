@@ -81,7 +81,7 @@
             "max_score": 500,
             "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
             "falling_speed": {
-                "initial": 8.0,  // Velocidad de caida inicial 8.0 segundos
+                "initial": 4.0,  // Velocidad de caida inicial 8.0 segundos
                 "increment": 0.0 // Incremento de velocidad de caida. Quitar 0.0 segundos en cada bloque
             },
             "lives": {

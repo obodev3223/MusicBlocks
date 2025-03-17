@@ -58,13 +58,31 @@ class GameManager {
             return false
         }
         
-        // Verificar si el nivel está desbloqueado
-        if !isLevelUnlocked(levelId) {
-            print("🔒 Nivel \(levelId) bloqueado")
+        print("🔄 Attempting to load level \(levelId)")
+        
+        // Check if we're trying to load a level beyond the last available level
+        let highestLevelId = getHighestAvailableLevelId()
+        if levelId > highestLevelId {
+            print("🏆 Intentando cargar nivel \(levelId) que está más allá del último nivel disponible (\(highestLevelId))")
+            // This will be handled by the UI to show congratulations
+            userProfile.hasCompletedAllLevels = true
+            userProfile.save()
             return false
         }
         
-        // Intentar cargar el nivel solicitado
+        // Check if the level is unlocked
+        if !isLevelUnlocked(levelId) {
+            print("🔒 Nivel \(levelId) bloqueado - no se puede cargar")
+            return false
+        }
+        
+        // Check if the level exists
+        if !levelExists(levelId) {
+            print("❌ Error: Nivel \(levelId) no existe en la configuración")
+            return false
+        }
+        
+        // Load the requested level
         if let level = GameLevelProcessor.getLevel(from: config, withId: levelId) {
             currentLevel = level
             lastPlayedLevel = levelId
@@ -75,32 +93,54 @@ class GameManager {
             return true
         }
         
-        // Si falla, intentar cargar el tutorial
-        if let tutorialLevel = GameLevelProcessor.getLevel(from: config, withId: Constants.tutorialLevelId) {
-            currentLevel = tutorialLevel
-            print("ℹ️ Cargando tutorial por defecto")
-            return true
-        }
-        
-        print("❌ Error: No se pudo cargar ningún nivel")
+        print("❌ Error: No se pudo cargar el nivel \(levelId)")
         return false
     }
     
+    // New method to check if a level exists
+    func levelExists(_ levelId: Int) -> Bool {
+        guard let config = gameConfig else { return false }
+        let level = config.levels.first(where: { $0.levelId == levelId })
+        let exists = level != nil
+        print("🔍 Checking if level \(levelId) exists: \(exists ? "✅ Yes" : "❌ No")")
+        return exists
+    }
+    
+    // Get the highest available level ID
+    func getHighestAvailableLevelId() -> Int {
+        guard let config = gameConfig else { return 0 }
+        let highestId = config.levels.map { $0.levelId }.max() ?? 0
+        print("📊 Highest available level ID: \(highestId)")
+        return highestId
+    }
+    
     func isLevelUnlocked(_ levelId: Int) -> Bool {
-        // El tutorial siempre está desbloqueado
+        // Tutorial is always unlocked
         if levelId == Constants.tutorialLevelId { return true }
         
-        // Verificar progreso del usuario
+        // Debug logging
+        print("🔍 Checking if level \(levelId) is unlocked")
+        
+        // Better logic - only check if the previous level was completed (has high score)
         let previousLevelCompleted = highScores[levelId - 1] != nil
-        return levelId <= Constants.maxUnlockedLevel && previousLevelCompleted
+        print("🔑 Previous level (\(levelId - 1)) completion status: \(previousLevelCompleted ? "✅ Completed" : "❌ Not completed")")
+        
+        // If we've already played this level before, it's definitely unlocked
+        if highScores[levelId] != nil {
+            print("🔓 Level \(levelId) is already played before, unlocked")
+            return true
+        }
+        
+        // Simple rule: you can play level N if you've completed level N-1
+        return previousLevelCompleted
     }
     
     // MARK: - Game Progress
     func updateGameStatistics(levelId: Int, score: Int, completed: Bool) {
-        // Actualizar estadísticas locales
+        // Update local statistics
         totalGamesPlayed += 1
         
-        // Actualizar high score si es necesario
+        // Update high score if necessary
         if let currentHighScore = highScores[levelId] {
             if score > currentHighScore {
                 highScores[levelId] = score
@@ -111,7 +151,7 @@ class GameManager {
             print("🎮 Primera puntuación en nivel \(levelId): \(score)")
         }
         
-        // Actualizar perfil de usuario
+        // Update user profile
         userProfile.updateStatistics(
             score: score,
             accuracy: calculateAccuracyForLevel(score),
@@ -120,10 +160,21 @@ class GameManager {
             playTime: calculatePlayTime()
         )
         
-        // Si completó el nivel, actualizar progreso
+        // If level was completed, update progress to next level
         if completed {
-            if levelId >= userProfile.statistics.currentLevel {
-                userProfile.statistics.currentLevel = levelId + 1
+            let nextLevelId = levelId + 1
+            print("🎯 Nivel \(levelId) completado! Actualizando progreso a nivel \(nextLevelId)")
+            
+            // Check if the next level exists before updating
+            if levelExists(nextLevelId) {
+                if nextLevelId > userProfile.statistics.currentLevel {
+                    userProfile.statistics.currentLevel = nextLevelId
+                    print("⬆️ Avanzando al siguiente nivel: \(nextLevelId)")
+                }
+            } else {
+                // The player has completed all available levels
+                print("🏆 ¡Felicidades! Has completado todos los niveles disponibles")
+                userProfile.hasCompletedAllLevels = true
             }
         }
         

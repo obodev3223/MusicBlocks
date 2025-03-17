@@ -20,48 +20,56 @@ class BlocksManager {
     private let gameManager = GameManager.shared
     
     // Para controlar la generación de bloques
-        private var spawnAction: SKAction?
-        private var isGeneratingBlocks: Bool = false
-        
-        // Ahora interpretamos estos como tiempos en SEGUNDOS:
-        // spawnInterval = “tiempo entre bloques”
-        // spawnIntervalDecrement = “segundos que restamos tras cada bloque”
-        private var spawnInterval: TimeInterval
-        private var spawnIntervalDecrement: TimeInterval
+    private var spawnAction: SKAction?
+    private var isGeneratingBlocks: Bool = false
+    
+    // Ahora interpretamos estos como tiempos en SEGUNDOS:
+    // spawnInterval = “tiempo entre bloques”
+    // spawnIntervalDecrement = “segundos que restamos tras cada bloque”
+    private var spawnInterval: TimeInterval
+    private var spawnIntervalDecrement: TimeInterval
     
     // MARK: - Constants
-        private struct Constants {
-            static let initialDelay: TimeInterval = 1.0
-            static let minSpawnInterval: TimeInterval = 1.5
+    private struct Constants {
+        static let initialDelay: TimeInterval = 1.0
+        static let minSpawnInterval: TimeInterval = 1.5
+    }
+    
+    // MARK: - Estados para controlar el flujo de procesamiento de bloques
+    private var isProcessingBlock: Bool = false
+    private var lastHitTime: Date? = nil
+    
+    var isBlockProcessing: Bool {
+        return isProcessingBlock
+    }
+    
+    // MARK: - Initialization
+    init(blockSize: CGSize = CGSize(width: 280, height: 120),
+         blockSpacing: CGFloat = 1.0,
+         mainAreaNode: SKNode?,
+         mainAreaHeight: CGFloat) {
+        
+        self.blockSize = blockSize
+        self.blockSpacing = blockSpacing
+        self.mainAreaNode = mainAreaNode
+        self.mainAreaHeight = mainAreaHeight
+        
+        // Leemos la “velocidad” del nivel, pero la usamos como spawnInterval (segundos).
+        if let fallingSpeed = GameManager.shared.currentLevel?.fallingSpeed {
+            // Por ejemplo: initial=8.0 => 8s entre bloques, increment=2.0 => restar 2s cada bloque
+            self.spawnInterval = fallingSpeed.initial
+            self.spawnIntervalDecrement = fallingSpeed.increment
+        } else {
+            // Valores por defecto
+            self.spawnInterval = 4.0
+            self.spawnIntervalDecrement = 0.0
         }
         
-        // MARK: - Initialization
-        init(blockSize: CGSize = CGSize(width: 280, height: 120),
-             blockSpacing: CGFloat = 1.0,
-             mainAreaNode: SKNode?,
-             mainAreaHeight: CGFloat) {
-            
-            self.blockSize = blockSize
-            self.blockSpacing = blockSpacing
-            self.mainAreaNode = mainAreaNode
-            self.mainAreaHeight = mainAreaHeight
-            
-            // Leemos la “velocidad” del nivel, pero la usamos como spawnInterval (segundos).
-            if let fallingSpeed = GameManager.shared.currentLevel?.fallingSpeed {
-                // Por ejemplo: initial=8.0 => 8s entre bloques, increment=2.0 => restar 2s cada bloque
-                self.spawnInterval = fallingSpeed.initial
-                self.spawnIntervalDecrement = fallingSpeed.increment
-            } else {
-                // Valores por defecto
-                self.spawnInterval = 4.0
-                self.spawnIntervalDecrement = 0.0
-            }
-            
-            print("🔧 BlocksManager inicializado. blockSize: \(blockSize), " +
-                  "mainAreaHeight: \(mainAreaHeight), " +
-                  "spawnInterval inicial: \(spawnInterval) s, " +
-                  "decremento: \(spawnIntervalDecrement) s")
-        }
+        print("🔧 BlocksManager inicializado. blockSize: \(blockSize), " +
+              "mainAreaHeight: \(mainAreaHeight), " +
+              "spawnInterval inicial: \(spawnInterval) s, " +
+              "decremento: \(spawnIntervalDecrement) s")
+    }
     
     // MARK: - Iniciando generación de bloques
     func startBlockGeneration() {
@@ -85,7 +93,7 @@ class BlocksManager {
         
         print("✅ Generación de bloques iniciada - spawnInterval: \(spawnInterval) s")
     }
-
+    
     /// Bucle “recursivo” que genera 1 bloque, actualiza el spawnInterval
     /// y programa la siguiente aparición.
     private func spawnLoop() {
@@ -112,7 +120,7 @@ class BlocksManager {
         
         mainAreaNode?.run(sequence)
     }
-
+    
     /// Detener la generación
     func stopBlockGeneration() {
         print("⏹️ stopBlockGeneration llamado.")
@@ -204,42 +212,42 @@ class BlocksManager {
     
     // MARK: - Block Creation Methods
     func spawnBlock() {
-            print("➡️ spawnBlock llamado.")
-            guard let mainAreaNode = mainAreaNode,
-                  isGeneratingBlocks else {
-                print("❌ No se pueden generar bloques: generación detenida o mainAreaNode es nil")
+        print("➡️ spawnBlock llamado.")
+        guard let mainAreaNode = mainAreaNode,
+              isGeneratingBlocks else {
+            print("❌ No se pueden generar bloques: generación detenida o mainAreaNode es nil")
+            return
+        }
+        
+        // Verificar espacio
+        if let firstBlock = blocks.first {
+            let topLimit = mainAreaHeight/2 - blockSize.height/2
+            let firstBlockTopEdge = firstBlock.position.y + blockSize.height/2
+            
+            if abs(firstBlockTopEdge - topLimit) < blockSpacing {
+                print("⏸️ Esperando espacio para nuevo bloque.")
                 return
             }
-            
-            // Verificar espacio
-            if let firstBlock = blocks.first {
-                let topLimit = mainAreaHeight/2 - blockSize.height/2
-                let firstBlockTopEdge = firstBlock.position.y + blockSize.height/2
-                
-                if abs(firstBlockTopEdge - topLimit) < blockSpacing {
-                    print("⏸️ Esperando espacio para nuevo bloque.")
-                    return
-                }
-            }
-            
-            let newBlock = createBlock()
-            
-            if let blockInfo = createBlockInfo(for: newBlock) {
-                let startY = mainAreaHeight/2 - blockSize.height/2
-                newBlock.position = CGPoint(x: 0, y: startY)
-                mainAreaNode.addChild(newBlock)
-                blocks.insert(newBlock, at: 0)
-                blockInfos.insert(blockInfo, at: 0)
-                
-                print("✅ Bloque añadido en posición Y: \(startY)")
-                updateBlockPositions()
-            } else {
-                print("❌ Error al crear la metadata del bloque.")
-            }
         }
+        
+        let newBlock = createBlock()
+        
+        if let blockInfo = createBlockInfo(for: newBlock) {
+            let startY = mainAreaHeight/2 - blockSize.height/2
+            newBlock.position = CGPoint(x: 0, y: startY)
+            mainAreaNode.addChild(newBlock)
+            blocks.insert(newBlock, at: 0)
+            blockInfos.insert(blockInfo, at: 0)
+            
+            //      print("✅ Bloque añadido en posición Y: \(startY)")
+            updateBlockPositions()
+        } else {
+            print("❌ Error al crear la metadata del bloque.")
+        }
+    }
     
     private func createBlockInfo(for block: SKNode) -> BlockInfo? {
-//        print("📋 Creando BlockInfo para bloque.")
+        //        print("📋 Creando BlockInfo para bloque.")
         guard let userData = block.userData,
               let noteData = userData.value(forKey: "noteName") as? String,
               let styleData = userData.value(forKey: "blockStyle") as? String,
@@ -264,7 +272,7 @@ class BlocksManager {
     
     // MARK: - Block Visual Components
     private func createBlockContainer(with style: BlockStyle) -> SKNode {
-//        print("🖼️ Creando contenedor para bloque con estilo: \(style)")
+        //        print("🖼️ Creando contenedor para bloque con estilo: \(style)")
         let container = SKNode()
         container.zPosition = 0
         
@@ -278,18 +286,18 @@ class BlocksManager {
                 cornerRadius: style.cornerRadius
             )
             container.addChild(shadowNode)
-//            print("🖼️ Sombra añadida al contenedor.")
+            //            print("🖼️ Sombra añadida al contenedor.")
         }
         
         let background = createBackground(with: style)
         container.addChild(background)
-//        print("🖼️ Fondo añadido al contenedor.")
+        //        print("🖼️ Fondo añadido al contenedor.")
         
         return container
     }
     
     private func createShadowNode(color: SKColor, offset: CGSize, blur: CGFloat, cornerRadius: CGFloat) -> SKNode {
-//        print("🖌️ Creando shadowNode con color: \(color), offset: \(offset), blur: \(blur)")
+        //        print("🖌️ Creando shadowNode con color: \(color), offset: \(offset), blur: \(blur)")
         let shadowNode = SKEffectNode()
         shadowNode.shouldRasterize = true
         shadowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": blur])
@@ -307,7 +315,7 @@ class BlocksManager {
     }
     
     private func createBackground(with style: BlockStyle) -> SKNode {
-//        print("🖌️ Creando background para bloque con estilo: \(style)")
+        //        print("🖌️ Creando background para bloque con estilo: \(style)")
         let background = SKShapeNode(rectOf: blockSize, cornerRadius: style.cornerRadius)
         background.fillColor = style.backgroundColor
         background.strokeColor = style.borderColor
@@ -317,23 +325,22 @@ class BlocksManager {
         if let texture = style.fillTexture {
             background.fillTexture = texture
             background.alpha = style.textureOpacity
-//            print("🖼️ Texture aplicada al background.")
+            //            print("🖼️ Texture aplicada al background.")
         }
         
         return background
     }
     
-    
     // MARK: - Block Position Management
     private func updateBlockPositions() {
-        print("↕️ Actualizando posiciones de \(blocks.count) bloques.")
+        //   print("↕️ Actualizando posiciones de \(blocks.count) bloques.")
         let moveDistance = blockSize.height + blockSpacing
         let moveDuration = 0.5
         
         for (index, block) in blocks.enumerated() {
             // Calcular la posición final para cada bloque
             let targetY = (mainAreaHeight/2) - (blockSize.height/2) - (moveDistance * CGFloat(index))
-            print("   Bloque \(index): moviéndose a Y = \(targetY)")
+            //      print("   Bloque \(index): moviéndose a Y = \(targetY)")
             // Mover el bloque a su posición con una animación suave
             let moveToPosition = SKAction.moveTo(y: targetY, duration: moveDuration)
             moveToPosition.timingMode = .easeInEaseOut
@@ -478,50 +485,96 @@ class BlocksManager {
     // MARK: - Block Progress Management
     func updateCurrentBlockProgress(hitTime: Date) -> Bool {
         print("⏱️ updateCurrentBlockProgress llamado a las \(hitTime)")
+        
+        // Si ya estamos procesando un bloque o ha pasado muy poco tiempo desde el último hit,
+        // ignoramos esta llamada para evitar doble procesamiento
+        let minTimeBetweenHits: TimeInterval = 0.5 // 500ms mínimo entre hits
+        if isProcessingBlock ||
+           (lastHitTime != nil && hitTime.timeIntervalSince(lastHitTime!) < minTimeBetweenHits) {
+            print("⚠️ Ignorando hit - Procesando: \(isProcessingBlock), Tiempo desde último hit: \(lastHitTime != nil ? hitTime.timeIntervalSince(lastHitTime!) : 0)")
+            return false
+        }
+        
+        // Marcar como procesando y registrar la hora del hit
+        isProcessingBlock = true
+        lastHitTime = hitTime
+        
         guard let index = blockInfos.indices.last else {
             print("⚠️ No hay bloque actual para actualizar.")
+            isProcessingBlock = false
             return false
         }
         
         var currentInfo = blockInfos[index]
         print("   Bloque actual: nota \(currentInfo.note), currentHits: \(currentInfo.currentHits)")
         
-        if currentInfo.holdStartTime == nil {
-            currentInfo.holdStartTime = hitTime
-            blockInfos[index] = currentInfo
-            print("   Se inicia el hold del bloque a \(hitTime)")
-        }
+        // Incrementar contador de hits
+        currentInfo.currentHits += 1
+        print("   Hit registrado. currentHits ahora: \(currentInfo.currentHits)")
+        blockInfos[index] = currentInfo
         
-        let holdDuration = Date().timeIntervalSince(currentInfo.holdStartTime ?? Date())
-        print("   Duración del hold: \(holdDuration) (requerida: \(currentInfo.requiredTime))")
-        
-        if holdDuration >= currentInfo.requiredTime {
-            currentInfo.currentHits += 1
-            print("   Hit registrado. currentHits ahora: \(currentInfo.currentHits)")
-            currentInfo.holdStartTime = nil
-            blockInfos[index] = currentInfo
+        // Verificar si hemos alcanzado el número requerido de hits
+        if currentInfo.currentHits >= currentInfo.requiredHits {
+            print("   Requisitos completos (hits: \(currentInfo.currentHits), requeridos: \(currentInfo.requiredHits)). Se eliminará el bloque.")
             
-            if currentInfo.currentHits >= currentInfo.requiredHits {
-                print("   Requisitos completos (hits: \(currentInfo.currentHits), requeridos: \(currentInfo.requiredHits)). Se eliminará el bloque.")
-                removeLastBlock()
-                return true
+            // Eliminar el bloque con animación, pero solo liberar el estado cuando termine
+            removeLastBlockWithCompletion { [weak self] in
+                self?.isProcessingBlock = false
+                print("✅ Procesamiento de bloque completado.")
             }
+            return true
         }
         
+        // Si no se eliminó el bloque, liberamos el estado de procesamiento inmediatamente
+        isProcessingBlock = false
         return false
     }
     
+    // Versión modificada de removeLastBlock que acepta un closure de completion
+    func removeLastBlockWithCompletion(completion: @escaping () -> Void) {
+        print("🗑️ Eliminando último bloque...")
+        guard let lastBlock = blocks.last,
+              !blockInfos.isEmpty else {
+            print("⚠️ No hay bloque para eliminar.")
+            completion()
+            return
+        }
+        
+        let fadeOut = SKAction.fadeOut(withDuration: 0.3)
+        let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
+        let group = SKAction.group([fadeOut, scaleDown])
+        let remove = SKAction.removeFromParent()
+        let sequence = SKAction.sequence([group, remove])
+        
+        lastBlock.run(sequence) { [weak self] in
+            guard let self = self else {
+                completion()
+                return
+            }
+            print("🗑️ Bloque eliminado. Actualizando lista de bloques...")
+            self.blocks.removeLast()
+            self.blockInfos.removeLast()
+            self.updateBlockPositions()
+            
+            // Llamar al completion handler solo cuando todo haya terminado
+            completion()
+        }
+    }
+
     func resetCurrentBlockProgress() {
         print("🔄 Reset current block progress")
+        // Restablecer el estado de procesamiento
+        isProcessingBlock = false
+        
         guard let index = blockInfos.indices.last else {
             print("⚠️ No hay bloque actual para resetear.")
             return
         }
         var currentInfo = blockInfos[index]
         currentInfo.currentHits = 0
-        currentInfo.holdStartTime = nil
         blockInfos[index] = currentInfo
         print("   Progreso del bloque reseteado.")
     }
+
     
 }

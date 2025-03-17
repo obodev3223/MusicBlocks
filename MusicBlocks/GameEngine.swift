@@ -135,8 +135,14 @@ class GameEngine: ObservableObject {
     
     /// Finaliza la partida, calcula estadísticas y actualiza el perfil del usuario.
     func endGame(reason: GameOverReason) {
+        // Establecer estado de gameOver
         gameState = .gameOver(reason: reason)
+        
+        // 1. Detener generación de bloques
         blockManager?.stopBlockGeneration()
+        
+        // 2. Detener AudioController (NUEVO)
+        AudioController.sharedInstance.stop()
         
         // Determinar el string para la razón
         let reasonString: String
@@ -167,22 +173,27 @@ class GameEngine: ObservableObject {
             ]
         )
         
+        // Resto del código para calcular estadísticas...
         let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let averageAccuracy = accuracyMeasurements > 0 ? totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
         let requiredScore = gameManager.currentLevel?.requiredScore ?? 0
         let isGameWon = reason != .blocksOverflow && score >= requiredScore
         
+        // Actualizar estadísticas de juegos ganados/perdidos
         if isGameWon {
             gamesWon += 1
         } else {
             gamesLost += 1
         }
         
+        // Guardar estadísticas del perfil
         let userProfile = UserProfile.load()
         var updatedProfile = userProfile
         updatedProfile.updateStatistics(
             score: score,
-            noteHit: false,
+            noteHits: notesHitInGame,  // Add this to pass total notes hit in this game
+            currentStreak: combo,      // Pass current combo as streak
+            bestStreak: bestStreakInGame, // Pass best streak from this game
             accuracy: averageAccuracy,
             levelCompleted: isGameWon,
             isPerfect: averageAccuracy >= 0.95,
@@ -208,35 +219,83 @@ class GameEngine: ObservableObject {
     // MARK: - Note Processing
     /// Compara la nota detectada con el objetivo y delega el manejo correcto o incorrecto.
     func checkNote(currentNote: String, deviation: Double, isActive: Bool) {
+        // Verificar inmediatamente si el juego está en estado gameOver
+        if case .gameOver = gameState {
+            // Ignorar completamente en estado gameOver
+            return
+        }
+        
         guard case .playing = gameState, !isInSuccessState, !isShowingError else {
             print("⚠️ CheckNote: Estado no válido - inSuccessState: \(isInSuccessState), showingError: \(isShowingError), gameState: \(gameState)")
             return
         }
         
         guard let currentBlock = blockManager?.getCurrentBlock(), isActive else {
-            GameLogger.shared.noteDetection("CheckNote: No hay bloque activo o nota no activa - isActive: \(isActive)")
             return
         }
         
         print("🎯 CheckNote: Comparando nota \(currentNote) con objetivo \(currentBlock.note), desviación: \(deviation)")
         
-        if currentNote == currentBlock.note {
-            print("✓ ACIERTO: Nota correcta \(currentNote) == \(currentBlock.note)")
+        // Usar comparación exacta o enarmónica
+        if areMusicallyEquivalent(currentNote, currentBlock.note) {
+            print("✓ ACIERTO: Nota correcta \(currentNote) coincide con \(currentBlock.note)")
             handleCorrectNote(deviation: deviation, block: currentBlock)
         } else {
             print("✗ FALLO: Nota incorrecta \(currentNote) ≠ \(currentBlock.note)")
             handleWrongNote()
         }
     }
+
+    /// Determina si dos notas son musicalmente equivalentes (misma nota o enarmónicas)
+    private func areMusicallyEquivalent(_ note1: String, _ note2: String) -> Bool {
+        // Si son exactamente iguales
+        if note1 == note2 {
+            return true
+        }
+        
+        // Extraer la parte básica de la nota (sin octava)
+        func extractBaseNote(_ note: String) -> String {
+            return String(note.prefix(while: { !$0.isNumber }))
+        }
+        
+        let base1 = extractBaseNote(note1)
+        let base2 = extractBaseNote(note2)
+        
+        // Comprobar equivalentes enarmónicos
+        let enharmonicPairs = [
+            ["DO#", "REb"], ["RE#", "MIb"],
+            ["FA#", "SOLb"], ["SOL#", "LAb"], ["LA#", "SIb"]
+        ]
+        
+        for pair in enharmonicPairs {
+            if (pair[0] == base1 && pair[1] == base2) ||
+               (pair[1] == base1 && pair[0] == base2) {
+                return true
+            }
+        }
+        
+        return false
+    }
     
     // MARK: - Note Handling
     /// Maneja la nota correcta: actualiza el progreso del bloque y, si se cumplen los requisitos, registra el éxito.
     private func handleCorrectNote(deviation: Double, block: BlockInfo) {
-        if blockManager?.updateCurrentBlockProgress(hitTime: Date()) == true {
+        GameLogger.shared.noteDetection("🎵 HandleCorrectNote - Intento registrado con desviación: \(deviation)")
+        
+        // Procesamiento secuencial de bloques
+        let blockCompleted = blockManager?.updateCurrentBlockProgress(hitTime: Date()) ?? false
+        
+        // Actualizar estado de acierto
+        if blockCompleted {
+            GameLogger.shared.noteDetection("🎯 Bloque completado!")
             handleSuccess(deviation: deviation, blockConfig: block.config)
         } else {
+            // Aquí solo actualizamos el estado visual pero no iniciamos otra verificación
             noteState = .correct(deviation: deviation)
+            GameLogger.shared.noteDetection("🔄 Bloque continúa, progreso actualizado")
         }
+        
+        // Incrementar combo solo si el bloque no se completó o si se completó exitosamente
         combo += 1
     }
     
@@ -249,11 +308,15 @@ class GameEngine: ObservableObject {
         noteState = .wrong
         blockManager?.resetCurrentBlockProgress()
         
-        // Añadir notificación para actualizar la UI inmediatamente
+        // Add immediate notification for UI update
         NotificationCenter.default.post(
             name: NSNotification.Name("GameDataUpdated"),
             object: nil,
-            userInfo: ["lives": lives, "combo": combo]
+            userInfo: [
+                "lives": lives,
+                "combo": combo,
+                "noteState": "wrong"  // This explicitly tells UI to show failure overlay
+            ]
         )
         
         if lives <= 0 {
@@ -271,34 +334,33 @@ class GameEngine: ObservableObject {
     private func handleSuccess(deviation: Double, blockConfig: Block) {
         isInSuccessState = true
         
+        // Incrementar contador de bloques por estilo
         if let currentBlock = blockManager?.getCurrentBlock() {
             blockHitsByStyle[currentBlock.style] = (blockHitsByStyle[currentBlock.style] ?? 0) + 1
-            print("📊 Bloques acertados actualizados:")
-            for (style, count) in blockHitsByStyle {
-                print("• \(style): \(count)")
-            }
+            print("📊 Bloque estilo \(currentBlock.style) acertado: ahora \(blockHitsByStyle[currentBlock.style]!)")
         }
         
-        // Calcular precisión y puntuación
+        // 1. Calcular precisión basada en la desviación de afinación
         let accuracy = calculateAccuracy(deviation: deviation)
+        print("📏 Precisión calculada: \(Int(accuracy*100))%")
+        
+        // 2. Obtener puntuación y mensaje según la precisión
         let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
         let comboBonus = calculateComboBonus(baseScore: baseScore)
         let finalScore = baseScore + comboBonus
         score += finalScore
         
-        // El mensaje formateado debe ser coherente
+        // 3. Preparar mensaje para el overlay
         let comboMessage = combo > 1 ? " (\(combo)x Combo!)" : ""
         let finalMessage = "\(message)\(comboMessage)"
         
-        // DEBUG
-        print("🎯 ÉXITO: \(message) con precisión \(Int(accuracy*100))%, puntos: \(finalScore), combo: \(combo)")
+        print("🏆 ÉXITO: \(message) con precisión \(Int(accuracy*100))%, puntos: \(finalScore), combo: \(combo)")
         
+        // 4. Comprobar si merece vida extra
         checkForExtraLife(currentScore: score)
         
-        // Obtener el estilo del bloque actual
+        // 5. Actualizar el progreso de los objetivos
         let blockStyle = blockManager?.getCurrentBlock()?.style ?? "defaultBlock"
-        
-        // Actualizar TODOS los datos relevantes para CUALQUIER tipo de objetivo
         objectiveTracker?.updateProgress(
             score: score,             // Para objetivos tipo "score"
             noteHit: true,            // Para objetivos tipo "total_notes"
@@ -306,7 +368,7 @@ class GameEngine: ObservableObject {
             blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
         )
             
-        // Enviar notificación con TODOS los datos relevantes
+        // 6. Send immediate notification to UI
         NotificationCenter.default.post(
             name: NSNotification.Name("GameDataUpdated"),
             object: nil,
@@ -316,22 +378,24 @@ class GameEngine: ObservableObject {
                 "combo": combo,
                 "noteState": "success",
                 "multiplier": finalScore / blockConfig.basePoints,
-                "message": finalMessage,  // Usar el mensaje coherente
+                "message": finalMessage,
                 "blockDestroyed": blockStyle,
                 "accuracy": accuracy
             ]
         )
         
+        // 7. Comprobar si se han completado los objetivos (victoria)
         if let primaryComplete = objectiveTracker?.checkObjectives(), primaryComplete {
             endGame(reason: .victory)
         }
         
-        // También actualizar el noteState para coherencia
+        // 8. Actualizar el estado de la nota para el sistema
         noteState = .success(
             multiplier: finalScore / blockConfig.basePoints,
-            message: finalMessage  // Usar el mismo mensaje coherente
+            message: finalMessage
         )
         
+        // 9. Restaurar estado normal después de un breve tiempo
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.isInSuccessState = false
             self?.noteState = .waiting
@@ -341,9 +405,19 @@ class GameEngine: ObservableObject {
     // MARK: - Score Calculation
     /// Calcula la precisión a partir de la desviación.
     private func calculateAccuracy(deviation: Double) -> Double {
+        // Mayor tolerancia para niños: aceptamos hasta un cuarto de tono de desviación (50 cents)
+        let acceptableDeviation: Double = 50.0  // Mayor que antes (10.0)
+        
         let absDeviation = abs(deviation)
-        if absDeviation > TimeConstants.acceptableDeviation { return 0.0 }
-        return 1.0 - (absDeviation / TimeConstants.acceptableDeviation)
+        if absDeviation > acceptableDeviation { return 0.0 }
+        
+        // Fórmula mejorada para que pequeñas desviaciones (hasta 10 cents) se consideren "perfectas"
+        if absDeviation <= 10.0 {
+            return 1.0  // Perfecta afinación para pequeñas desviaciones
+        }
+        
+        // Para el resto, escala lineal más benévola
+        return 1.0 - ((absDeviation - 10.0) / (acceptableDeviation - 10.0))
     }
     
     /// Calcula la puntuación base y un mensaje en función de la precisión.
@@ -436,25 +510,57 @@ class GameEngine: ObservableObject {
 
 // MARK: - AudioControllerDelegate
 extension GameEngine: AudioControllerDelegate {
-    /// Recibe la nota detectada y la procesa.
     func audioController(_ controller: AudioController, didDetectNote note: String, frequency: Float, amplitude: Float, deviation: Double) {
+        // Verificar primero si el juego está en estado final
+        if case .gameOver = gameState {
+            // Si el juego ha terminado, ignorar completamente el procesamiento
+            return
+        }
+        
+        // Verificar si hay un bloque en proceso de eliminación
+        guard let blockManager = blockManager, !blockManager.isBlockProcessing else {
+            print("⚠️ AudioController: Bloque en proceso de eliminación, ignorando nota detectada")
+            return
+        }
+        
         print("AudioControllerDelegate - Nota detectada: \(note), Frecuencia: \(frequency)")
+        
+        // Publicar notificaciones para actualizar UI
+        controller.publishTunerData()
+        controller.publishStabilityData()
+        
+        // Continuar con el procesamiento normal
         self.checkNote(currentNote: note, deviation: deviation, isActive: true)
     }
     
-    /// Se invoca cuando se detecta silencio.
     func audioControllerDidDetectSilence(_ controller: AudioController) {
-      //  print("AudioControllerDelegate - Silencio detectado.")
+        // Verificar primero si el juego está en estado final
+        if case .gameOver = gameState {
+            // Si el juego ha terminado, ignorar completamente el procesamiento
+            return
+        }
+        
+        // Publicar notificaciones para actualizar UI (ahora en modo inactivo)
+        controller.publishTunerData()
+        controller.publishStabilityData()
+        
+        // Continuar con el procesamiento normal
         self.checkNote(currentNote: "-", deviation: 0, isActive: false)
     }
     
-    /// Devuelve el tiempo requerido para mantener la nota, consultando el bloque actual.
+    // Implementación del método requerido para el tiempo de hold
     func audioControllerRequiredHoldTime(_ controller: AudioController) -> TimeInterval {
+        // Si el juego ha terminado, devolvemos un valor por defecto
+        if case .gameOver = gameState {
+            return 1.0
+        }
+        
         if let currentBlock = blockManager?.getCurrentBlock() {
-            print("AudioControllerDelegate - Required hold time para el bloque actual: \(currentBlock.config.requiredTime) segundos")
+            GameLogger.shared.audioDetection("Required hold time para el bloque actual: \(currentBlock.config.requiredTime) segundos")
             return currentBlock.config.requiredTime
         }
-        print("AudioControllerDelegate - No hay bloque activo, se retorna 1.0 segundo por defecto")
+        GameLogger.shared.audioDetection("AudioControllerDelegate - No hay bloque activo, se retorna 1.0 segundo por defecto")
         return 1.0
     }
 }
+

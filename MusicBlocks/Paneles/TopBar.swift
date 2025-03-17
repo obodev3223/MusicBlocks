@@ -220,6 +220,7 @@ class TopBar: SKNode {
               let currentLevel = GameManager.shared.currentLevel,
               currentLevel.maxScore > 0 else { return }
         
+        // Usar maxScore directamente del nivel actual
         scoreNode.updateProgress(score: newScore, maxScore: currentLevel.maxScore)
     }
     
@@ -296,10 +297,10 @@ class TopBar: SKNode {
                 let maxScore = currentLevel.maxScore
                 let currentScore = Int(progress * Double(maxScore))
                 
-                // Actualizar directamente con el porcentaje de progreso (0.0 - 1.0)
-                progressNode.updateProgressDirect(progress: progress)
+                // Actualizar usando la puntuación calculada y maxScore del nivel
+                progressNode.updateProgress(score: currentScore, maxScore: maxScore)
                 
-                // Debug usando GameLogger en vez de print
+                // Debug
                 GameLogger.shared.scoreUpdate("TopBar: progreso \(Int(progress * 100))% (score \(currentScore)/\(maxScore))")
             }
         }

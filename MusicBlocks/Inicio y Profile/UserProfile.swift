@@ -22,6 +22,9 @@ struct UserProfile: Codable {
     /// Logros y medallas desbloqueadas
     var achievements: Achievements
     
+    /// Flag to indicate when a player has completed all available levels
+    var hasCompletedAllLevels: Bool
+    
     /// Nombre de usuario por defecto para nuevos perfiles
     static let defaultUsername = "Pequeño músico"
     
@@ -34,14 +37,17 @@ struct UserProfile: Codable {
     ///   - avatarName: Nombre del avatar, por defecto "avatar1"
     ///   - statistics: Estadísticas iniciales
     ///   - achievements: Logros iniciales
+    ///   - hasCompletedAllLevels: Flag for all levels completion
     init(username: String = defaultUsername,
          avatarName: String = defaultAvatarName,
          statistics: Statistics = Statistics(),
-         achievements: Achievements = Achievements()) {
+         achievements: Achievements = Achievements(),
+         hasCompletedAllLevels: Bool = false) {
         self.username = username
         self.avatarName = avatarName
         self.statistics = statistics
         self.achievements = achievements
+        self.hasCompletedAllLevels = hasCompletedAllLevels
     }
     
     /// Carga el perfil del usuario desde UserDefaults
@@ -89,7 +95,7 @@ struct Statistics: Codable {
     /// Número total de partidas jugadas
     var totalGamesPlayed: Int
     
-    /// Precisión promedio en todas las partidas (0.0 a 1.0)
+    /// Precisión promedio en todas las partidas
     var averageAccuracy: Double
     
     /// Número total de partidas ganadas
@@ -122,7 +128,7 @@ struct Statistics: Codable {
         self.gamesWon = gamesWon
         self.gamesLost = gamesLost
     }
-
+    
     
     /// Actualiza la precisión promedio con un nuevo valor
     /// - Parameter newAccuracy: Nueva precisión a incorporar en el promedio (0.0 a 1.0)
@@ -229,39 +235,59 @@ extension UserProfile {
     ///   - levelCompleted: Indica si se completó un nivel
     ///   - isPerfect: Indica si el nivel se completó con precisión perfecta
     ///   - playTime: Tiempo jugado en la partida
-    mutating func updateStatistics(score: Int = 0,
-                                 noteHit: Bool = false,
-                                 accuracy: Double? = nil,
-                                 levelCompleted: Bool = false,
-                                 isPerfect: Bool = false,
-                                 playTime: TimeInterval = 0,
-                                 gamesWon: Int = 0,
-                                 gamesLost: Int = 0) {
-        statistics.totalScore += score
-        
-        if noteHit {
-            statistics.notesHit += 1
-            statistics.updateStreak(hitNote: true)
-        } else {
-            statistics.updateStreak(hitNote: false)
-        }
-        
-        if let accuracy = accuracy {
-            statistics.updateAccuracy(with: accuracy)
-        }
-        
-        if levelCompleted {
-            statistics.currentLevel += 1
-            if isPerfect {
-                statistics.perfectLevelsCount += 1
+    mutating func updateStatistics(
+        score: Int = 0,
+        noteHit: Bool = false,
+        noteHits: Int = 0,         // New parameter for multiple notes
+        currentStreak: Int = 0,    // New parameter
+        bestStreak: Int = 0,       // New parameter
+        accuracy: Double? = nil,
+        levelCompleted: Bool = false,
+        isPerfect: Bool = false,
+        playTime: TimeInterval = 0,
+        gamesWon: Int = 0,
+        gamesLost: Int = 0) {
+            statistics.totalScore += score
+            
+            // Add single note hit if specified
+                if noteHit {
+                    statistics.notesHit += 1
+                    statistics.updateStreak(hitNote: true)
+                } else {
+                    statistics.updateStreak(hitNote: false)
+                }
+                
+                // Add multiple notes if specified
+                if noteHits > 0 {
+                    statistics.notesHit += noteHits
+                }
+                
+                // Update current streak
+                if currentStreak > statistics.currentStreak {
+                    statistics.currentStreak = currentStreak
+                }
+                
+                // Update best streak
+                if bestStreak > statistics.bestStreak {
+                    statistics.bestStreak = bestStreak
+                }
+            
+            if let accuracy = accuracy {
+                statistics.updateAccuracy(with: accuracy)
             }
-        }
-        
-        if playTime > 0 {
-            statistics.addPlayTime(playTime)
-        }
-        
-        // Actualizar estadísticas de partidas
+            
+            if levelCompleted {
+                statistics.currentLevel += 1
+                if isPerfect {
+                    statistics.perfectLevelsCount += 1
+                }
+            }
+            
+            if playTime > 0 {
+                statistics.addPlayTime(playTime)
+            }
+            
+            // Actualizar estadísticas de partidas
             statistics.gamesWon += gamesWon
             statistics.gamesLost += gamesLost
             statistics.totalGamesPlayed = statistics.gamesWon + statistics.gamesLost

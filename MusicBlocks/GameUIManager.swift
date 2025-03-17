@@ -342,82 +342,218 @@ class GameUIManager {
     
     // MARK: - Overlay Methods
     func showLevelStartOverlay(for level: GameLevel, completion: @escaping () -> Void) {
-        guard let scene = scene else { return }
-        currentOverlay?.removeFromParent()
+        // Limpiar overlay existente
+        clearCurrentOverlay()
         
-        // Actualizar las vidas en la TopBar antes de mostrar el overlay
+        guard let scene = scene else { return }
+        
+        print("🎭 Mostrando overlay de inicio para nivel \(level.levelId): \(level.name)")
+        
+        // Actualizar las barras y configuración antes de mostrar el overlay
         updateUI(score: 0, lives: level.lives.initial)
         
+        // Configurar correctamente las barras de objetivos
+        if let tracker = objectiveTracker {
+            configureTopBars(withLevel: level, objectiveTracker: tracker)
+        }
+        
+        // Crear el overlay con tamaño apropiado
         let overlaySize = CGSize(width: scene.size.width * 0.7, height: scene.size.height * 0.45)
         let overlay = LevelStartOverlayNode(
             size: overlaySize,
             levelId: level.levelId,
             levelName: level.name,
-            startAction: completion
+            startAction: {
+                // Usamos un closure intermedio para asegurarnos de que:
+                // 1. Se limpie correctamente el overlay actual
+                // 2. Haya un breve retraso para evitar problemas de sincronización
+                self.clearCurrentOverlay()
+                
+                // Pequeño retraso antes de iniciar el gameplay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    print("🎮 Overlay terminado, iniciando gameplay...")
+                    completion()
+                }
+            }
         )
         
+        // Añadir el overlay a la escena
         scene.addChild(overlay)
         currentOverlay = overlay
         
+        // Mostrar con animación y posición central
         overlay.show(in: scene, overlayPosition: .center)
     }
     
     func showSuccessOverlay(multiplier: Int, message: String) {
         guard let scene = scene else { return }
+        
+        // Remove any current overlay immediately
         currentOverlay?.removeFromParent()
         
-        // Debug
-        print("🎮 Mostrando overlay de éxito: \(message), multiplier: \(multiplier)")
+        // Debug log
+        GameLogger.shared.overlaysUpdates("🎮 Mostrando overlay de éxito: \(message), multiplier: \(multiplier)")
         
+        // Create a new overlay
         let overlaySize = CGSize(width: 350, height: 60)
         let overlay = SuccessOverlayNode(
             size: overlaySize,
             multiplier: multiplier,
             message: message
         )
+        
+        // Higher zPosition to ensure it's on top
+        overlay.zPosition = 120
+        
+        // Add to scene immediately
         scene.addChild(overlay)
         currentOverlay = overlay
         
-        overlay.show(in: scene, overlayPosition: .bottom)
+        // Show with a faster animation (0.2s instead of default)
+        overlay.show(in: scene, overlayPosition: .bottom, duration: 0.2)
         
+        // Auto-hide after 1.5 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak overlay] in
-            overlay?.hide()
+            overlay?.hide(duration: 0.2)
         }
     }
-    
+
     func showFailureOverlay() {
         guard let scene = scene else { return }
+        
+        // Remove any current overlay immediately
         currentOverlay?.removeFromParent()
         
+        // Debug log
+        GameLogger.shared.overlaysUpdates("🎮 Mostrando overlay de fallo")
+        
+        // Create a new overlay
         let overlaySize = CGSize(width: 350, height: 60)
         let overlay = FailureOverlayNode(size: overlaySize)
+        
+        // Higher zPosition to ensure it's on top
+        overlay.zPosition = 120
+        
+        // Add to scene immediately
         scene.addChild(overlay)
         currentOverlay = overlay
         
-        overlay.show(in: scene, overlayPosition: .bottom)
+        // Show with a faster animation (0.2s instead of default)
+        overlay.show(in: scene, overlayPosition: .bottom, duration: 0.2)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak overlay] in
-            overlay?.hide()
+        // Auto-hide after 1.5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak overlay] in
+            overlay?.hide(duration: 0.2)
         }
     }
     
-    func showGameOverOverlay(score: Int, message: String, isVictory: Bool, onRestart: @escaping () -> Void) {
+    func showGameOverOverlay(score: Int, message: String, isVictory: Bool, onRestart: @escaping () -> Void, onMenu: @escaping () -> Void = {}) {
         guard let scene = scene else { return }
-        currentOverlay?.removeFromParent()
         
+        print("⚙️ GameUIManager: Creating game over overlay")
+        
+        // Ensure audio is stopped
+        AudioController.sharedInstance.stop()
+        
+        // Remove current overlay if exists
+        if let currentOverlay = currentOverlay {
+            print("⚙️ GameUIManager: Removing existing overlay")
+            currentOverlay.removeFromParent()
+        }
+        
+        // Create the new overlay
         let overlaySize = CGSize(width: 400, height: 300)
         let overlay = GameOverOverlayNode(
             size: overlaySize,
             score: score,
             message: message,
             isVictory: isVictory,
-            restartAction: onRestart
+            restartAction: {
+                print("⚙️ GameUIManager: Restart action triggered")
+                AudioController.sharedInstance.stop()
+                onRestart()
+            },
+            menuAction: {
+                print("⚙️ GameUIManager: Menu action triggered")
+                AudioController.sharedInstance.stop()
+                onMenu()
+            }
         )
+        
+        print("⚙️ GameUIManager: Adding overlay to scene with zPosition=100")
+        
+        // Ensure very high zPosition for the overlay
+        overlay.zPosition = 150
+        
+        // Make sure user interaction is enabled
+        overlay.isUserInteractionEnabled = true
+        scene.isUserInteractionEnabled = true
         
         scene.addChild(overlay)
         currentOverlay = overlay
         
+        // Show in center with animation
         overlay.show(in: scene, overlayPosition: .center)
+        
+        print("⚙️ GameUIManager: Game over overlay displayed successfully")
+    }
+    
+    // MARK: - All Levels Completed Overlay
+    func showAllLevelsCompletedOverlay(score: Int, onRestart: @escaping () -> Void, onMenu: @escaping () -> Void = {}) {
+        guard let scene = scene else { return }
+        
+        print("🎉 GameUIManager: Mostrando overlay de todos los niveles completados")
+        
+        // Asegurar que el audio está detenido
+        AudioController.sharedInstance.stop()
+        
+        // Eliminar overlay actual si existe
+        if let currentOverlay = currentOverlay {
+            print("⚙️ GameUIManager: Eliminando overlay existente")
+            currentOverlay.removeFromParent()
+        }
+        
+        // Crear el overlay especial de felicitaciones
+        let overlaySize = CGSize(width: 400, height: 300)
+        let overlay = AllLevelsCompletedOverlayNode(
+            size: overlaySize,
+            score: score,
+            restartAction: {
+                print("⚙️ GameUIManager: Acción de reinicio activada")
+                AudioController.sharedInstance.stop()
+                onRestart()
+            },
+            menuAction: {
+                print("⚙️ GameUIManager: Acción de menú activada")
+                AudioController.sharedInstance.stop()
+                onMenu()
+            }
+        )
+        
+        print("⚙️ GameUIManager: Añadiendo overlay a la escena con zPosition=150")
+        
+        // Asegurar un zPosition muy alto para el overlay
+        overlay.zPosition = 150
+        
+        // Asegurar que la interacción de usuario está habilitada
+        overlay.isUserInteractionEnabled = true
+        scene.isUserInteractionEnabled = true
+        
+        scene.addChild(overlay)
+        currentOverlay = overlay
+        
+        // Mostrar en el centro con animación
+        overlay.show(in: scene, overlayPosition: .center)
+        
+        print("🎉 GameUIManager: Overlay de felicitaciones mostrado correctamente")
+    }
+
+    func clearCurrentOverlay() {
+        // Remover overlay actual con una animación de desvanecimiento
+        if let overlay = currentOverlay {
+            overlay.hide()
+            currentOverlay = nil
+        }
     }
     
     // MARK: - Public Accessors

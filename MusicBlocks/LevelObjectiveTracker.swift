@@ -11,7 +11,6 @@ class LevelObjectiveTracker {
     private let primaryObjective: Objective
     private var currentProgress: ObjectiveProgress
     
-    
     init(level: GameLevel) {
         self.primaryObjective = level.objectives.primary
         self.currentProgress = ObjectiveProgress()
@@ -21,8 +20,7 @@ class LevelObjectiveTracker {
             currentProgress.blocksByType[style] = 0
         }
     }
-
-        
+    
     func getPrimaryObjective() -> Objective {
         return primaryObjective
     }
@@ -30,10 +28,10 @@ class LevelObjectiveTracker {
     // MARK: - Progress Updates
     
     func updateProgress(score: Int? = nil,
-                       noteHit: Bool? = nil,
-                       accuracy: Double? = nil,
-                       blockDestroyed: String? = nil,
-                       deltaTime: TimeInterval? = nil) {
+                        noteHit: Bool? = nil,
+                        accuracy: Double? = nil,
+                        blockDestroyed: String? = nil,
+                        deltaTime: TimeInterval? = nil) {
         // Guardar el tiempo transcurrido actual
         let currentTimeElapsed = currentProgress.timeElapsed
         
@@ -82,80 +80,90 @@ class LevelObjectiveTracker {
             // Si no hay detalles específicos, iniciamos currentProgress.blocksByType como un diccionario vacío
             currentProgress.blocksByType = [:]
         }
+        
+        // Resetear otros valores importantes
+        currentProgress.timeElapsed = 0
+        currentProgress.accuracySum = 0
+        currentProgress.accuracyCount = 0
+        currentProgress.notesHit = 0
+        currentProgress.score = 0
+        currentProgress.totalBlocksDestroyed = 0
+        
+        print("🔄 Progreso de objetivos reseteado completamente")
     }
     
     // MARK: - Objective Checking
     
     func checkObjectives() -> Bool {
-            return checkObjective(primaryObjective)
-        }
-        
-        private func checkObjective(_ objective: Objective) -> Bool {
-            switch objective.type {
-            case "score":
-                return currentProgress.score >= (objective.target ?? 0)
-                
-            case "total_notes":
-                return currentProgress.notesHit >= (objective.target ?? 0)
-                
-            case "note_accuracy":
-                return currentProgress.notesHit >= (objective.target ?? 0) &&
-                       currentProgress.averageAccuracy >= (objective.minimumAccuracy ?? 0)
-                
-            case "block_destruction":
-                guard let details = objective.details else { return false }
-                // All blocks must reach their target
-                return details.allSatisfy { blockType, required in
-                    currentProgress.blocksByType[blockType, default: 0] >= required
-                }
-                
-            case "total_blocks":
-                return currentProgress.totalBlocksDestroyed >= (objective.target ?? 0)
-                
-            default:
-                return false
+        return checkObjective(primaryObjective)
+    }
+    
+    private func checkObjective(_ objective: Objective) -> Bool {
+        switch objective.type {
+        case "score":
+            return currentProgress.score >= (objective.target ?? 0)
+            
+        case "total_notes":
+            return currentProgress.notesHit >= (objective.target ?? 0)
+            
+        case "note_accuracy":
+            return currentProgress.notesHit >= (objective.target ?? 0) &&
+            currentProgress.averageAccuracy >= (objective.minimumAccuracy ?? 0)
+            
+        case "block_destruction":
+            guard let details = objective.details else { return false }
+            // All blocks must reach their target
+            return details.allSatisfy { blockType, required in
+                currentProgress.blocksByType[blockType, default: 0] >= required
             }
+            
+        case "total_blocks":
+            return currentProgress.totalBlocksDestroyed >= (objective.target ?? 0)
+            
+        default:
+            return false
         }
+    }
     
     // MARK: - Progress Information
     
     func getProgress() -> Double {
-            return calculateProgress(for: primaryObjective)
-        }
-        
-        func getCurrentProgress() -> ObjectiveProgress {
-            return currentProgress
-        }
-        
-        private func calculateProgress(for objective: Objective) -> Double {
-            switch objective.type {
-            case "score":
-                let target = Double(objective.target ?? 1)
-                return min(Double(currentProgress.score) / target, 1.0)
-                
-            case "total_notes":
-                let target = Double(objective.target ?? 1)
-                return min(Double(currentProgress.notesHit) / target, 1.0)
-                
-            case "note_accuracy":
-                let noteProgress = Double(currentProgress.notesHit) / Double(objective.target ?? 1)
-                let accuracyProgress = currentProgress.averageAccuracy / (objective.minimumAccuracy ?? 1.0)
-                return min(min(noteProgress, accuracyProgress), 1.0)
-                
-            case "block_destruction":
-                guard let details = objective.details else { return 0 }
-                let progressByType = details.map { blockType, required in
-                    Double(currentProgress.blocksByType[blockType, default: 0]) / Double(required)
-                }
-                // Always use min since we now require all blocks to be destroyed
-                return min(progressByType.min() ?? 0, 1.0)
-                
-            case "total_blocks":
-                let target = Double(objective.target ?? 1)
-                return min(Double(currentProgress.totalBlocksDestroyed) / target, 1.0)
-                
-            default:
-                return 0
+        return calculateProgress(for: primaryObjective)
+    }
+    
+    func getCurrentProgress() -> ObjectiveProgress {
+        return currentProgress
+    }
+    
+    private func calculateProgress(for objective: Objective) -> Double {
+        switch objective.type {
+        case "score":
+            let target = Double(objective.target ?? 1)
+            return min(Double(currentProgress.score) / target, 1.0)
+            
+        case "total_notes":
+            let target = Double(objective.target ?? 1)
+            return min(Double(currentProgress.notesHit) / target, 1.0)
+            
+        case "note_accuracy":
+            let noteProgress = Double(currentProgress.notesHit) / Double(objective.target ?? 1)
+            let accuracyProgress = currentProgress.averageAccuracy / (objective.minimumAccuracy ?? 1.0)
+            return min(min(noteProgress, accuracyProgress), 1.0)
+            
+        case "block_destruction":
+            guard let details = objective.details else { return 0 }
+            let progressByType = details.map { blockType, required in
+                Double(currentProgress.blocksByType[blockType, default: 0]) / Double(required)
             }
+            // Always use min since we now require all blocks to be destroyed
+            return min(progressByType.min() ?? 0, 1.0)
+            
+        case "total_blocks":
+            let target = Double(objective.target ?? 1)
+            return min(Double(currentProgress.totalBlocksDestroyed) / target, 1.0)
+            
+        default:
+            return 0
         }
     }
+}

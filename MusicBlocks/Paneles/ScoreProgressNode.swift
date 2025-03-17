@@ -2,7 +2,7 @@
 //  ScoreProgressNode.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 12/3/25.
+//  Created by Jose R. García on 16/3/25.
 //
 
 import SpriteKit
@@ -12,15 +12,13 @@ class ScoreProgressNode: SKNode {
     private var progressBar: SKShapeNode
     private var progressFill: SKShapeNode
     private var stars: [SKSpriteNode] = []
-    private var litStars: [Bool] = [] // Añadir un array para seguir el estado de las estrellas
+    private var litStars: [Bool] = [] // Para seguir el estado de las estrellas
     
     // MARK: - Layout Constants
     private enum Layout {
         static let maxStars: Int = 5
         
         static let starSize: CGFloat = 20
-        /// Offset vertical para las estrellas respecto al centro superior de la barra
-        /// (ajústalo a 0 si quieres que queden centradas en la altura).
         static let starVerticalOffset: CGFloat = 1
         
         static let barHeight: CGFloat = 8
@@ -28,11 +26,8 @@ class ScoreProgressNode: SKNode {
         static let progressBarColor: SKColor = .white.withAlphaComponent(0.6)
         static let progressFillColor: SKColor = .systemPurple
         
-        // Animaciones
+        // Animación simple
         static let animationDuration: TimeInterval = 0.3
-        static let starAnimationScale: CGFloat = 0.5
-        static let starAnimationDuration: TimeInterval = 0.15
-        static let starAnimationDelay: TimeInterval = 0.1
     }
     
     private let barWidth: CGFloat
@@ -41,7 +36,7 @@ class ScoreProgressNode: SKNode {
     init(width: CGFloat) {
         self.barWidth = width
         
-        // En vez de rectOf(...), creamos rect con origen (0,0) y width = barWidth
+        // Barra de progreso con origen en (0,0) y ancho=barWidth
         progressBar = SKShapeNode(
             rect: CGRect(x: 0, y: 0, width: width, height: Layout.barHeight),
             cornerRadius: Layout.barHeight / 2
@@ -51,7 +46,7 @@ class ScoreProgressNode: SKNode {
             cornerRadius: (Layout.barHeight - 2) / 2
         )
         
-        // Inicializar el array de estado de estrellas con todas apagadas
+        // Inicializar estrellas apagadas
         litStars = Array(repeating: false, count: Layout.maxStars)
         
         super.init()
@@ -69,37 +64,33 @@ class ScoreProgressNode: SKNode {
         setupStars()
     }
     
-    /// Barra de fondo, va de x=0 a x=barWidth
+    /// Barra de fondo
     private func setupProgressBar() {
         progressBar.fillColor = Layout.progressBarColor
         progressBar.strokeColor = .clear
-        // Su origen local es (0,0)
         progressBar.position = .zero
         addChild(progressBar)
     }
     
-    /// Barra "relleno" que crece desde x=0 hacia la derecha
+    /// Barra de relleno que crece con el progreso
     private func setupProgressFill() {
         progressFill.fillColor = Layout.progressFillColor
         progressFill.strokeColor = .clear
-        // También empieza en (0,0)
         progressFill.position = .zero
         addChild(progressFill)
     }
 
-    /// Distribuye las estrellas en el rango [0 .. barWidth]
+    /// Distribuye 5 estrellas uniformemente sobre la barra
     private func setupStars() {
-        
         for i in 0..<Layout.maxStars {
             let star = SKSpriteNode(imageNamed: "star_empty")
             star.size = CGSize(width: Layout.starSize, height: Layout.starSize)
             
-            // Fracción de 0 a 1
+            // Posición horizontal: distribuir uniformemente (0%, 25%, 50%, 75%, 100%)
             let fraction = CGFloat(i) / CGFloat(Layout.maxStars - 1)
-            // X = fraction * barWidth
             let xPos = fraction * barWidth
             
-            // Ajusta la altura de las estrellas
+            // Ajustar altura para que estén encima de la barra
             let yPos = (Layout.barHeight / 2) + Layout.starVerticalOffset
             
             star.position = CGPoint(x: xPos, y: yPos)
@@ -109,92 +100,78 @@ class ScoreProgressNode: SKNode {
     }
     
     // MARK: - Update Methods
-
+    /// Actualiza el progreso basado en puntuación actual y máxima del nivel
     func updateProgress(score: Int, maxScore: Int) {
-        // Si el maxScore es 0, no hacemos nada para evitar divisiones por cero
+        // Evitar división por cero
         guard maxScore > 0 else { return }
         
-        // Solo animamos la barra de progreso al inicio (cuando score = 0)
-        animateProgressBar(score: score, maxScore: maxScore)
+        // Calcular la fracción de progreso (limitado a 1.0)
+        let progress = min(CGFloat(score) / CGFloat(maxScore), 1.0)
         
-        // Solo actualizamos las estrellas si hay puntuación
-        if score > 0 {
-            updateStars(score: score, maxScore: maxScore)
-        }
+        // Animar la barra de progreso
+        animateProgressBar(to: progress)
+        
+        // Actualizar las estrellas según thresholds específicos
+        updateStars(score: score, maxScore: maxScore)
+        
+        // Debug
+        GameLogger.shared.scoreUpdate("ScoreProgressNode: progreso \(Int(progress*100))%, puntuación \(score)/\(maxScore)")
     }
     
-    // Actualizar directamente el progreso (0.0 - 1.0)
+    /// Método alternativo para actualizar directamente con un valor de progreso
     func updateProgressDirect(progress: Double) {
         let clampedProgress = min(max(progress, 0.0), 1.0)
         
-        // Actualizar la barra de progreso
-        let newWidth = barWidth * CGFloat(clampedProgress)
-        let resizeAction = SKAction.resize(toWidth: newWidth, duration: Layout.animationDuration)
-        resizeAction.timingMode = .easeOut
-        progressFill.run(resizeAction)
+        // Animar la barra de progreso
+        animateProgressBar(to: CGFloat(clampedProgress))
         
-        // Actualizar las estrellas
-        updateStars(score: Int(clampedProgress * 1000), maxScore: 1000)
+        // Calcular puntuación equivalente para las estrellas
+        // Usamos 1000 como valor de referencia para mantener consistencia
+        let equivalentScore = Int(clampedProgress * 1000)
+        updateStars(score: equivalentScore, maxScore: 1000)
         
         // Debug
-        GameLogger.shared.scoreUpdate("ScoreProgressNode: progreso \(Int(clampedProgress * 100))%")
+        GameLogger.shared.scoreUpdate("ScoreProgressNode: progreso directo \(Int(clampedProgress*100))%")
     }
     
-    private func animateProgressBar(score: Int, maxScore: Int) {
-        let fraction = min(CGFloat(score) / CGFloat(maxScore), 1.0)
-        let fillWidth = barWidth * fraction
+    /// Anima la barra de progreso al valor especificado
+    private func animateProgressBar(to progress: CGFloat) {
+        let targetWidth = barWidth * progress
         
-        // Redimensionamos el ancho del rect
-        let resizeAction = SKAction.resize(toWidth: fillWidth, duration: Layout.animationDuration)
+        // Redimensionar con animación
+        let resizeAction = SKAction.resize(toWidth: targetWidth, duration: Layout.animationDuration)
         resizeAction.timingMode = .easeOut
         progressFill.run(resizeAction)
     }
     
+    /// Actualiza las estrellas basadas en thresholds específicos
     private func updateStars(score: Int, maxScore: Int) {
-        // Cinco estrellas: se encienden en 1/5, 2/5, 3/5, 4/5, 5/5 de maxScore
-        let step = maxScore / Layout.maxStars
-        let thresholds = (1...Layout.maxStars).map { step * $0 }
+        // Cada estrella se enciende a 1/5, 2/5, 3/5, 4/5 y 5/5 del maxScore
+        let starsStep = maxScore / Layout.maxStars
         
-        for (index, threshold) in thresholds.enumerated() {
-            let delay = Double(index) * Layout.starAnimationDelay
-            updateStar(at: index, lit: score >= threshold, delay: delay)
+        for i in 0..<Layout.maxStars {
+            // Calcular threshold para esta estrella
+            let threshold = starsStep * (i + 1)
+            
+            // Debería estar encendida?
+            let shouldBeLit = score >= threshold
+            
+            // Solo actualizar si el estado cambia
+            if litStars[i] != shouldBeLit {
+                updateStar(at: i, lit: shouldBeLit)
+                litStars[i] = shouldBeLit
+            }
         }
     }
     
-    private func updateStar(at index: Int, lit: Bool, delay: TimeInterval) {
-        // Comprobamos que index está dentro de los límites
-        guard index < stars.count && index >= 0 else { return }
+    /// Actualiza una estrella específica (encendida/apagada)
+    private func updateStar(at index: Int, lit: Bool) {
+        guard index < stars.count else { return }
         
         let star = stars[index]
-        
-        // Comprobación de seguridad para la textura
-        let currentlyLit = star.texture?.description.contains("filled") ?? false
-        
-        // Evitamos cambios innecesarios
-        guard lit != currentlyLit else { return }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak star] in
-            // Verificación adicional de seguridad
-            guard let star = star, star.parent != nil else { return }
-            
-            // Crear texturas con comprobación
-            let newTexture: SKTexture? = lit ?
-                SKTexture(imageNamed: "star_filled") :
-                SKTexture(imageNamed: "star_empty")
-            
-            // Solo proceder si la textura se creó correctamente
-            guard newTexture != nil else { return }
-            
-            let scaleDown = SKAction.scale(to: Layout.starAnimationScale,
-                                         duration: Layout.starAnimationDuration)
-            let changeTexture = SKAction.run {
-                star.texture = newTexture
-            }
-            let scaleUp = SKAction.scale(to: 1.0,
-                                       duration: Layout.starAnimationDuration)
-            let sequence = SKAction.sequence([scaleDown, changeTexture, scaleUp])
-            star.run(sequence)
-        }
+        star.texture = lit ?
+            SKTexture(imageNamed: "star_filled") :
+            SKTexture(imageNamed: "star_empty")
     }
 }
 

@@ -14,8 +14,10 @@ class GameLogger {
     var showTimeUpdates = true
     var showScoreUpdates = true
     var showUIUpdates = true
-    var showNoteDetection = false
+    var showNoteDetection = true
     var showBlockMovement = false
+    var showAudioDetection = true
+    var showOverlayUpdates = true
     
     private var lastLogTimes: [String: TimeInterval] = [:]
     private let minimumInterval: TimeInterval = 2.0 // Solo log cada 2s
@@ -50,6 +52,20 @@ class GameLogger {
         }
     }
     
+    func audioDetection(_ message: String) {
+        if showAudioDetection {
+            throttledLog("🔊 AUDIO: \(message)", identifier: "audio")
+        }
+    }
+    
+    func overlaysUpdates(_ message: String) {
+        if showOverlayUpdates {
+            throttledLog("🎮 OVERLAY: \(message)", identifier: "overlay")
+        }
+    }
+    
+    
+    
     private func throttledLog(_ message: String, identifier: String) {
         let now = Date().timeIntervalSince1970
         if lastLogTimes[identifier] == nil ||
@@ -58,4 +74,6 @@ class GameLogger {
             lastLogTimes[identifier] = now
         }
     }
+    
+
 }
