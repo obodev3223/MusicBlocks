@@ -123,10 +123,15 @@ class ProfileHeaderView: UIView {
     
     // MARK: - Actions
     @objc private func handleAvatarTap() {
+        // Reproducir sonido de botón
+        AudioController.sharedInstance.playButtonSoundWithVolume()
         delegate?.profileHeaderViewDidTapAvatar(self)
     }
 
     @objc private func handleUsernameTap() {
+        // Reproducir sonido de botón
+        AudioController.sharedInstance.playButtonSoundWithVolume()
+        
         showEditUsernameAlert()
     }
     

@@ -553,6 +553,9 @@ class MusicBlocksScene: SKScene  {
     func navigateToMainMenu() {
         print("🏠 Navigating to main menu...")
         
+        // Reproducir sonido de botón
+            AudioController.sharedInstance.playButtonSoundWithVolume()
+        
         // Detener todo el audio y la generación de bloques
         audioController.stop()
         blocksManager.stopBlockGeneration()

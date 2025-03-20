@@ -5,7 +5,9 @@
 //  Created by Jose R. García on 1/3/25.
 //
 
+import SpriteKit
 import UIKit
+import Foundation
 
 protocol ExpandableSectionViewDelegate: AnyObject {
     func expandableSectionDidToggle(_ section: ExpandableSectionView)
@@ -155,6 +157,13 @@ class ExpandableSectionView: UIView {
     
     private func toggleSection() {
         isExpanded.toggle()
+        
+        // Reproducir sonido apropiado
+            if isExpanded {
+                AudioController.sharedInstance.playUISound(.expand)
+            } else {
+                AudioController.sharedInstance.playUISound(.collapse)
+            }
         
         UIView.animate(withDuration: 0.3) {
             // Rotar el chevron

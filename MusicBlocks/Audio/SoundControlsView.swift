@@ -25,6 +25,12 @@ struct SoundControlsView: View {
             Button(action: {
                 withAnimation(.easeInOut(duration: animationDuration)) {
                     isExpanded.toggle()
+                    // Añadir reproducción de sonido aquí
+                    if isExpanded {
+                                AudioController.sharedInstance.playUISound(.expand)
+                            } else {
+                                AudioController.sharedInstance.playUISound(.collapse)
+                            }
                 }
             }) {
                 Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -72,8 +78,14 @@ struct SoundControlsView: View {
                         Slider(value: Binding(
                             get: { musicVolume },
                             set: {
+                                let oldValue = musicVolume
                                 musicVolume = $0
                                 onApplySettings() // Apply immediately
+                                
+                                // Solo reproducir sonido cuando hay un cambio significativo o al soltar
+                                if abs(oldValue - musicVolume) > 0.05 {
+                                    AudioController.sharedInstance.playUISound(.sliderChange)
+                                }
                             }
                         ), in: 0...1)
                         .accentColor(.red)
@@ -91,6 +103,7 @@ struct SoundControlsView: View {
                             set: {
                                 effectsVolume = $0
                                 onApplySettings() // Apply immediately
+                                
                             }
                         ), in: 0...1)
                         .accentColor(.red)
@@ -102,6 +115,11 @@ struct SoundControlsView: View {
                         set: {
                             isMuted = $0
                             onApplySettings() // Apply immediately
+                            
+                            // Reproducir sonido si se está activando (no si se está silenciando)
+                            if !isMuted {
+                                AudioController.sharedInstance.playUISound(.toggleSwitch)
+                            }
                         }
                     )) {
                         HStack {

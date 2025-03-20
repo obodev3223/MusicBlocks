@@ -31,6 +31,19 @@ class AudioController: ObservableObject {
     static let sharedInstance = AudioController()
     weak var delegate: AudioControllerDelegate?
     
+    // MARK: - Estructura que contiene mapeos personalizados de tipos de sonido a archivos
+        struct CustomSoundMap: Codable {
+            var soundMappings: [String: String] = [:]
+            
+            // Método para obtener el nombre de archivo para un tipo de sonido
+            func fileName(for soundType: UISoundType) -> String? {
+                return soundMappings[soundType.fileName]
+            }
+        }
+        
+        // Variable para almacenar mapeos personalizados
+        private var customSoundMap: CustomSoundMap = CustomSoundMap()
+    
     // MARK: - Agregar propiedades para controlar el debouncing
     private var lastSuccessfulNoteTime: Date? = nil
     private let minimumTimeBetweenNotes: TimeInterval = 0.8 // 800ms mínimo entre notas exitosas
@@ -127,27 +140,6 @@ class AudioController: ObservableObject {
         }
         print("AudioController: Iniciando fade out de la música de fondo")
     }
-    
-    /// Reproduce un efecto de sonido para la pulsación de un botón.
-    /// Asegúrate de haber añadido "buttonClick.mp3" al bundle.
-    func playButtonSound() {
-        guard let url = Bundle.main.url(forResource: "buttonClick", withExtension: "mp3") else {
-            print("AudioController: No se encontró el efecto de sonido para botón")
-            return
-        }
-        
-        do {
-            let buttonSoundPlayer = try AVAudioPlayer(contentsOf: url)
-            buttonSoundPlayer.volume = 0.8
-            buttonSoundPlayer.prepareToPlay()
-            buttonSoundPlayer.play()
-            print("AudioController: Efecto de sonido del botón reproducido")
-            // Nota: Este reproductor se libera al salir del método.
-        } catch {
-            print("AudioController: Error al reproducir el efecto de sonido: \(error)")
-        }
-    }
-    
     
     // MARK: - Funciones para detección de notas
     private func updateStability(frequency: Float) {
@@ -400,13 +392,16 @@ extension AudioController {
             player.volume = isMuted ? 0.0 : musicVolume
         }
     }
-    
-    // Play button sound with current effects volume
+
+    /// Reproduce un efecto de sonido para la pulsación de un botón.
+    /// Asegúrate de haber añadido "buttonClick.mp3" al bundle.
     func playButtonSoundWithVolume() {
-        guard !isMuted else { return } // Skip if muted
+        // Skip if muted or if volume is set to 0
+        guard !isMuted && effectsVolume > 0 else { return }
         
         guard let url = Bundle.main.url(forResource: "buttonClick", withExtension: "mp3") else {
-            print("AudioController: No se encontró el efecto de sonido para botón")
+            print("AudioController: No se encontró el archivo buttonClick.mp3, usando sonido generado")
+            generateSimpleButtonSound()
             return
         }
         
@@ -416,7 +411,8 @@ extension AudioController {
             buttonSoundPlayer.prepareToPlay()
             buttonSoundPlayer.play()
         } catch {
-            print("AudioController: Error al reproducir el efecto de sonido: \(error)")
+            print("AudioController: Error al reproducir sonido de botón, usando sonido generado: \(error)")
+            generateSimpleButtonSound()
         }
     }
     
@@ -451,5 +447,332 @@ extension AudioController {
         } catch {
             print("Error al reproducir la música de fondo: \(error)")
         }
+    }
+    
+    // Añadir este método para generar un sonido simple en caso de que no exista un archivo
+    func generateSimpleButtonSound() {
+        guard !isMuted && effectsVolume > 0 else { return }
+        
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(.playback, options: [.mixWithOthers])
+            try audioSession.setActive(true)
+            
+            // Configurar un pequeño sonido de tono
+            let duration: TimeInterval = 0.1
+            let frequency: Double = 1000
+            
+            // Eliminamos la línea que no se usa
+            // let audioFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 2)
+            
+            let audioEngine = AVAudioEngine()
+            let mainMixer = audioEngine.mainMixerNode
+            
+            let oscilator = AVAudioSourceNode { _, _, frameCount, audioBufferList -> OSStatus in
+                let ablPointer = UnsafeMutableAudioBufferListPointer(audioBufferList)
+                
+                for frame in 0..<Int(frameCount) {
+                    // Tiempo relativo al frame actual, en segundos
+                    let time = Double(frame) / 44100.0
+                    
+                    // Atenuación para que el sonido no sea excesivamente fuerte (efecto de fade-out)
+                    let fadeFactor = max(0, 1 - time * 3) // Desaparece después de ~0.3 segundos
+                    
+                    // Amplitud basada en el volumen de efectos
+                    let amplitude = Float(fadeFactor) * self.effectsVolume * 0.5
+                    
+                    // Señal del tono (onda sinusoidal simple)
+                    let sample = Float(sin(2 * .pi * frequency * time)) * amplitude
+                    
+                    // Llenar ambos canales con la misma muestra
+                    for buffer in ablPointer {
+                        let buf = UnsafeMutableBufferPointer<Float>(buffer)
+                        buf[frame] = sample
+                    }
+                }
+                
+                return noErr
+            }
+            
+            let format = AVAudioFormat(standardFormatWithSampleRate: audioEngine.outputNode.outputFormat(forBus: 0).sampleRate, channels: 2)
+            audioEngine.attach(oscilator)
+            audioEngine.connect(oscilator, to: mainMixer, format: format)
+            audioEngine.connect(mainMixer, to: audioEngine.outputNode, format: nil)
+            
+            try audioEngine.start()
+            
+            // Detener el motor después de la duración del sonido
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+                audioEngine.stop()
+            }
+            
+        } catch {
+            print("AudioController: Error al generar sonido simple: \(error)")
+        }
+    }
+}
+
+extension AudioController {
+
+        // Tipos de sonidos de UI
+        enum UISoundType {
+            case buttonTap          // Pulsación estándar de botón
+            case toggleSwitch       // Activar/desactivar interruptor
+            case sliderChange       // Cambio de slider
+            case expand             // Expandir panel/sección
+            case collapse           // Colapsar panel/sección
+            case success            // Acción exitosa
+            case error              // Error o acción negativa
+            case notification       // Notificación
+            case countdownTick      // Tick de cuenta atrás
+            case gameStart          // Inicio de juego/nivel
+            case menuNavigation     // Navegación entre menús
+            
+            // Obtener nombre de archivo para este tipo de sonido
+            var fileName: String {
+                switch self {
+                case .buttonTap:        return "button_tap"
+                case .toggleSwitch:     return "toggle_switch"
+                case .sliderChange:     return "slider_change"
+                case .expand:           return "expand"
+                case .collapse:         return "collapse"
+                case .success:          return "success_sound"
+                case .error:            return "error_sound"
+                case .notification:     return "notification"
+                case .countdownTick:    return "countdown_tick"
+                case .gameStart:        return "game_start"
+                case .menuNavigation:   return "menu_nav"
+                }
+            }
+            
+            // Volumen predeterminado para este tipo de sonido (relativo)
+            var defaultVolume: Float {
+                switch self {
+                case .buttonTap:        return 0.7
+                case .toggleSwitch:     return 0.6
+                case .sliderChange:     return 0.5
+                case .expand, .collapse: return 0.5
+                case .success:          return 0.8
+                case .error:            return 0.7
+                case .notification:     return 0.7
+                case .countdownTick:    return 0.6
+                case .gameStart:        return 0.9
+                case .menuNavigation:   return 0.6
+                }
+            }
+            
+            // Tono predeterminado para este tipo de sonido
+            var defaultPitch: Float {
+                switch self {
+                case .buttonTap:        return 1.0
+                case .toggleSwitch:     return 1.1
+                case .sliderChange:     return 0.9
+                case .expand:           return 1.2
+                case .collapse:         return 0.8
+                case .success:          return 1.3
+                case .error:            return 0.7
+                case .notification:     return 1.0
+                case .countdownTick:    return 1.0
+                case .gameStart:        return 1.5
+                case .menuNavigation:   return 1.1
+                }
+            }
+            
+            // Extensiones de archivo a probar
+            var fileExtensions: [String] {
+                return ["mp3", "wav", "caf"]
+            }
+            
+            // Respaldo si no existe el archivo principal
+            var fallbackSoundType: UISoundType? {
+                switch self {
+                case .buttonTap:        return nil  // Ninguno, es el sonido básico
+                case .toggleSwitch:     return .buttonTap
+                case .sliderChange:     return .buttonTap
+                case .expand:           return .buttonTap
+                case .collapse:         return .buttonTap
+                case .success:          return .buttonTap
+                case .error:            return .buttonTap
+                case .notification:     return .buttonTap
+                case .countdownTick:    return .buttonTap
+                case .gameStart:        return .buttonTap
+                case .menuNavigation:   return .buttonTap
+                }
+            }
+        }
+    
+
+        
+        // Método para cargar configuración de sonidos personalizada
+        func loadCustomSoundMappings() {
+            if let data = UserDefaults.standard.data(forKey: "customSoundMappings"),
+               let loadedMap = try? JSONDecoder().decode(CustomSoundMap.self, from: data) {
+                customSoundMap = loadedMap
+                print("Mapeo de sonidos personalizado cargado con \(loadedMap.soundMappings.count) entradas")
+            }
+        }
+        
+        // Método para guardar configuración de sonidos personalizada
+        func saveCustomSoundMapping(type: UISoundType, fileName: String) {
+            customSoundMap.soundMappings[type.fileName] = fileName
+            
+            if let encoded = try? JSONEncoder().encode(customSoundMap) {
+                UserDefaults.standard.set(encoded, forKey: "customSoundMappings")
+                print("Mapeo de sonido guardado: \(type.fileName) -> \(fileName)")
+            }
+        }
+    
+    
+    
+    
+    // Método para verificar si el archivo de sonido existe y, si no, crear uno básico
+    func ensureButtonSoundExists() {
+        // Comprobar si ya existe el archivo de sonido
+        let fileManager = FileManager.default
+        guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            print("No se pudo acceder al directorio de documentos")
+            return
+        }
+        
+        let buttonSoundFile = documentsDirectory.appendingPathComponent("buttonClick.mp3")
+        
+        // Si el archivo ya existe, no hacemos nada
+        if fileManager.fileExists(atPath: buttonSoundFile.path) {
+            return
+        }
+        
+        // Si no existe, intentamos copiarlo desde el bundle
+        if let bundleSoundPath = Bundle.main.path(forResource: "buttonClick", ofType: "mp3"),
+           fileManager.fileExists(atPath: bundleSoundPath) {
+            do {
+                try fileManager.copyItem(atPath: bundleSoundPath, toPath: buttonSoundFile.path)
+                print("Archivo de sonido copiado del bundle")
+                return
+            } catch {
+                print("Error al copiar archivo de sonido: \(error)")
+            }
+        }
+        
+        // Si no pudimos copiarlo, generamos un archivo básico
+        print("Generando archivo de sonido de botón básico...")
+        
+        // Nota: La generación real de archivos de audio requeriría una librería adicional
+        // como AVFoundation para crear un archivo de audio completo.
+        // Este código es solo un ejemplo conceptual.
+    }
+    
+    // Mejorar el método playButtonSoundWithVolume para buscar en más ubicaciones
+    func improvedPlayButtonSound() {
+        guard !isMuted && effectsVolume > 0 else { return }
+        
+        // Lista de posibles nombres de archivo y extensiones a probar
+        let fileNames = ["buttonClick", "button_click", "click", "tap"]
+        let extensions = ["mp3", "wav", "caf"]
+        
+        // Intentar cada combinación
+        for fileName in fileNames {
+            for ext in extensions {
+                if let url = Bundle.main.url(forResource: fileName, withExtension: ext) {
+                    do {
+                        let player = try AVAudioPlayer(contentsOf: url)
+                        player.volume = effectsVolume
+                        player.prepareToPlay()
+                        player.play()
+                        print("Reproduciendo sonido: \(fileName).\(ext)")
+                        return
+                    } catch {
+                        print("Error reproduciendo \(fileName).\(ext): \(error)")
+                        continue
+                    }
+                }
+            }
+        }
+        
+        // Si llegamos aquí, ningún archivo funcionó, usamos el generador de sonido
+        generateSimpleButtonSound()
+    }
+    
+    // Método mejorado para reproducir sonido que considera mapeos personalizados
+        func playUISound(_ type: UISoundType, volumeMultiplier: Float = 1.0, pitchMultiplier: Float = 1.0) {
+            // Salir si está silenciado o si el volumen de efectos es 0
+            guard !isMuted && effectsVolume > 0 else { return }
+            
+            // Calcular volumen y tono finales
+            let finalVolume = effectsVolume * type.defaultVolume * volumeMultiplier
+            let finalPitch = type.defaultPitch * pitchMultiplier
+            
+            // Comprobar si hay un mapeo personalizado para este tipo de sonido
+            if let customFileName = customSoundMap.fileName(for: type),
+               playSound(fromFile: customFileName, extensions: type.fileExtensions, volume: finalVolume, pitch: finalPitch) {
+                return
+            }
+            
+            // Si no hay mapeo personalizado o falló, intentar con el sonido predeterminado
+            if playSound(fromFile: type.fileName, extensions: type.fileExtensions, volume: finalVolume, pitch: finalPitch) {
+                return
+            }
+            
+            // Si no se pudo reproducir, intentar con el sonido de respaldo
+            if let fallbackType = type.fallbackSoundType {
+                if playSound(fromFile: fallbackType.fileName, extensions: fallbackType.fileExtensions,
+                             volume: finalVolume, pitch: finalPitch) {
+                    return
+                }
+            }
+            
+            // Si todo falla, usar el generador de sonido simple
+            generateSimpleTone(pitch: finalPitch, volume: finalVolume, duration: 0.1)
+        }
+    
+    // Método para intentar reproducir un sonido desde un archivo
+       private func playSound(fromFile baseName: String, extensions: [String], volume: Float, pitch: Float) -> Bool {
+           for ext in extensions {
+               if let url = Bundle.main.url(forResource: baseName, withExtension: ext) {
+                   do {
+                       let player = try AVAudioPlayer(contentsOf: url)
+                       player.volume = volume
+                       if player.enableRate {
+                           player.rate = pitch
+                       }
+                       player.prepareToPlay()
+                       player.play()
+                       return true
+                   } catch {
+                       print("Error reproduciendo \(baseName).\(ext): \(error)")
+                       continue
+                   }
+               }
+           }
+           return false
+       }
+       
+       // Método para generar un tono simple como último recurso
+       private func generateSimpleTone(pitch: Float, volume: Float, duration: TimeInterval) {
+           // Implementación básica usando AudioServices como respaldo final
+           let finalPitch = max(0.5, min(2.0, pitch))  // Limitar entre 0.5 y 2.0
+           
+           // Seleccionar un sonido del sistema según el tono
+           // Diferentes sonidos del sistema para simular diferentes tonos
+           let soundID: SystemSoundID
+           
+           if finalPitch < 0.8 {
+               soundID = 1104       // Sonido más grave
+           } else if finalPitch > 1.3 {
+               soundID = 1106       // Sonido más agudo
+           } else {
+               soundID = 1105       // Sonido medio
+           }
+           
+           AudioServicesPlaySystemSound(soundID)
+       }
+        
+    // Generador simple para sonidos de UI
+    private func generateSimpleUISound(pitch: Float, volume: Float) {
+        // Similar a generateSimpleButtonSound pero con control de tono
+        // Como esto requeriría una implementación más compleja con AVAudioEngine,
+        // podríamos usar un enfoque simplificado para generar un sonido breve
+        
+        // Usamos SystemSoundServices para un sonido simple del sistema si falla todo lo demás
+        AudioServicesPlaySystemSound(1104) // Este es un sonido de sistema genérico
     }
 }

@@ -191,9 +191,9 @@ class GameEngine: ObservableObject {
         var updatedProfile = userProfile
         updatedProfile.updateStatistics(
             score: score,
-            noteHits: notesHitInGame,  // Add this to pass total notes hit in this game
-            currentStreak: combo,      // Pass current combo as streak
-            bestStreak: bestStreakInGame, // Pass best streak from this game
+            noteHits: notesHitInGame,  // Añadir las notas acertadas durante la partida
+            currentStreak: combo,      // Pasar el combo actual como racha
+            bestStreak: bestStreakInGame, // Pasar la mejor racha de la partida
             accuracy: averageAccuracy,
             levelCompleted: isGameWon,
             isPerfect: averageAccuracy >= 0.95,
@@ -248,33 +248,7 @@ class GameEngine: ObservableObject {
 
     /// Determina si dos notas son musicalmente equivalentes (misma nota o enarmónicas)
     private func areMusicallyEquivalent(_ note1: String, _ note2: String) -> Bool {
-        // Si son exactamente iguales
-        if note1 == note2 {
-            return true
-        }
-        
-        // Extraer la parte básica de la nota (sin octava)
-        func extractBaseNote(_ note: String) -> String {
-            return String(note.prefix(while: { !$0.isNumber }))
-        }
-        
-        let base1 = extractBaseNote(note1)
-        let base2 = extractBaseNote(note2)
-        
-        // Comprobar equivalentes enarmónicos
-        let enharmonicPairs = [
-            ["DO#", "REb"], ["RE#", "MIb"],
-            ["FA#", "SOLb"], ["SOL#", "LAb"], ["LA#", "SIb"]
-        ]
-        
-        for pair in enharmonicPairs {
-            if (pair[0] == base1 && pair[1] == base2) ||
-               (pair[1] == base1 && pair[0] == base2) {
-                return true
-            }
-        }
-        
-        return false
+        return MusicalNote.areNotesEquivalent(note1, note2)
     }
     
     // MARK: - Note Handling

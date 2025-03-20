@@ -56,7 +56,7 @@ class LevelStartOverlayNode: GameOverlayNode {
         readyNode.fontSize = min(28, size.width * 0.09) // Ajuste responsivo
         readyNode.fontName = "Helvetica-Bold"
         readyNode.fontColor = .orange
-        readyNode.position = CGPoint(x: 0, y: -size.height * 0.2)
+        readyNode.position = CGPoint(x: 0, y: -size.height * 0.1)
         contentNode.addChild(readyNode)
         
         // Etiqueta para la cuenta atrás con estilo mejorado
@@ -64,7 +64,7 @@ class LevelStartOverlayNode: GameOverlayNode {
         countdownNode.fontSize = min(64, size.width * 0.2) // Ajuste responsivo
         countdownNode.fontName = "Helvetica-Bold"
         countdownNode.fontColor = .orange
-        countdownNode.position = CGPoint(x: 0, y: -size.height * 0.50)
+        countdownNode.position = CGPoint(x: 0, y: -size.height * 0.30)
         contentNode.addChild(countdownNode)
         self.countdownLabel = countdownNode
     }
@@ -122,6 +122,9 @@ class LevelStartOverlayNode: GameOverlayNode {
                 return
             }
             
+            // Reproducir un sonido en cada segundo de la cuenta atrás
+                    self.playCountdownSound(second: self.secondsRemaining)
+            
             self.secondsRemaining -= 1
             self.countdownLabel?.text = "\(self.secondsRemaining)"
             
@@ -136,6 +139,9 @@ class LevelStartOverlayNode: GameOverlayNode {
             if self.secondsRemaining <= 0 {
                 timer.invalidate()
                 
+                // Reproducir un sonido especial cuando empieza el nivel
+                            self.playStartGameSound()
+                
                 // SOLUCIÓN: Añadir un pequeño retraso entre ocultar el overlay y llamar al startAction
                 self.hide(duration: 0.3)
                 
@@ -145,6 +151,24 @@ class LevelStartOverlayNode: GameOverlayNode {
                 }
             }
         }
+    }
+    
+    // Añadir los métodos para los sonidos de cuenta atrás
+    private func playCountdownSound(second: Int) {
+        let pitchModifier: Float = switch second {
+            case 5, 4: 0.8
+            case 3, 2: 1.0
+            case 1: 1.2
+            default: 1.0
+        }
+        
+        // Usar AudioController para reproducir sonido
+        AudioController.sharedInstance.playUISound(.countdownTick, pitchMultiplier: pitchModifier)
+    }
+
+    private func playStartGameSound() {
+        // Usar AudioController para reproducir sonido de inicio con pitch más alto
+        AudioController.sharedInstance.playUISound(.gameStart)
     }
     
     private func updateCountdownColor() {

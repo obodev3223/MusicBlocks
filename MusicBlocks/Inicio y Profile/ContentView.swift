@@ -37,7 +37,8 @@ struct ContentView: View {
                     // Botones de navegación
                     VStack(spacing: 20) {
                         Button(action: {
-                            startGameSequence()
+                            audioController.playUISound(.buttonTap)
+                                startGameSequence()
                         }) {
                             HStack {
                                 Image(systemName: "gamecontroller")
@@ -53,7 +54,7 @@ struct ContentView: View {
                             .foregroundColor(.white)
                         }
                         Button(action: {
-                            audioController.playButtonSoundWithVolume()
+                            audioController.playUISound(.menuNavigation)
                             // Presentar el ProfileViewController
                             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                                let window = windowScene.windows.first,
@@ -124,6 +125,10 @@ struct ContentView: View {
                 loadAudioSettings()
                 // Initialize audio system with settings
                 audioController.initializeSoundSettings()
+                
+                // Cargar mapeos de sonidos personalizados
+                audioController.loadCustomSoundMappings()
+                
                 // Start background music with current settings
                 audioController.startBackgroundMusicWithVolume()
             }
@@ -168,19 +173,20 @@ struct ContentView: View {
         
         /// Secuencia para iniciar el juego:
         /// 1. Reproduce el sonido de clic.
-        /// 2. Después de 0.2 s, inicia el fade out de la música (duración 0.5 s).
-        /// 3. Tras 0.6 s en total, navega a la escena del juego.
-        private func startGameSequence() {
-            audioController.playButtonSoundWithVolume()
+        /// 2. Después de 0.2 s, inicia el fade out de la música (duración 0.3 s).
+        /// 3. Tras 0.8 s en total, navega a la escena del juego.
+    private func startGameSequence() {
+        // Reproducir sonido usando el método mejorado con volumen
+        audioController.playButtonSoundWithVolume()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            audioController.stopBackgroundMusic(duration: 0.3)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                audioController.stopBackgroundMusic(duration: 0.3)
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    navigateToGame = true
-                }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                navigateToGame = true
             }
         }
+    }
     }
 
     struct ContentView_Previews: PreviewProvider {

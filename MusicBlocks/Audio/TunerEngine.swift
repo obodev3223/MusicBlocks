@@ -60,11 +60,11 @@ class TunerEngine {
     }
     
     /// Actualiza el acumulador de "hold" para la nota detectada.
-        /// - Parameters:
-        ///   - note: La nota detectada en este frame.
-        ///   - currentTime: El timestamp actual.
-        ///   - requiredHoldTime: El tiempo requerido (en segundos) para considerar que la nota se ha mantenido estable.
-        /// - Returns: true si el acumulador alcanza o supera el tiempo requerido; false en caso contrario.
+    /// - Parameters:
+    ///   - note: La nota detectada en este frame.
+    ///   - currentTime: El timestamp actual.
+    ///   - requiredHoldTime: El tiempo requerido (en segundos) para considerar que la nota se ha mantenido estable.
+    /// - Returns: true si el acumulador alcanza o supera el tiempo requerido; false en caso contrario.
     func updateHoldDetection(note: String, currentTime: TimeInterval, requiredHoldTime: TimeInterval) -> Bool {
         // Si la nota actual es la misma que la nota estable (o muy cercana), incrementar el acumulador
         if isNoteWithinTolerance(note, currentStableNote) {
@@ -103,80 +103,88 @@ class TunerEngine {
         }
         return false
     }
+    
+    // MARK: - Private Methods
+    private func processFrequency(_ frequency: Float) -> (String, Double) {
+        guard frequency > 0 else { return ("-", 0) }
         
-        // MARK: - Private Methods
-        private func processFrequency(_ frequency: Float) -> (String, Double) {
-            guard frequency > 0 else { return ("-", 0) }
-            
-            let actualFrequency = Double(frequency)
-            let halfStepsFromA4 = 12 * log2(actualFrequency / concertPitch)
-            let roundedHalfSteps = round(halfStepsFromA4)
-            let deviation = 100 * (halfStepsFromA4 - roundedHalfSteps)
-            
-            let midiNoteNumber = Int(roundedHalfSteps) + 69
-            let octave = (midiNoteNumber / 12) - 1
-            let noteIndex = ((midiNoteNumber % 12) + 12) % 12
-            
-            let (noteName, alteration) = getNoteNameAndAlteration(forMIDINote: noteIndex)
-            return ("\(noteName)\(alteration.rawValue)\(octave)", deviation)
+        // Constantes para cálculo de notas
+        let concertPitch: Double = 442.0
+        let halfStepsFromA4 = 12 * log2(Double(frequency) / concertPitch)
+        let roundedHalfSteps = round(halfStepsFromA4)
+        let deviation = 100 * (halfStepsFromA4 - roundedHalfSteps)
+        
+        let midiNoteNumber = Int(roundedHalfSteps) + 69
+        let octave = (midiNoteNumber / 12) - 1
+        let noteIndex = ((midiNoteNumber % 12) + 12) % 12
+        
+        // Mapeo de índices a notas con sus posibles alteraciones
+        let noteMapping: [(String, MusicalNote.Alteration)] = [
+            ("DO", .natural),
+            ("DO", .sharp),
+            ("RE", .flat),
+            ("RE", .natural),
+            ("RE", .sharp),
+            ("MI", .flat),
+            ("MI", .natural),
+            ("FA", .natural),
+            ("FA", .sharp),
+            ("SOL", .flat),
+            ("SOL", .natural),
+            ("SOL", .sharp),
+            ("LA", .flat),
+            ("LA", .natural),
+            ("LA", .sharp),
+            ("SI", .flat),
+            ("SI", .natural)
+        ]
+        
+        // Determinar la nota más cercana con su alteración
+        let (noteName, alteration) = noteMapping[noteIndex]
+        
+        return ("\(noteName)\(alteration.rawValue)\(octave)", deviation)
+    }
+    
+
+    
+    // MARK: - Nueva función para tolerancia a fluctuaciones
+    /// Comprueba si dos notas son consideradas la misma con cierta tolerancia
+    private func isNoteWithinTolerance(_ note1: String, _ note2: String) -> Bool {
+        // Si es exactamente la misma nota
+        if note1 == note2 {
+            return true
         }
         
-        private func getNoteNameAndAlteration(forMIDINote index: Int) -> (String, MusicalNote.Alteration) {
-            switch index {
-            case 0: return ("DO", .natural)
-            case 1: return Bool.random() ? ("DO", .sharp) : ("RE", .flat)
-            case 2: return ("RE", .natural)
-            case 3: return Bool.random() ? ("RE", .sharp) : ("MI", .flat)
-            case 4: return ("MI", .natural)
-            case 5: return ("FA", .natural)
-            case 6: return Bool.random() ? ("FA", .sharp) : ("SOL", .flat)
-            case 7: return ("SOL", .natural)
-            case 8: return Bool.random() ? ("SOL", .sharp) : ("LA", .flat)
-            case 9: return ("LA", .natural)
-            case 10: return Bool.random() ? ("LA", .sharp) : ("SI", .flat)
-            case 11: return ("SI", .natural)
-            default: return ("", .natural)
-            }
-        }
-        
-        // MARK: - Nueva función para tolerancia a fluctuaciones
-        /// Comprueba si dos notas son consideradas la misma con cierta tolerancia
-        private func isNoteWithinTolerance(_ note1: String, _ note2: String) -> Bool {
-            // Si es exactamente la misma nota
-            if note1 == note2 {
-                return true
-            }
-            
-            // Si alguna es silencio, no son compatibles
-            if note1 == "-" || note2 == "-" {
-                return false
-            }
-            
-            // Comparar bases de notas sin octava
-            let baseNote1 = String(note1.prefix(while: { !$0.isNumber }))
-            let baseNote2 = String(note2.prefix(while: { !$0.isNumber }))
-            
-            // Comprobar equivalentes enarmónicos (DO# = REb, etc.)
-            let enharmonicPairs = [
-                ["DO#", "REb"], ["RE#", "MIb"],
-                ["FA#", "SOLb"], ["SOL#", "LAb"], ["LA#", "SIb"]
-            ]
-            
-            for pair in enharmonicPairs {
-                if (pair[0] == baseNote1 && pair[1] == baseNote2) ||
-                   (pair[1] == baseNote1 && pair[0] == baseNote2) {
-                    return true
-                }
-            }
-            
+        // Si alguna es silencio, no son compatibles
+        if note1 == "-" || note2 == "-" {
             return false
         }
-    }
-
-    // Extensión útil para redondear números
-    extension TimeInterval {
-        func rounded(toDecimalPlaces places: Int) -> TimeInterval {
-            let multiplier = pow(10.0, Double(places))
-            return (self * multiplier).rounded() / multiplier
+        
+        // Comparar bases de notas sin octava
+        let baseNote1 = String(note1.prefix(while: { !$0.isNumber }))
+        let baseNote2 = String(note2.prefix(while: { !$0.isNumber }))
+        
+        // Comprobar equivalentes enarmónicos (DO# = REb, etc.)
+        let enharmonicPairs = [
+            ["DO#", "REb"], ["RE#", "MIb"],
+            ["FA#", "SOLb"], ["SOL#", "LAb"], ["LA#", "SIb"]
+        ]
+        
+        for pair in enharmonicPairs {
+            if (pair[0] == baseNote1 && pair[1] == baseNote2) ||
+                (pair[1] == baseNote1 && pair[0] == baseNote2) {
+                return true
+            }
         }
+        
+        return false
     }
+}
+
+// Extensión útil para redondear números
+extension TimeInterval {
+    func rounded(toDecimalPlaces places: Int) -> TimeInterval {
+        let multiplier = pow(10.0, Double(places))
+        return (self * multiplier).rounded() / multiplier
+    }
+}

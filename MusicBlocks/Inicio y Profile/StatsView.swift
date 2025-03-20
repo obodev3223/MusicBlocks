@@ -83,6 +83,10 @@ class StatsView: UIView {
         
     @objc private func resetButtonTapped() {
         print("Botón de reset tocado") // Añadir para depuración
+        
+        // Reproducir sonido de botón
+            AudioController.sharedInstance.playButtonSoundWithVolume()
+        
         // Notificar al delegado que se ha pulsado el botón de reset
         delegate?.statsViewDidTapResetButton(self)
     }

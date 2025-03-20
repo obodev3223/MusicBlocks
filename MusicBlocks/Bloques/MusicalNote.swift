@@ -136,8 +136,6 @@ struct MusicalNote: Equatable, Identifiable {
     static func == (lhs: MusicalNote, rhs: MusicalNote) -> Bool {
         return lhs.fullName == rhs.fullName || lhs.isEnharmonicWith(rhs)
     }
-    
-    
 }
 
 // MARK: - Note Format Conversion
@@ -151,6 +149,38 @@ extension MusicalNote {
         "la": "LA", "LA": "LA",
         "si": "SI", "SI": "SI"
     ]
+    
+    /// Método estático para comparar notas de manera flexible
+        static func areNotesEquivalent(_ note1: String, _ note2: String) -> Bool {
+            // Función para normalizar la nota (quitar octava y dejar solo nombre base)
+            func normalizeNote(_ note: String) -> String {
+                return String(note.prefix(while: { !$0.isNumber }))
+            }
+            
+            // Diccionario expandido de equivalencias enarmónicas
+            let enharmonicEquivalents: [String: [String]] = [
+                "DO#": ["REb"], "RE♭": ["DO#"],
+                "RE#": ["MIb"], "MI♭": ["RE#"],
+                "FA#": ["SOLb"], "SOL♭": ["FA#"],
+                "SOL#": ["LAb"], "LA♭": ["SOL#"],
+                "LA#": ["SIb"], "SI♭": ["LA#"]
+            ]
+            
+            // Si son exactamente iguales
+            if note1 == note2 {
+                return true
+            }
+            
+            let base1 = normalizeNote(note1)
+            let base2 = normalizeNote(note2)
+            
+            // Verificar equivalencias enarmónicas
+            if let equivalents = enharmonicEquivalents[base1] {
+                return equivalents.contains(base2)
+            }
+            
+            return false
+        }
     
     /// Parsea una nota desde un string en formato español (ej: "sol4", "la#4", "si♭3")
     static func parseSpanishFormat(_ noteString: String) -> MusicalNote? {

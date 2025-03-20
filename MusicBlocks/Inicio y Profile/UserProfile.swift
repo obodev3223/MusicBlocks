@@ -238,9 +238,9 @@ extension UserProfile {
     mutating func updateStatistics(
         score: Int = 0,
         noteHit: Bool = false,
-        noteHits: Int = 0,         // New parameter for multiple notes
-        currentStreak: Int = 0,    // New parameter
-        bestStreak: Int = 0,       // New parameter
+        noteHits: Int = 0,         // Nuevo parámetro para múltiples notas
+        currentStreak: Int = 0,    // Nuevo parámetro para racha actual
+        bestStreak: Int = 0,       // Nuevo parámetro para mejor racha
         accuracy: Double? = nil,
         levelCompleted: Bool = false,
         isPerfect: Bool = false,
@@ -249,28 +249,28 @@ extension UserProfile {
         gamesLost: Int = 0) {
             statistics.totalScore += score
             
-            // Add single note hit if specified
-                if noteHit {
-                    statistics.notesHit += 1
-                    statistics.updateStreak(hitNote: true)
-                } else {
-                    statistics.updateStreak(hitNote: false)
-                }
-                
-                // Add multiple notes if specified
-                if noteHits > 0 {
-                    statistics.notesHit += noteHits
-                }
-                
-                // Update current streak
-                if currentStreak > statistics.currentStreak {
-                    statistics.currentStreak = currentStreak
-                }
-                
-                // Update best streak
-                if bestStreak > statistics.bestStreak {
-                    statistics.bestStreak = bestStreak
-                }
+            // Añadir notas individuales si se especifica
+            if noteHit {
+                statistics.notesHit += 1
+                statistics.updateStreak(hitNote: true)
+            } else {
+                statistics.updateStreak(hitNote: false)
+            }
+            
+            // Añadir múltiples notas si se especifica
+            if noteHits > 0 {
+                statistics.notesHit += noteHits
+            }
+            
+            // Actualizar racha actual
+            if currentStreak > statistics.currentStreak {
+                statistics.currentStreak = currentStreak
+            }
+            
+            // Actualizar mejor racha
+            if bestStreak > statistics.bestStreak {
+                statistics.bestStreak = bestStreak
+            }
             
             if let accuracy = accuracy {
                 statistics.updateAccuracy(with: accuracy)
