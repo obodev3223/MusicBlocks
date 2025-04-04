@@ -2,7 +2,8 @@
 //  StatsView.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 8/3/25.
+//  Created by Jose R. García on 20/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import UIKit
@@ -47,6 +48,9 @@ class StatsView: UIView {
         return button
     }()
     
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
+    
     init(statistics: Statistics) {
         super.init(frame: .zero)
         setupViews()
@@ -85,7 +89,7 @@ class StatsView: UIView {
         print("Botón de reset tocado") // Añadir para depuración
         
         // Reproducir sonido de botón
-            AudioController.sharedInstance.playButtonSoundWithVolume()
+        uiSoundController.playButtonSoundWithVolume()
         
         // Notificar al delegado que se ha pulsado el botón de reset
         delegate?.statsViewDidTapResetButton(self)

@@ -3,6 +3,7 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 7/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import SpriteKit
@@ -17,6 +18,9 @@ class GameUIManager {
     var rightTopBarNode: TopBar?
     private var currentOverlay: GameOverlayNode?
     var objectiveTracker: LevelObjectiveTracker?
+    
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
     
     // Indicadores
     var stabilityIndicatorNode: StabilityIndicatorNode!

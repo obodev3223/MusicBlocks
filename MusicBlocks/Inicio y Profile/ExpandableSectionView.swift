@@ -2,7 +2,8 @@
 //  ExpandableSectionView.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 1/3/25.
+//  Created by Jose R. García on 20/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import SpriteKit
@@ -46,6 +47,9 @@ class ExpandableSectionView: UIView {
     private var contentView: UIView?
     private var isExpanded = false
     weak var delegate: ExpandableSectionViewDelegate?
+    
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
     
     // Constraints que serán activadas/desactivadas
     private var contentConstraints: [NSLayoutConstraint] = []
@@ -159,11 +163,11 @@ class ExpandableSectionView: UIView {
         isExpanded.toggle()
         
         // Reproducir sonido apropiado
-            if isExpanded {
-                AudioController.sharedInstance.playUISound(.expand)
-            } else {
-                AudioController.sharedInstance.playUISound(.collapse)
-            }
+        if isExpanded {
+            uiSoundController.playUISound(.expand)
+        } else {
+            uiSoundController.playUISound(.collapse)
+        }
         
         UIView.animate(withDuration: 0.3) {
             // Rotar el chevron

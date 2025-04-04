@@ -3,6 +3,7 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 17/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import SpriteKit
@@ -12,6 +13,9 @@ import UIKit
 class GameOverOverlayNode: GameOverlayNode {
     private var restartAction: (() -> Void)?
     private var menuAction: (() -> Void)?
+    
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
     
     init(size: CGSize, score: Int, message: String, isVictory: Bool = false,
          restartAction: @escaping () -> Void,
@@ -66,7 +70,7 @@ class GameOverOverlayNode: GameOverlayNode {
             let menuButtonNode = SKShapeNode(rectOf: buttonSize, cornerRadius: 10)
             menuButtonNode.fillColor = .darkGray
             menuButtonNode.strokeColor = .clear
-        menuButtonNode.position = CGPoint(x: -(buttonWidth/2 + spacing/2), y: -70.0)
+            menuButtonNode.position = CGPoint(x: -(buttonWidth/2 + spacing/2), y: -70.0)
             menuButtonNode.name = "menuButton"
             
             let menuLabel = SKLabelNode(text: "Menú Principal")
@@ -127,7 +131,7 @@ class GameOverOverlayNode: GameOverlayNode {
         print("🖱️ Touch was not on any button")
     }
         
-        // Añadir animación cuando se presiona un botón
+    // Añadir animación cuando se presiona un botón
     private func animateButtonPress(named buttonName: String, completion: @escaping () -> Void) {
         guard let button = childNode(withName: "//\(buttonName)") as? SKShapeNode else {
             print("⚠️ Couldn't find button named: \(buttonName)")
@@ -136,17 +140,17 @@ class GameOverOverlayNode: GameOverlayNode {
         }
         
         // Determinar qué tipo de botón es
-           let soundType: AudioController.UISoundType
-           if buttonName == "restartButton" {
-               soundType = .buttonTap
-           } else if buttonName == "menuButton" {
-               soundType = .menuNavigation
-           } else {
-               soundType = .buttonTap // Por defecto
-           }
+        let soundType: UISoundController.UISoundType
+        if buttonName == "restartButton" {
+            soundType = .buttonTap
+        } else if buttonName == "menuButton" {
+            soundType = .menuNavigation
+        } else {
+            soundType = .buttonTap // Por defecto
+        }
            
-           // Reproducir el sonido apropiado
-           AudioController.sharedInstance.playUISound(soundType)
+        // Reproducir el sonido apropiado
+        uiSoundController.playUISound(soundType)
         
         print("🔄 Animating button: \(buttonName)")
         let scaleDown = SKAction.scale(to: 0.9, duration: 0.1)
@@ -158,7 +162,7 @@ class GameOverOverlayNode: GameOverlayNode {
             completion()
         }
     }
-    }
+}
 
 #if DEBUG
    import SwiftUI
@@ -210,4 +214,4 @@ class GameOverOverlayNode: GameOverlayNode {
            }
        }
    }
-   #endif
+#endif

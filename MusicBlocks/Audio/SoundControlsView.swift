@@ -3,6 +3,7 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 17/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import SwiftUI
@@ -19,6 +20,9 @@ struct SoundControlsView: View {
     // Animation duration
     private let animationDuration: Double = 0.3
     
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
+    
     var body: some View {
         VStack(spacing: 0) {
             // Icon button to expand/collapse the panel
@@ -27,10 +31,10 @@ struct SoundControlsView: View {
                     isExpanded.toggle()
                     // Añadir reproducción de sonido aquí
                     if isExpanded {
-                                AudioController.sharedInstance.playUISound(.expand)
-                            } else {
-                                AudioController.sharedInstance.playUISound(.collapse)
-                            }
+                        uiSoundController.playUISound(.expand)
+                    } else {
+                        uiSoundController.playUISound(.collapse)
+                    }
                 }
             }) {
                 Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
@@ -84,7 +88,7 @@ struct SoundControlsView: View {
                                 
                                 // Solo reproducir sonido cuando hay un cambio significativo o al soltar
                                 if abs(oldValue - musicVolume) > 0.05 {
-                                    AudioController.sharedInstance.playUISound(.sliderChange)
+                                    uiSoundController.playUISound(.sliderChange)
                                 }
                             }
                         ), in: 0...1)
@@ -118,7 +122,7 @@ struct SoundControlsView: View {
                             
                             // Reproducir sonido si se está activando (no si se está silenciando)
                             if !isMuted {
-                                AudioController.sharedInstance.playUISound(.toggleSwitch)
+                                uiSoundController.playUISound(.toggleSwitch)
                             }
                         }
                     )) {

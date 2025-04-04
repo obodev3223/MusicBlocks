@@ -3,18 +3,22 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 17/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import SpriteKit
 import UIKit
 
 
-    // MARK: - Inicio de Nivel
+// MARK: - Inicio de Nivel
 class LevelStartOverlayNode: GameOverlayNode {
     private var countdownLabel: SKLabelNode?
     private var countdownTimer: Timer?
     private var secondsRemaining: Int = 5
     private var startAction: (() -> Void)?
+    
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
     
     init(size: CGSize, levelId: Int, levelName: String, startAction: @escaping () -> Void) {
         super.init(size: size)
@@ -123,7 +127,7 @@ class LevelStartOverlayNode: GameOverlayNode {
             }
             
             // Reproducir un sonido en cada segundo de la cuenta atrás
-                    self.playCountdownSound(second: self.secondsRemaining)
+            self.playCountdownSound(second: self.secondsRemaining)
             
             self.secondsRemaining -= 1
             self.countdownLabel?.text = "\(self.secondsRemaining)"
@@ -140,7 +144,7 @@ class LevelStartOverlayNode: GameOverlayNode {
                 timer.invalidate()
                 
                 // Reproducir un sonido especial cuando empieza el nivel
-                            self.playStartGameSound()
+                self.playStartGameSound()
                 
                 // SOLUCIÓN: Añadir un pequeño retraso entre ocultar el overlay y llamar al startAction
                 self.hide(duration: 0.3)
@@ -162,13 +166,13 @@ class LevelStartOverlayNode: GameOverlayNode {
             default: 1.0
         }
         
-        // Usar AudioController para reproducir sonido
-        AudioController.sharedInstance.playUISound(.countdownTick, pitchMultiplier: pitchModifier)
+        // Usar UISoundController para reproducir sonido
+        uiSoundController.playUISound(.countdownTick, pitchMultiplier: pitchModifier)
     }
 
     private func playStartGameSound() {
-        // Usar AudioController para reproducir sonido de inicio con pitch más alto
-        AudioController.sharedInstance.playUISound(.gameStart)
+        // Usar UISoundController para reproducir sonido de inicio con pitch más alto
+        uiSoundController.playUISound(.gameStart)
     }
     
     private func updateCountdownColor() {
@@ -196,30 +200,29 @@ class LevelStartOverlayNode: GameOverlayNode {
     }
 }
 
-    // Añadir preview al final del archivo
-    #if DEBUG
-    import SwiftUI
+// Añadir preview al final del archivo
+#if DEBUG
+import SwiftUI
 
-    struct LevelStartOverlay_Previews: PreviewProvider {
-        static var previews: some View {
-            SpriteView(scene: {
-                let scene = SKScene(size: CGSize(width: 400, height: 300))
-                scene.backgroundColor = .white
-                
-                let levelStartNode = LevelStartOverlayNode(
-                    size: CGSize(width: 350, height: 250),
-                    levelId: 1,
-                    levelName: "¡Comienza la aventura!",
-                    startAction: {}
-                )
-                levelStartNode.position = CGPoint(x: 200, y: 150)
-                scene.addChild(levelStartNode)
-                
-                return scene
-            }())
-            .frame(width: 400, height: 300)
-            .previewDisplayName("Level Start Overlay")
-        }
+struct LevelStartOverlay_Previews: PreviewProvider {
+    static var previews: some View {
+        SpriteView(scene: {
+            let scene = SKScene(size: CGSize(width: 400, height: 300))
+            scene.backgroundColor = .white
+            
+            let levelStartNode = LevelStartOverlayNode(
+                size: CGSize(width: 350, height: 250),
+                levelId: 1,
+                levelName: "¡Comienza la aventura!",
+                startAction: {}
+            )
+            levelStartNode.position = CGPoint(x: 200, y: 150)
+            scene.addChild(levelStartNode)
+            
+            return scene
+        }())
+        .frame(width: 400, height: 300)
+        .previewDisplayName("Level Start Overlay")
     }
-    #endif
-
+}
+#endif

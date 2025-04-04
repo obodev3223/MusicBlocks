@@ -3,6 +3,7 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 14/2/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import SwiftUI
@@ -15,10 +16,13 @@ struct ContentView: View {
     @State private var navigateToGame = false  // Controla la navegación al juego
     
     // Sound settings states
-        @State private var soundControlsExpanded = false
-        @State private var musicVolume: Float = 0.5
-        @State private var effectsVolume: Float = 0.8
-        @State private var isMuted: Bool = false
+    @State private var soundControlsExpanded = false
+    @State private var musicVolume: Float = 0.5
+    @State private var effectsVolume: Float = 0.8
+    @State private var isMuted: Bool = false
+    
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
     
     var body: some View {
             NavigationStack {
@@ -37,8 +41,8 @@ struct ContentView: View {
                     // Botones de navegación
                     VStack(spacing: 20) {
                         Button(action: {
-                            audioController.playUISound(.buttonTap)
-                                startGameSequence()
+                            uiSoundController.playUISound(.buttonTap)
+                            startGameSequence()
                         }) {
                             HStack {
                                 Image(systemName: "gamecontroller")
@@ -54,7 +58,7 @@ struct ContentView: View {
                             .foregroundColor(.white)
                         }
                         Button(action: {
-                            audioController.playUISound(.menuNavigation)
+                            uiSoundController.playUISound(.menuNavigation)
                             // Presentar el ProfileViewController
                             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                                let window = windowScene.windows.first,
@@ -124,13 +128,13 @@ struct ContentView: View {
                 // Load saved audio settings
                 loadAudioSettings()
                 // Initialize audio system with settings
-                audioController.initializeSoundSettings()
+                uiSoundController.initializeSoundSettings()
                 
                 // Cargar mapeos de sonidos personalizados
-                audioController.loadCustomSoundMappings()
+                uiSoundController.loadCustomSoundMappings()
                 
                 // Start background music with current settings
-                audioController.startBackgroundMusicWithVolume()
+                uiSoundController.startBackgroundMusicWithVolume()
             }
             .onDisappear {
                 audioController.stop()
@@ -138,59 +142,59 @@ struct ContentView: View {
         }
     
     /// Solicita acceso al micrófono si es necesario.
-        private func setupAudio() {
-            AVCaptureDevice.requestAccess(for: .audio) { granted in
-                if granted {
-                    DispatchQueue.main.async {
-                        // Puedes iniciar alguna acción extra si lo deseas.
-                    }
-                }
-            }
-        }
-        
-        /// Carga la versión del juego desde el archivo JSON.
-        private func loadGameVersion() {
-            if let gameConfig = GameLevelProcessor.loadGameLevelsFromFile() {
+    private func setupAudio() {
+        AVCaptureDevice.requestAccess(for: .audio) { granted in
+            if granted {
                 DispatchQueue.main.async {
-                    self.gameVersion = "v\(gameConfig.gameVersion)"
+                    // Puedes iniciar alguna acción extra si lo deseas.
                 }
             }
         }
-        
-        /// Load saved audio settings from UserDefaults
-        private func loadAudioSettings() {
-            musicVolume = audioController.musicVolume
-            effectsVolume = audioController.effectsVolume
-            isMuted = audioController.isMuted
+    }
+    
+    /// Carga la versión del juego desde el archivo JSON.
+    private func loadGameVersion() {
+        if let gameConfig = GameLevelProcessor.loadGameLevelsFromFile() {
+            DispatchQueue.main.async {
+                self.gameVersion = "v\(gameConfig.gameVersion)"
+            }
         }
-        
-        /// Apply updated audio settings
-        private func applyAudioSettings() {
-            audioController.musicVolume = musicVolume
-            audioController.effectsVolume = effectsVolume
-            audioController.isMuted = isMuted
-        }
-        
-        /// Secuencia para iniciar el juego:
-        /// 1. Reproduce el sonido de clic.
-        /// 2. Después de 0.2 s, inicia el fade out de la música (duración 0.3 s).
-        /// 3. Tras 0.8 s en total, navega a la escena del juego.
+    }
+    
+    /// Load saved audio settings from UserDefaults
+    private func loadAudioSettings() {
+        musicVolume = uiSoundController.musicVolume
+        effectsVolume = uiSoundController.effectsVolume
+        isMuted = uiSoundController.isMuted
+    }
+    
+    /// Apply updated audio settings
+    private func applyAudioSettings() {
+        uiSoundController.musicVolume = musicVolume
+        uiSoundController.effectsVolume = effectsVolume
+        uiSoundController.isMuted = isMuted
+    }
+    
+    /// Secuencia para iniciar el juego:
+    /// 1. Reproduce el sonido de clic.
+    /// 2. Después de 0.2 s, inicia el fade out de la música (duración 0.3 s).
+    /// 3. Tras 0.8 s en total, navega a la escena del juego.
     private func startGameSequence() {
         // Reproducir sonido usando el método mejorado con volumen
-        audioController.playButtonSoundWithVolume()
+        uiSoundController.playButtonSoundWithVolume()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            audioController.stopBackgroundMusic(duration: 0.3)
+            uiSoundController.stopBackgroundMusic(duration: 0.3)
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
                 navigateToGame = true
             }
         }
     }
-    }
+}
 
-    struct ContentView_Previews: PreviewProvider {
-        static var previews: some View {
-            ContentView()
-        }
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView()
     }
+}

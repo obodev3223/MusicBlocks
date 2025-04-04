@@ -2,7 +2,8 @@
 //  ProfileHeaderView.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 1/3/25.
+//  Created by Jose R. García on 20/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import UIKit
@@ -58,6 +59,9 @@ class ProfileHeaderView: UIView {
         button.tintColor = .systemRed
         return button
     }()
+    
+    // Referencia al controlador de sonidos de UI
+    private let uiSoundController = UISoundController.shared
     
     weak var delegate: ProfileHeaderViewDelegate?
     
@@ -124,13 +128,13 @@ class ProfileHeaderView: UIView {
     // MARK: - Actions
     @objc private func handleAvatarTap() {
         // Reproducir sonido de botón
-        AudioController.sharedInstance.playButtonSoundWithVolume()
+        uiSoundController.playButtonSoundWithVolume()
         delegate?.profileHeaderViewDidTapAvatar(self)
     }
 
     @objc private func handleUsernameTap() {
         // Reproducir sonido de botón
-        AudioController.sharedInstance.playButtonSoundWithVolume()
+        uiSoundController.playButtonSoundWithVolume()
         
         showEditUsernameAlert()
     }

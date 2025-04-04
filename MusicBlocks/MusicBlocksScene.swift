@@ -3,6 +3,7 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 14/3/25.
+//  Actualizado para usar UISoundController para sonidos de UI.
 //
 
 import SpriteKit
@@ -14,6 +15,7 @@ class MusicBlocksScene: SKScene  {
     
     // MARK: - Managers
     private let audioController = AudioController.sharedInstance
+    private let uiSoundController = UISoundController.shared
     private let gameManager = GameManager.shared
     private var gameEngine: GameEngine!
     private var blocksManager: BlocksManager!
@@ -149,8 +151,8 @@ class MusicBlocksScene: SKScene  {
             }
         }
            
-           isProcessingNotification = false
-       }
+        isProcessingNotification = false
+    }
     
     // MARK: - Setup Methods
     private func setupManagers() {
@@ -196,19 +198,19 @@ class MusicBlocksScene: SKScene  {
         }
         
         // Añadir observadores para las notificaciones de audio
-           NotificationCenter.default.addObserver(
-               self,
-               selector: #selector(handleAudioTunerUpdate(_:)),
-               name: .audioTunerDataUpdated,
-               object: nil
-           )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioTunerUpdate(_:)),
+            name: .audioTunerDataUpdated,
+            object: nil
+        )
            
-           NotificationCenter.default.addObserver(
-               self,
-               selector: #selector(handleAudioStabilityUpdate(_:)),
-               name: .audioStabilityUpdated,
-               object: nil
-           )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioStabilityUpdate(_:)),
+            name: .audioStabilityUpdated,
+            object: nil
+        )
         
         print("✅ Managers inicializados correctamente")
     }
@@ -339,12 +341,17 @@ class MusicBlocksScene: SKScene  {
         }
         
         let waitForAudioAction = SKAction.wait(forDuration: 0.3)
-        
+                
         let startBlocksAction = SKAction.run { [weak self] in
             guard let self = self else { return }
             self.blocksManager.startBlockGeneration()
             print("✅ Generación de bloques iniciada")
         }
+        
+        // Establecer el maxDuration inicial basado en el primer bloque
+            if let firstBlock = blocksManager.getCurrentBlock() {
+                uiManager.stabilityIndicatorNode.setMaxDuration(firstBlock.requiredTime)
+            }
         
         // Ejecutar la secuencia completa
         let startupSequence = SKAction.sequence([
@@ -388,6 +395,8 @@ class MusicBlocksScene: SKScene  {
         
         // Extraer datos de la notificación
         if let duration = userInfo["duration"] as? TimeInterval {
+            // Obtener el requiredTime de la notificación (con valor por defecto de 1.0 si no existe)
+            let requiredTime = userInfo["requiredTime"] as? TimeInterval ?? 1.0
             
             // Actualizar componentes visuales
             DispatchQueue.main.async { [weak self] in
@@ -395,6 +404,8 @@ class MusicBlocksScene: SKScene  {
                 
                 // Actualizar indicadores de estabilidad
                 self.uiManager.stabilityIndicatorNode.duration = duration
+                // Establecer el nuevo maxDuration basado en el requiredTime del bloque actual
+                self.uiManager.stabilityIndicatorNode.setMaxDuration(requiredTime)
                 self.uiManager.stabilityCounterNode.duration = duration
             }
         }
@@ -554,7 +565,7 @@ class MusicBlocksScene: SKScene  {
         print("🏠 Navigating to main menu...")
         
         // Reproducir sonido de botón
-            AudioController.sharedInstance.playButtonSoundWithVolume()
+        uiSoundController.playUISound(.buttonTap)
         
         // Detener todo el audio y la generación de bloques
         audioController.stop()
