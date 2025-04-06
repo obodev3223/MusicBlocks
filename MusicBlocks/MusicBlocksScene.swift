@@ -3,7 +3,7 @@
 //  MusicBlocks
 //
 //  Created by Jose R. García on 14/3/25.
-//  Actualizado para usar UISoundController para sonidos de UI.
+//  Actualizado para usar GameSessionManager para gestionar la sesión de juego.
 //
 
 import SpriteKit
@@ -20,6 +20,7 @@ class MusicBlocksScene: SKScene  {
     private var gameEngine: GameEngine!
     private var blocksManager: BlocksManager!
     private var uiManager: GameUIManager!
+    private var sessionManager: GameSessionManager!
     var objectiveTracker: LevelObjectiveTracker?
     
     // MARK: - Game State
@@ -145,7 +146,7 @@ class MusicBlocksScene: SKScene  {
                         self?.setupGame()
                     },
                     onMenu: { [weak self] in
-                        self?.navigateToMainMenu()
+                        self?.sessionManager.navigateToMainMenu()
                     }
                 )
             }
@@ -189,10 +190,18 @@ class MusicBlocksScene: SKScene  {
         gameEngine = GameEngine(blockManager: blocksManager)
         gameEngine.objectiveTracker = objectiveTracker
         
-        // Paso 7: Configurar delegado de audio
+        // Paso 7: Inicializar GameSessionManager
+        sessionManager = GameSessionManager(
+            scene: self,
+            gameEngine: gameEngine,
+            blocksManager: blocksManager,
+            uiManager: uiManager
+        )
+        
+        // Paso 8: Configurar delegado de audio
         audioController.delegate = gameEngine
         
-        // Paso 8: Actualizar UI con valores iniciales
+        // Paso 9: Actualizar UI con valores iniciales
         if let currentLevel = gameManager.currentLevel {
             uiManager.updateUI(score: 0, lives: currentLevel.lives.initial)
         }
@@ -216,154 +225,8 @@ class MusicBlocksScene: SKScene  {
     }
     
     private func setupGame() {
-        // Cargar nivel desde el perfil del usuario, pero solo si no está ya cargado
-        // o si estamos forzando una nueva carga
-        let userProfile = UserProfile.load()
-        let targetLevelId = userProfile.statistics.currentLevel
-        
-        // Check if the player has completed all levels
-        if userProfile.hasCompletedAllLevels {
-            print("🏆 El jugador ha completado todos los niveles disponibles")
-            // Show the congratulations overlay with the final score
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self = self else { return }
-                // Get the last score or use a default value
-                let finalScore = GameManager.shared.highScores[targetLevelId - 1] ?? 1000
-                self.uiManager.showAllLevelsCompletedOverlay(
-                    score: finalScore,
-                    onRestart: { [weak self] in
-                        // Reset the flag and load the first level again
-                        var updatedProfile = userProfile
-                        updatedProfile.hasCompletedAllLevels = false
-                        updatedProfile.statistics.currentLevel = 0 // Back to tutorial
-                        updatedProfile.save()
-                        self?.setupGame()
-                    },
-                    onMenu: { [weak self] in
-                        self?.navigateToMainMenu()
-                    }
-                )
-            }
-            return
-        }
-        
-        // More detailed logging for level loading
-        print("📋 Intentando cargar nivel \(targetLevelId) (nivel actual: \(gameManager.currentLevel?.levelId ?? -1))")
-        
-        // Solo cargar si es necesario
-        if gameManager.currentLevel == nil || gameManager.currentLevel?.levelId != targetLevelId {
-            print("🔄 Necesario cargar nuevo nivel...")
-            
-            if gameManager.loadLevel(targetLevelId) {
-                print("✅ Nivel \(targetLevelId) cargado correctamente")
-            } else {
-                print("⚠️ Error al cargar nivel \(targetLevelId), intentando cargar tutorial")
-                if gameManager.loadLevel(0) {
-                    print("✅ Tutorial (nivel 0) cargado como respaldo")
-                } else {
-                    print("❌ Error crítico: No se pudo cargar ningún nivel")
-                    return
-                }
-            }
-            
-            // Crear un nuevo tracker para el nivel cargado
-            if let currentLevel = gameManager.currentLevel {
-                print("🎯 Creando nuevo tracker de objetivos para nivel \(currentLevel.levelId)")
-                objectiveTracker = LevelObjectiveTracker(level: currentLevel)
-                gameEngine.objectiveTracker = objectiveTracker
-            }
-        } else {
-            print("ℹ️ Usando nivel ya cargado: \(gameManager.currentLevel?.levelId ?? -1)")
-            
-            // Resetear el tracker existente si ya existe uno
-            if objectiveTracker != nil {
-                print("🔄 Reseteando tracker de objetivos existente")
-                objectiveTracker?.resetProgress()
-            } else if let currentLevel = gameManager.currentLevel {
-                print("🎯 Creando tracker de objetivos para nivel ya cargado")
-                objectiveTracker = LevelObjectiveTracker(level: currentLevel)
-                gameEngine.objectiveTracker = objectiveTracker
-            }
-        }
-        
-        // Iniciar el nivel si está cargado
-        if let currentLevel = gameManager.currentLevel {
-            startLevel(currentLevel)
-        }
-    }
-    
-    private func startLevel(_ level: GameLevel) {
-        print("Iniciando nivel \(level.levelId): \(level.name)")
-        
-        // Detener audio y limpiar bloques
-        audioController.stop()
-        blocksManager.clearBlocks()
-        
-        // Configurar UI antes del overlay
-        if let tracker = objectiveTracker {
-            uiManager.configureTopBars(withLevel: level, objectiveTracker: tracker)
-        }
-        uiManager.updateUI(score: 0, lives: level.lives.initial)
-        
-        // Mostrar overlay de inicio de nivel
-        uiManager.showLevelStartOverlay(for: level) { [weak self] in
-            self?.startGameplay()
-        }
-    }
-    
-    private func startGameplay() {
-        print("🎮 Iniciando gameplay")
-        
-        // IMPORTANTE: Pausar el procesamiento de notificaciones durante la inicialización
-        isProcessingNotification = true
-        
-        // Asegurar que todos los managers estén correctamente enlazados
-        if objectiveTracker !== gameEngine.objectiveTracker {
-            print("⚠️ Corrigiendo desincronización en objectiveTracker")
-            gameEngine.objectiveTracker = objectiveTracker
-        }
-        
-        // Usar SKActions para una secuencia controlada de inicialización
-        let startGameEngineAction = SKAction.run { [weak self] in
-            guard let self = self else { return }
-            self.gameEngine.startNewGame()
-            print("✅ Motor de juego iniciado")
-        }
-        
-        let waitForEngineAction = SKAction.wait(forDuration: 0.8)
-        
-        let startAudioAction = SKAction.run { [weak self] in
-            guard let self = self else { return }
-            self.audioController.start()
-            print("✅ Motor de audio iniciado")
-            // Reactivar procesamiento de notificaciones después de iniciar el audio
-            self.isProcessingNotification = false
-        }
-        
-        let waitForAudioAction = SKAction.wait(forDuration: 0.3)
-                
-        let startBlocksAction = SKAction.run { [weak self] in
-            guard let self = self else { return }
-            self.blocksManager.startBlockGeneration()
-            print("✅ Generación de bloques iniciada")
-        }
-        
-        // Establecer el maxDuration inicial basado en el primer bloque
-            if let firstBlock = blocksManager.getCurrentBlock() {
-                uiManager.stabilityIndicatorNode.setMaxDuration(firstBlock.requiredTime)
-            }
-        
-        // Ejecutar la secuencia completa
-        let startupSequence = SKAction.sequence([
-            startGameEngineAction,
-            waitForEngineAction,
-            startAudioAction,
-            waitForAudioAction,
-            startBlocksAction
-        ])
-        
-        // Ejecutar la secuencia en la escena
-        run(startupSequence)
+        // Delegar la configuración del juego al GameSessionManager
+        sessionManager.setupGame()
     }
     
     // MARK: -  Métodos para manejar las notificaciones
@@ -410,6 +273,7 @@ class MusicBlocksScene: SKScene  {
             }
         }
     }
+    
     // MARK: - Update Methods
     override func update(_ currentTime: TimeInterval) {
         // Mantener la actualización original
@@ -530,7 +394,7 @@ class MusicBlocksScene: SKScene  {
                     self?.setupGame()
                 },
                 onMenu: { [weak self] in
-                    self?.navigateToMainMenu()
+                    self?.sessionManager.navigateToMainMenu()
                 }
             )
             return
@@ -545,7 +409,7 @@ class MusicBlocksScene: SKScene  {
                 self?.setupGame()
             },
             onMenu: { [weak self] in
-                self?.navigateToMainMenu()
+                self?.sessionManager.navigateToMainMenu()
             }
         )
     }
@@ -559,35 +423,6 @@ class MusicBlocksScene: SKScene  {
             print("👆 Touch detected while in game over state")
         }
     }
-
-    // Make sure navigateToMainMenu is properly implemented and visible
-    func navigateToMainMenu() {
-        print("🏠 Navigating to main menu...")
-        
-        // Reproducir sonido de botón
-        uiSoundController.playUISound(.buttonTap)
-        
-        // Detener todo el audio y la generación de bloques
-        audioController.stop()
-        blocksManager.stopBlockGeneration()
-        
-        // Guardar datos del jugador si es necesario
-        if let currentLevel = gameManager.currentLevel {
-            gameManager.updateGameStatistics(
-                levelId: currentLevel.levelId,
-                score: gameEngine.score,
-                completed: false  // No se considera completado al salir manualmente
-            )
-        }
-        
-        print("📱 Posting NavigateToMainMenu notification")
-        // Utilizar NotificationCenter para informar a la vista SwiftUI que debe navegar al menú principal
-        NotificationCenter.default.post(
-            name: NSNotification.Name("NavigateToMainMenu"),
-            object: nil
-        )
-    }
-        
 }
 
 // MARK: - Environment Values
@@ -635,7 +470,6 @@ struct MusicBlocksSceneView: View {
                 .navigationBarHidden(true)
         }
     }
-
 }
 
 #if DEBUG

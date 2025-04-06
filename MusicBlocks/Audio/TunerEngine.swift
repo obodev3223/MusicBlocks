@@ -26,7 +26,7 @@ class TunerEngine {
     }
     
     // MARK: - Properties
-    private let concertPitch: Double = 442.0
+    private let concertPitch: Double = 440.0
     
     // Propiedades para la acumulación del hold
     private var noteHoldAccumulator: TimeInterval = 0
@@ -109,7 +109,7 @@ class TunerEngine {
         guard frequency > 0 else { return ("-", 0) }
         
         // Constantes para cálculo de notas
-        let concertPitch: Double = 442.0
+        let concertPitch: Double = 440.0
         let halfStepsFromA4 = 12 * log2(Double(frequency) / concertPitch)
         let roundedHalfSteps = round(halfStepsFromA4)
         let deviation = 100 * (halfStepsFromA4 - roundedHalfSteps)

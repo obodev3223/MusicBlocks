@@ -4,6 +4,7 @@
 //
 //  Created by Jose R. García on 20/3/25.
 //  Refactorizado: Funcionalidad de sonidos UI movida a UISoundController.swift
+//  Mejorado: Sistema de detección de ataque para instrumentos clásicos
 //
 
 import AudioKit
@@ -61,6 +62,19 @@ class AudioController: ObservableObject {
     private var lastProcessedTime: Date = Date()
     private let minimumProcessingInterval: TimeInterval = 0.05 // 50ms entre procesamientos
     
+    // MARK: - Nuevas propiedades para mejorar la detección de ataque
+    private var frequencyBuffer: [Float] = []
+    private var amplitudeBuffer: [Float] = []
+    private let bufferSize = 10 // Tamaño del buffer para promediar (ajustar según necesidades)
+    private var attackPhaseDetected = false
+    private var attackPhaseStartTime: Date?
+    private let attackPhaseMaxDuration: TimeInterval = 0.5 // Duración máxima de la fase de ataque (500ms)
+    private var sustainPhaseFrequencies: [Float] = []
+    private var smoothedFrequency: Float = 0
+    private let frequencySmoothing: Float = 0.8 // Factor de suavizado para la frecuencia
+    private var noteStabilityCounter = 0
+    private let requiredStabilityCount = 5 // Número de lecturas estables necesarias para confirmar nota
+    
     // MARK: - Properties para acceder a los ajustes de sonido
     // (delegando al UISoundController)
     
@@ -109,8 +123,17 @@ class AudioController: ObservableObject {
         if self.smoothedAmplitude > minimumAmplitude,
            frequency >= minimumFrequency && frequency <= maximumFrequency {
             
+            // MEJORA: Añadir frecuencia y amplitud al buffer
+            addToBuffers(frequency: frequency, amplitude: self.smoothedAmplitude)
+            
+            // MEJORA: Detectar fase de ataque vs. fase sostenida
+            processAttackPhase(currentTime: currentTime)
+            
+            // Usar la frecuencia suavizada en lugar de la frecuencia directa
+            let processedFrequency = self.smoothedFrequency
+            
             // Obtener datos de afinación
-            let tunerData = tunerEngine.processPitch(frequency: frequency, amplitude: self.smoothedAmplitude)
+            let tunerData = tunerEngine.processPitch(frequency: processedFrequency, amplitude: self.smoothedAmplitude)
             
             // Actualizar UI en tiempo real sin esperar al hold
             DispatchQueue.main.async {
@@ -120,28 +143,30 @@ class AudioController: ObservableObject {
                 self.publishTunerData()
                 
                 // Actualizar información de estabilidad para UI
-                self.updateStability(frequency: frequency)
+                self.updateStability(frequency: processedFrequency)
                 self.publishStabilityData()
             }
             
-            // Validación del tiempo de "hold" y precisión requeridos
-            let requiredHoldTime = delegate?.audioControllerRequiredHoldTime(self) ?? 1.0
-            
-            // Comprobar si la nota se ha mantenido el tiempo necesario
-            if tunerEngine.updateHoldDetection(
-                note: tunerData.note,
-                currentTime: currentTime.timeIntervalSinceReferenceDate,
-                requiredHoldTime: requiredHoldTime
-            ) {
-                DispatchQueue.main.async {
-                    GameLogger.shared.audioDetection("✅ Nota \(tunerData.note) validada tras mantenerla \(requiredHoldTime) segundos")
-                    self.delegate?.audioController(
-                        self,
-                        didDetectNote: tunerData.note,
-                        frequency: frequency,
-                        amplitude: self.smoothedAmplitude,
-                        deviation: tunerData.deviation
-                    )
+            // MEJORA: Solo procesar detección final si estamos en fase sostenida
+            if !attackPhaseDetected {
+                let requiredHoldTime = delegate?.audioControllerRequiredHoldTime(self) ?? 1.0
+                
+                // Comprobar si la nota se ha mantenido el tiempo necesario
+                if tunerEngine.updateHoldDetection(
+                    note: tunerData.note,
+                    currentTime: currentTime.timeIntervalSinceReferenceDate,
+                    requiredHoldTime: requiredHoldTime
+                ) {
+                    DispatchQueue.main.async {
+                        GameLogger.shared.audioDetection("✅ Nota \(tunerData.note) validada tras mantenerla \(requiredHoldTime) segundos")
+                        self.delegate?.audioController(
+                            self,
+                            didDetectNote: tunerData.note,
+                            frequency: processedFrequency,
+                            amplitude: self.smoothedAmplitude,
+                            deviation: tunerData.deviation
+                        )
+                    }
                 }
             }
             
@@ -155,9 +180,124 @@ class AudioController: ObservableObject {
                 self.publishTunerData()
                 self.publishStabilityData()
                 
+                // Reiniciar detección de ataque cuando hay silencio
+                self.resetAttackDetection()
+                
                 self.delegate?.audioControllerDidDetectSilence(self)
             }
         }
+    }
+    
+    // MARK: - Métodos nuevos para mejorar la detección de ataque
+    
+    /// Añade nuevas lecturas a los buffers de frecuencia y amplitud
+    private func addToBuffers(frequency: Float, amplitude: Float) {
+        // Suavizar también la frecuencia para evitar fluctuaciones rápidas
+        self.smoothedFrequency = (self.frequencySmoothing * self.smoothedFrequency) +
+                                ((1 - self.frequencySmoothing) * frequency)
+        
+        // Añadir al buffer con límite de tamaño
+        frequencyBuffer.append(frequency)
+        amplitudeBuffer.append(amplitude)
+        
+        // Mantener el buffer en el tamaño deseado
+        if frequencyBuffer.count > bufferSize {
+            frequencyBuffer.removeFirst()
+            amplitudeBuffer.removeFirst()
+        }
+        
+        // Si estamos en fase sostenida, recopilar muestras para análisis
+        if !attackPhaseDetected && frequencyBuffer.count >= bufferSize {
+            sustainPhaseFrequencies.append(calculateAverageFrequency())
+            // Limitar el tamaño del historial de fase sostenida
+            if sustainPhaseFrequencies.count > 30 {
+                sustainPhaseFrequencies.removeFirst()
+            }
+        }
+    }
+    
+    /// Procesa la detección de fase de ataque vs. fase sostenida
+    private func processAttackPhase(currentTime: Date) {
+        // Si no tenemos suficientes muestras, asumir que estamos en fase de ataque
+        if frequencyBuffer.count < bufferSize {
+            attackPhaseDetected = true
+            attackPhaseStartTime = attackPhaseStartTime ?? currentTime
+            return
+        }
+        
+        // Si ya estamos en fase sostenida, mantenerla
+        if !attackPhaseDetected {
+            return
+        }
+        
+        // Calcular variaciones en la amplitud y frecuencia
+        let amplitudeVariation = calculateAmplitudeVariation()
+        let frequencyVariation = calculateFrequencyVariation()
+        
+        // Detectar si hemos superado la fase de ataque
+        let isStable = (amplitudeVariation < 0.15) && (frequencyVariation < 5.0)
+        
+        if isStable {
+            noteStabilityCounter += 1
+        } else {
+            noteStabilityCounter = max(0, noteStabilityCounter - 1)
+        }
+        
+        // Si hemos tenido suficientes lecturas estables, cambiar a fase sostenida
+        if noteStabilityCounter >= requiredStabilityCount {
+            GameLogger.shared.audioDetection("🎵 Fase de ataque terminada, comenzando fase sostenida")
+            attackPhaseDetected = false
+            noteStabilityCounter = 0
+            attackPhaseStartTime = nil
+            sustainPhaseFrequencies.removeAll()
+        }
+        
+        // Si la fase de ataque dura demasiado tiempo, forzar cambio a fase sostenida
+        if let startTime = attackPhaseStartTime,
+           currentTime.timeIntervalSince(startTime) > attackPhaseMaxDuration {
+            GameLogger.shared.audioDetection("⚠️ Fase de ataque forzada a terminar por tiempo máximo")
+            attackPhaseDetected = false
+            attackPhaseStartTime = nil
+            sustainPhaseFrequencies.removeAll()
+        }
+    }
+    
+    /// Reinicia la detección de ataque
+    private func resetAttackDetection() {
+        attackPhaseDetected = true
+        attackPhaseStartTime = nil
+        frequencyBuffer.removeAll()
+        amplitudeBuffer.removeAll()
+        sustainPhaseFrequencies.removeAll()
+        noteStabilityCounter = 0
+    }
+    
+    /// Calcula la variación de amplitud en el buffer
+    private func calculateAmplitudeVariation() -> Float {
+        guard amplitudeBuffer.count >= 2 else { return 1.0 }
+        
+        let maxAmplitude = amplitudeBuffer.max() ?? 0
+        let minAmplitude = amplitudeBuffer.min() ?? 0
+        
+        // Normalizar la variación respecto al valor máximo
+        return maxAmplitude > 0 ? (maxAmplitude - minAmplitude) / maxAmplitude : 1.0
+    }
+    
+    /// Calcula la variación de frecuencia en el buffer
+    private func calculateFrequencyVariation() -> Float {
+        guard frequencyBuffer.count >= 2 else { return 100.0 }
+        
+        let maxFrequency = frequencyBuffer.max() ?? 0
+        let minFrequency = frequencyBuffer.min() ?? 0
+        
+        return maxFrequency - minFrequency
+    }
+    
+    /// Calcula la frecuencia promedio del buffer
+    private func calculateAverageFrequency() -> Float {
+        guard !frequencyBuffer.isEmpty else { return 0 }
+        let sum = frequencyBuffer.reduce(0, +)
+        return sum / Float(frequencyBuffer.count)
     }
     
     private init() {
@@ -199,11 +339,13 @@ class AudioController: ObservableObject {
         }
         // Resetear valores al iniciar
         smoothedAmplitude = 0
+        smoothedFrequency = 0
         stabilityDuration = 0
         lastProcessedTime = Date()
         stabilityStartTime = nil
         lastStableFrequency = 0
         tunerData = .inactive
+        resetAttackDetection()
         
         pitchTap.start()
     }
@@ -278,9 +420,9 @@ extension AudioController {
             object: self,
             userInfo: [
                 "duration": stabilityDuration,
-                "requiredTime": requiredTime  // Añadir el requiredTime a la notificación
+                "requiredTime": requiredTime,  // Añadir el requiredTime a la notificación
+                "inAttackPhase": attackPhaseDetected  // Añadir información sobre la fase de ataque
             ]
         )
     }
 }
-
