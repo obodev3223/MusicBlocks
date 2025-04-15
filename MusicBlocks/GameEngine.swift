@@ -141,7 +141,7 @@ class GameEngine: ObservableObject {
         // 1. Detener generación de bloques
         blockManager?.stopBlockGeneration()
         
-        // 2. Detener AudioController (NUEVO)
+        // 2. Detener AudioController
         AudioController.sharedInstance.stop()
         
         // Determinar el string para la razón
@@ -177,7 +177,7 @@ class GameEngine: ObservableObject {
         let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let averageAccuracy = accuracyMeasurements > 0 ? totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
         let requiredScore = gameManager.currentLevel?.requiredScore ?? 0
-        let isGameWon = reason != .blocksOverflow && score >= requiredScore
+        let isGameWon = reason == .victory
         
         // Actualizar estadísticas de juegos ganados/perdidos
         if isGameWon {
@@ -186,21 +186,25 @@ class GameEngine: ObservableObject {
             gamesLost += 1
         }
         
-        // Guardar estadísticas del perfil
+        // Guardar estadísticas del perfil - AQUÍ ESTÁ EL PROBLEMA
+        // El método necesita recibir los parámetros correctos
         let userProfile = UserProfile.load()
         var updatedProfile = userProfile
         updatedProfile.updateStatistics(
             score: score,
-            noteHits: notesHitInGame,  // Añadir las notas acertadas durante la partida
+            noteHits: notesHitInGame,  // Pasar explícitamente las notas acertadas
             currentStreak: combo,      // Pasar el combo actual como racha
             bestStreak: bestStreakInGame, // Pasar la mejor racha de la partida
             accuracy: averageAccuracy,
             levelCompleted: isGameWon,
             isPerfect: averageAccuracy >= 0.95,
             playTime: playTime,
-            gamesWon: gamesWon,
-            gamesLost: gamesLost
+            gamesWon: isGameWon ? 1 : 0,  // Incrementar solo si se ganó esta partida
+            gamesLost: isGameWon ? 0 : 1  // Incrementar solo si se perdió esta partida
         )
+        
+        // Guardar el perfil actualizado
+        updatedProfile.save()
         
         print("📊 Estadísticas finales:")
         print("Tiempo jugado: \(Int(playTime))s, Notas acertadas: \(notesHitInGame), Mejor racha: \(bestStreakInGame), Precisión: \(Int(averageAccuracy * 100))%")
@@ -211,6 +215,20 @@ class GameEngine: ObservableObject {
         print("Bloques acertados: \(totalBlocksAcertados)")
         for (style, count) in blockHitsByStyle {
             print("• \(style): \(count)")
+        }
+        
+        // Actualizar estadísticas en GameManager con todos los datos recopilados
+        if let currentLevel = gameManager.currentLevel {
+            gameManager.updateGameStatistics(
+                levelId: currentLevel.levelId,
+                score: score,
+                completed: reason == .victory,
+                notesHit: notesHitInGame,
+                currentStreak: combo,
+                bestStreak: bestStreakInGame,
+                accuracy: averageAccuracy,
+                playTime: playTime
+            )
         }
         
         resetGameState()
@@ -328,12 +346,18 @@ class GameEngine: ObservableObject {
         let comboMessage = combo > 1 ? " (\(combo)x Combo!)" : ""
         let finalMessage = "\(message)\(comboMessage)"
         
+        // 4. Actualizar estadísticas internas
+        notesHitInGame += 1
+        totalAccuracyInGame += accuracy
+        accuracyMeasurements += 1
+        bestStreakInGame = max(combo, bestStreakInGame)
+        
         print("🏆 ÉXITO: \(message) con precisión \(Int(accuracy*100))%, puntos: \(finalScore), combo: \(combo)")
         
-        // 4. Comprobar si merece vida extra
+        // 5. Comprobar si merece vida extra
         checkForExtraLife(currentScore: score)
         
-        // 5. Actualizar el progreso de los objetivos
+        // 6. Actualizar el progreso de los objetivos
         let blockStyle = blockManager?.getCurrentBlock()?.style ?? "defaultBlock"
         objectiveTracker?.updateProgress(
             score: score,             // Para objetivos tipo "score"
@@ -342,7 +366,7 @@ class GameEngine: ObservableObject {
             blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
         )
             
-        // 6. Send immediate notification to UI
+        // 7. Send immediate notification to UI
         NotificationCenter.default.post(
             name: NSNotification.Name("GameDataUpdated"),
             object: nil,
@@ -358,18 +382,19 @@ class GameEngine: ObservableObject {
             ]
         )
         
-        // 7. Comprobar si se han completado los objetivos (victoria)
+        // 8. Comprobar si se han completado los objetivos (victoria)
         if let primaryComplete = objectiveTracker?.checkObjectives(), primaryComplete {
             endGame(reason: .victory)
+            return
         }
         
-        // 8. Actualizar el estado de la nota para el sistema
+        // 9. Actualizar el estado de la nota para el sistema
         noteState = .success(
             multiplier: finalScore / blockConfig.basePoints,
             message: finalMessage
         )
         
-        // 9. Restaurar estado normal después de un breve tiempo
+        // 10. Restaurar estado normal después de un breve tiempo
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.isInSuccessState = false
             self?.noteState = .waiting

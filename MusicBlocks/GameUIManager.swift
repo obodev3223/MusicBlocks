@@ -465,6 +465,9 @@ class GameUIManager {
             currentOverlay.removeFromParent()
         }
         
+        // Asegurarnos de que se guarden las estadísticas actuales
+        let userProfile = UserProfile.load()
+        
         // Create the new overlay
         let overlaySize = CGSize(width: 400, height: 300)
         let overlay = GameOverOverlayNode(
@@ -500,6 +503,7 @@ class GameUIManager {
         overlay.show(in: scene, overlayPosition: .center)
         
         print("⚙️ GameUIManager: Game over overlay displayed successfully")
+        print("📊 Estadísticas actuales: Puntuación total \(userProfile.statistics.totalScore), Nivel \(userProfile.statistics.currentLevel)")
     }
     
     // MARK: - All Levels Completed Overlay

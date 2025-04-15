@@ -227,10 +227,12 @@ extension Statistics {
 
 // MARK: - Helper Methods
 extension UserProfile {
-    /// Actualiza las estadísticas del jugador después de una partida o acción
     /// - Parameters:
     ///   - score: Puntos ganados en la partida
     ///   - noteHit: Indica si se acertó una nota
+    ///   - noteHits: Nuevo parámetro para múltiples notas
+    ///   - currentStreak: Nuevo parámetro para racha actual
+    ///   - bestStreak: Nuevo parámetro para mejor racha
     ///   - accuracy: Precisión de la partida (0.0 a 1.0)
     ///   - levelCompleted: Indica si se completó un nivel
     ///   - isPerfect: Indica si el nivel se completó con precisión perfecta
