@@ -180,7 +180,7 @@ class GameEngine: ObservableObject {
         // Resto del código para calcular estadísticas...
         let playTime = gameStartTime.map { Date().timeIntervalSince($0) } ?? 0
         let averageAccuracy = accuracyMeasurements > 0 ? totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
-        let requiredScore = gameManager.currentLevel?.requiredScore ?? 0
+        _ = gameManager.currentLevel?.requiredScore ?? 0
         let isGameWon = reason == .victory
         
         // Actualizar estadísticas de juegos ganados/perdidos
