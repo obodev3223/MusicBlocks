@@ -361,6 +361,9 @@ class GameEngine: ObservableObject {
     private func handleSuccess(deviation: Double, blockConfig: Block) {
         isInSuccessState = true
         
+        // Asegúrate de tener acceso a la nota actual
+        let currentNote = blockManager?.getCurrentBlock()?.note ?? ""
+        
         // Incrementar contador de bloques por estilo
         if let currentBlock = blockManager?.getCurrentBlock() {
             blockHitsByStyle[currentBlock.style] = (blockHitsByStyle[currentBlock.style] ?? 0) + 1
@@ -372,7 +375,8 @@ class GameEngine: ObservableObject {
         print("📏 Precisión calculada: \(Int(accuracy*100))%")
         
         // 2. Obtener puntuación y mensaje según la precisión
-        let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig)
+        let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig, note: currentNote)
+            
         let comboBonus = calculateComboBonus(baseScore: baseScore)
         let finalScore = baseScore + comboBonus
         score += finalScore
