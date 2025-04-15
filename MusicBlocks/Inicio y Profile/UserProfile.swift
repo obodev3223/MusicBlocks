@@ -237,12 +237,14 @@ extension UserProfile {
     ///   - levelCompleted: Indica si se completó un nivel
     ///   - isPerfect: Indica si el nivel se completó con precisión perfecta
     ///   - playTime: Tiempo jugado en la partida
+    // En UserProfile.swift - método updateStatistics()
+
     mutating func updateStatistics(
         score: Int = 0,
         noteHit: Bool = false,
-        noteHits: Int = 0,         // Nuevo parámetro para múltiples notas
-        currentStreak: Int = 0,    // Nuevo parámetro para racha actual
-        bestStreak: Int = 0,       // Nuevo parámetro para mejor racha
+        noteHits: Int = 0,
+        currentStreak: Int = 0,
+        bestStreak: Int = 0,
         accuracy: Double? = nil,
         levelCompleted: Bool = false,
         isPerfect: Bool = false,
@@ -278,15 +280,15 @@ extension UserProfile {
                 statistics.updateAccuracy(with: accuracy)
             }
             
-            if levelCompleted {
-                statistics.currentLevel += 1
-                if isPerfect {
-                    statistics.perfectLevelsCount += 1
-                }
+            // Nota: Ya no incrementamos el nivel aquí, lo hacemos en GameManager
+            if isPerfect {
+                statistics.perfectLevelsCount += 1
             }
             
+            // CORREGIDO: Asegurarse de que el tiempo se añade correctamente
             if playTime > 0 {
                 statistics.addPlayTime(playTime)
+                print("⏱️ Tiempo añadido: \(Int(playTime))s, Tiempo total acumulado: \(Int(statistics.playTime))s")
             }
             
             // Actualizar estadísticas de partidas

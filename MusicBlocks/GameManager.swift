@@ -140,10 +140,10 @@ class GameManager {
     func updateGameStatistics(levelId: Int, score: Int, completed: Bool,
                              notesHit: Int = 0, currentStreak: Int = 0, bestStreak: Int = 0,
                              accuracy: Double = 0.0, playTime: TimeInterval = 0) {
-        // Update local statistics
+        // Actualizar estadísticas locales
         totalGamesPlayed += 1
         
-        // Update high score if necessary
+        // Actualizar highscore si es necesario
         if let currentHighScore = highScores[levelId] {
             if score > currentHighScore {
                 highScores[levelId] = score
@@ -154,41 +154,53 @@ class GameManager {
             print("🎮 Primera puntuación en nivel \(levelId): \(score)")
         }
         
-        // Update user profile with all the statistics
+        // Cargar el perfil del usuario
         let userProfile = UserProfile.load()
         var updatedProfile = userProfile
+        
+        // Si el nivel fue completado, actualizar progreso al siguiente nivel
+        // IMPORTANTE: Hacer esto ANTES de actualizar las estadísticas
+        if completed {
+            let nextLevelId = levelId + 1
+            print("🎯 Nivel \(levelId) completado! Verificando progreso a nivel \(nextLevelId)")
+            
+            // Verificar si el siguiente nivel existe antes de actualizar
+            if levelExists(nextLevelId) {
+                if nextLevelId > updatedProfile.statistics.currentLevel {
+                    print("⬆️ Avanzando al siguiente nivel: \(nextLevelId)")
+                    updatedProfile.statistics.currentLevel = nextLevelId
+                } else {
+                    print("ℹ️ El jugador ya estaba en nivel \(updatedProfile.statistics.currentLevel), no avanza más")
+                }
+            } else {
+                // El jugador ha completado todos los niveles disponibles
+                print("🏆 ¡Felicidades! Has completado todos los niveles disponibles")
+                updatedProfile.hasCompletedAllLevels = true
+            }
+        }
+        
+        // Actualizar estadísticas con todos los datos proporcionados
         updatedProfile.updateStatistics(
             score: score,
             noteHits: notesHit,
             currentStreak: currentStreak,
             bestStreak: bestStreak,
             accuracy: accuracy,
-            levelCompleted: completed,
+            levelCompleted: false, // IMPORTANTE: Ya manejamos el level completed arriba
             isPerfect: accuracy >= 0.95,
             playTime: playTime,
             gamesWon: completed ? 1 : 0,
             gamesLost: completed ? 0 : 1
         )
         
-        // If level was completed, update progress to next level
-        if completed {
-            let nextLevelId = levelId + 1
-            print("🎯 Nivel \(levelId) completado! Actualizando progreso a nivel \(nextLevelId)")
-            
-            // Check if the next level exists before updating
-            if levelExists(nextLevelId) {
-                if nextLevelId > updatedProfile.statistics.currentLevel {
-                    updatedProfile.statistics.currentLevel = nextLevelId
-                    print("⬆️ Avanzando al siguiente nivel: \(nextLevelId)")
-                }
-            } else {
-                // The player has completed all available levels
-                print("🏆 ¡Felicidades! Has completado todos los niveles disponibles")
-                updatedProfile.hasCompletedAllLevels = true
-            }
-        }
-        
+        // Guardar el perfil actualizado
         updatedProfile.save()
+        
+        // Imprimir información de debug
+        print("📊 Estadísticas actualizadas:")
+        print("   Nivel actual: \(updatedProfile.statistics.currentLevel)")
+        print("   Tiempo total: \(updatedProfile.statistics.formattedPlayTime)")
+        print("   Partidas ganadas/perdidas: \(updatedProfile.statistics.gamesWon)/\(updatedProfile.statistics.gamesLost)")
     }
     
     // MARK: - Helper Methods
