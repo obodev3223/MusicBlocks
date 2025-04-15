@@ -29,6 +29,9 @@ class BlocksManager {
     private var spawnInterval: TimeInterval
     private var spawnIntervalDecrement: TimeInterval
     
+    // Propiedad para tracking del tiempo de inicio de procesamiento
+    private var processingStartTime: Date?
+    
     // MARK: - Constants
     private struct Constants {
         static let initialDelay: TimeInterval = 1.0
@@ -69,6 +72,31 @@ class BlocksManager {
               "mainAreaHeight: \(mainAreaHeight), " +
               "spawnInterval inicial: \(spawnInterval) s, " +
               "decremento: \(spawnIntervalDecrement) s")
+    }
+    
+    // MARK: - Process State
+    // Método para forzar el reset del estado de procesamiento
+    func forceResetProcessingState() {
+        GameLogger.shared.blockMovement("🔄 Forzando reset del estado de procesamiento de bloques")
+        isProcessingBlock = false
+        processingStartTime = nil
+    }
+
+    // Método para implementar el timeout de seguridad
+    private func setupProcessingTimeout() {
+        processingStartTime = Date()
+        
+        // Si después de 2 segundos seguimos en estado de procesamiento, resetearlo
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            guard let self = self, self.isProcessingBlock == true else { return }
+            
+            // Verificar cuánto tiempo ha pasado desde que comenzó el procesamiento
+            if let startTime = self.processingStartTime,
+               Date().timeIntervalSince(startTime) >= 2.0 {
+                GameLogger.shared.blockMovement("⚠️ Timeout detectado - Reseteando estado de procesamiento")
+                self.forceResetProcessingState()
+            }
+        }
     }
     
     // MARK: - Iniciando generación de bloques
@@ -488,65 +516,104 @@ class BlocksManager {
         GameLogger.shared.blockMovement("   Estado actual: isProcessingBlock=\(isProcessingBlock), lastHitTime=\(String(describing: lastHitTime))")
 
         // Si ya estamos procesando un bloque o ha pasado muy poco tiempo desde el último hit,
-        // ignoramos esta llamada para evitar doble procesamiento
-        let minTimeBetweenHits: TimeInterval = 0.5 // 500ms mínimo entre hits
-        if isProcessingBlock ||
-           (lastHitTime != nil && hitTime.timeIntervalSince(lastHitTime!) < minTimeBetweenHits) {
-            GameLogger.shared.blockMovement("⚠️ Ignorando hit - Procesando: \(isProcessingBlock), Tiempo desde último hit: \(lastHitTime != nil ? hitTime.timeIntervalSince(lastHitTime!) : 0)")
+            // ignoramos esta llamada para evitar doble procesamiento
+            let minTimeBetweenHits: TimeInterval = 0.5 // 500ms mínimo entre hits
+            if isProcessingBlock ||
+               (lastHitTime != nil && hitTime.timeIntervalSince(lastHitTime!) < minTimeBetweenHits) {
+                GameLogger.shared.blockMovement("⚠️ Ignorando hit - Procesando: \(isProcessingBlock), Tiempo desde último hit: \(lastHitTime != nil ? hitTime.timeIntervalSince(lastHitTime!) : 0)")
                 return false
-        }
-        
-        // Marcar como procesando y registrar la hora del hit
-        isProcessingBlock = true
-        lastHitTime = hitTime
-        
-        guard let index = blockInfos.indices.last else {
-            print("⚠️ No hay bloque actual para actualizar.")
-            isProcessingBlock = false
-            return false
-        }
-        
-        var currentInfo = blockInfos[index]
-        print("   Bloque actual: nota \(currentInfo.note), currentHits: \(currentInfo.currentHits)")
-        
-        // Incrementar contador de hits
-        currentInfo.currentHits += 1
-        GameLogger.shared.blockMovement("   Hit \(currentInfo.currentHits)/\(currentInfo.requiredHits) registrado para bloque \(currentInfo.note)")
+            }
+            
+            // Marcar como procesando y registrar la hora del hit
+            isProcessingBlock = true
+            lastHitTime = hitTime
+            
+            // Iniciar timeout de seguridad
+            setupProcessingTimeout()
+            
+            guard let index = blockInfos.indices.last else {
+                print("⚠️ No hay bloque actual para actualizar.")
+                isProcessingBlock = false
+                return false
+            }
+            
+            var currentInfo = blockInfos[index]
+            print("   Bloque actual: nota \(currentInfo.note), currentHits: \(currentInfo.currentHits)")
+            
+            // Incrementar contador de hits
+            currentInfo.currentHits += 1
+            GameLogger.shared.blockMovement("   Hit \(currentInfo.currentHits)/\(currentInfo.requiredHits) registrado para bloque \(currentInfo.note)")
 
-        blockInfos[index] = currentInfo
-        
-        // Verificar si hemos alcanzado el número requerido de hits
-        if currentInfo.currentHits >= currentInfo.requiredHits {
+            blockInfos[index] = currentInfo
+            
+            // Verificar si hemos alcanzado el número requerido de hits
             if currentInfo.currentHits >= currentInfo.requiredHits {
                 GameLogger.shared.blockMovement("🗑️ Requerimientos cumplidos, intentando eliminar bloque ID: \(ObjectIdentifier(currentInfo.node).hashValue)")
+                
+                // Eliminar el bloque con animación, pero solo liberar el estado cuando termine
+                removeLastBlockWithCompletion { [weak self] in
+                    self?.isProcessingBlock = false
+                    self?.processingStartTime = nil
+                    print("✅ Procesamiento de bloque completado.")
                 }
-            
-            // Eliminar el bloque con animación, pero solo liberar el estado cuando termine
-            removeLastBlockWithCompletion { [weak self] in
-                self?.isProcessingBlock = false
-                print("✅ Procesamiento de bloque completado.")
+                return true
             }
-            return true
+            
+            // Si no se eliminó el bloque, liberamos el estado de procesamiento inmediatamente
+            isProcessingBlock = false
+            processingStartTime = nil
+            return false
         }
-        
-        // Si no se eliminó el bloque, liberamos el estado de procesamiento inmediatamente
-        isProcessingBlock = false
-        return false
-    }
     
     // Versión modificada de removeLastBlock que acepta un closure de completion
     func removeLastBlockWithCompletion(completion: @escaping () -> Void) {
         GameLogger.shared.blockMovement("🗑️ removeLastBlockWithCompletion llamado. Bloques en cola: \(blocks.count)")
 
+        // Definir una variable local para garantizar que el completion se llame una sola vez
+        var completionCalled = false
+        
+        // Wrapper para el completion que evita llamadas múltiples
+        let safeCompletion = {
+            if !completionCalled {
+                completionCalled = true
+                completion()
+            }
+        }
+
         guard let lastBlock = blocks.last,
               !blockInfos.isEmpty else {
             GameLogger.shared.blockMovement("⚠️ No hay bloque para eliminar, ejecutando completion handler")
-                completion()
+            safeCompletion()
             return
         }
         
         let nodeID = ObjectIdentifier(lastBlock).hashValue
         GameLogger.shared.blockMovement("🔍 Eliminando bloque ID: \(nodeID), posición actual: \(lastBlock.position)")
+        
+        // Timeout de seguridad para la animación
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self, weak lastBlock] in
+            // Si el bloque todavía existe pero la animación no terminó, forzamos su eliminación
+            if let block = lastBlock, block.parent != nil {
+                GameLogger.shared.blockMovement("⚠️ Timeout de animación para bloque ID: \(nodeID)")
+                block.removeAllActions()
+                block.removeFromParent()
+                
+                // Asegurarnos de que el bloque se elimine de las colecciones
+                if let self = self {
+                    if self.blocks.last == block {
+                        self.blocks.removeLast()
+                    }
+                    if !self.blockInfos.isEmpty {
+                        self.blockInfos.removeLast()
+                    }
+                    self.updateBlockPositions()
+                }
+                
+                // Asegurar que el completion se llame
+                safeCompletion()
+            }
+        }
+        
         let fadeOut = SKAction.fadeOut(withDuration: 0.3)
         let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
         let group = SKAction.group([fadeOut, scaleDown])
@@ -554,20 +621,26 @@ class BlocksManager {
         let sequence = SKAction.sequence([group, remove])
         
         // Después de ejecutar la animación
-        lastBlock.run(sequence) { [weak self] in
+        lastBlock.run(sequence) { [weak self, weak lastBlock] in
             guard let self = self else {
                 GameLogger.shared.blockMovement("⚠️ BlocksManager fue liberado durante la animación del bloque \(nodeID)")
-                completion()
+                safeCompletion()
+                return
+            }
+            
+            guard let block = lastBlock else {
+                GameLogger.shared.blockMovement("⚠️ El bloque fue liberado durante la animación")
+                safeCompletion()
                 return
             }
             
             GameLogger.shared.blockMovement("✅ Animación completada para bloque ID: \(nodeID)")
-            GameLogger.shared.blockMovement("   ¿Bloque sigue siendo hijo de su padre? \(lastBlock.parent != nil)")
+            GameLogger.shared.blockMovement("   ¿Bloque sigue siendo hijo de su padre? \(block.parent != nil)")
             
             // Antes de eliminar de las listas
             GameLogger.shared.blockMovement("   Antes de eliminar - blocks.count: \(self.blocks.count), blockInfos.count: \(self.blockInfos.count)")
             
-            if self.blocks.last != lastBlock {
+            if self.blocks.last != block {
                 GameLogger.shared.blockMovement("⚠️ Error crítico: el último bloque ya no es el que intentamos eliminar")
             }
             
@@ -586,7 +659,7 @@ class BlocksManager {
             GameLogger.shared.blockMovement("   Después de eliminar - blocks.count: \(self.blocks.count), blockInfos.count: \(self.blockInfos.count)")
             
             self.updateBlockPositions()
-            completion()
+            safeCompletion()
         }
     }
 
@@ -596,6 +669,7 @@ class BlocksManager {
 
         // Después de resetear
         isProcessingBlock = false
+        processingStartTime = nil
         GameLogger.shared.blockMovement("   isProcessingBlock después del reset: \(isProcessingBlock)")
 
         guard let index = blockInfos.indices.last else {

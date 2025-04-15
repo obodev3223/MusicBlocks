@@ -52,6 +52,10 @@ class GameEngine: ObservableObject {
     // Seguimiento de bloques por estilo en el nivel actual
     private var blockHitsByStyle: [String: Int] = [:]
     
+    // Propiedad para rastrear el inicio del procesamiento de nota
+    private var lastProcessingStartTime: Date?
+    private let maxProcessingTime: TimeInterval = 2.0
+    
     // MARK: - Initialization
     /// Inicializa el GameEngine con el TunerEngine y el BlocksManager (que puede ser nil)
     init(tunerEngine: TunerEngine = .shared, blockManager: BlocksManager?) {
@@ -275,16 +279,32 @@ class GameEngine: ObservableObject {
         GameLogger.shared.noteDetection("🎵 HandleCorrectNote - Intento registrado con desviación: \(deviation)")
         
         // Procesamiento secuencial de bloques
+        // Registrar tiempo de inicio en caso de que necesitemos detectar un bloqueo
+        lastProcessingStartTime = Date()
+        
         let blockCompleted = blockManager?.updateCurrentBlockProgress(hitTime: Date()) ?? false
         
-        // Actualizar estado de acierto
+        // Si el bloque completó su procesamiento, actualizar el estado adecuadamente
         if blockCompleted {
             GameLogger.shared.noteDetection("🎯 Bloque completado!")
             handleSuccess(deviation: deviation, blockConfig: block.config)
         } else {
-            // Aquí solo actualizamos el estado visual pero no iniciamos otra verificación
+            // Actualizar el estado visual pero no iniciar otra verificación
             noteState = .correct(deviation: deviation)
             GameLogger.shared.noteDetection("🔄 Bloque continúa, progreso actualizado")
+            
+            // Verificar después de un breve tiempo si el procesamiento quedó atascado
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak blockManager] in
+                guard let self = self, let blockManager = blockManager else { return }
+                
+                if blockManager.isBlockProcessing,
+                   let startTime = self.lastProcessingStartTime,
+                   Date().timeIntervalSince(startTime) > self.maxProcessingTime {
+                    GameLogger.shared.noteDetection("⚠️ Detectado bloque atascado después de handleCorrectNote")
+                    blockManager.forceResetProcessingState()
+                    self.lastProcessingStartTime = nil
+                }
+            }
         }
         
         // Incrementar combo solo si el bloque no se completó o si se completó exitosamente
@@ -517,9 +537,34 @@ extension GameEngine: AudioControllerDelegate {
         }
         
         // Verificar si hay un bloque en proceso de eliminación
-        guard let blockManager = blockManager, !blockManager.isBlockProcessing else {
-            print("⚠️ AudioController: Bloque en proceso de eliminación, ignorando nota detectada")
+        guard let blockManager = blockManager else {
+            print("⚠️ AudioController: BlockManager no disponible")
             return
+        }
+        
+        // Detección y corrección de bloque atascado
+        if blockManager.isBlockProcessing {
+            // Si tenemos un registro del tiempo de inicio
+            if let startTime = lastProcessingStartTime {
+                // Si ha pasado demasiado tiempo, el bloque probablemente está atascado
+                if Date().timeIntervalSince(startTime) > maxProcessingTime {
+                    print("⚠️ AudioController: Detectada posible condición de bloqueo - Reset forzado")
+                    blockManager.forceResetProcessingState()
+                    lastProcessingStartTime = nil
+                    // Continuar con procesamiento normal después del reset
+                } else {
+                    print("⚠️ AudioController: Bloque en proceso de eliminación, ignorando nota detectada")
+                    return
+                }
+            } else {
+                // Registrar el tiempo actual como inicio del procesamiento
+                lastProcessingStartTime = Date()
+                print("⚠️ AudioController: Bloque en proceso de eliminación, ignorando nota y marcando tiempo")
+                return
+            }
+        } else {
+            // Si no está procesando, resetear el tiempo de inicio
+            lastProcessingStartTime = nil
         }
         
         print("AudioControllerDelegate - Nota detectada: \(note), Frecuencia: \(frequency)")
@@ -538,6 +583,29 @@ extension GameEngine: AudioControllerDelegate {
             // Si el juego ha terminado, ignorar completamente el procesamiento
             return
         }
+        
+        // Verificar estado de procesamiento de bloques
+        if let blockManager = blockManager, blockManager.isBlockProcessing {
+            // Si existe un tiempo de inicio registrado
+            if let startTime = lastProcessingStartTime,
+               Date().timeIntervalSince(startTime) > maxProcessingTime {
+                // Force reset if it's been too long
+                print("⚠️ AudioController (Silence): Detectada posible condición de bloqueo - Reset forzado")
+                blockManager.forceResetProcessingState()
+                lastProcessingStartTime = nil
+            } else if lastProcessingStartTime == nil {
+                // Register start time if not already registered
+                lastProcessingStartTime = Date()
+            }
+            
+            // Publicar notificaciones actualizadas aunque estemos en estado de procesamiento
+            controller.publishTunerData()
+            controller.publishStabilityData()
+            return
+        }
+        
+        // Reset processing start time if not processing
+        lastProcessingStartTime = nil
         
         // Publicar notificaciones para actualizar UI (ahora en modo inactivo)
         controller.publishTunerData()
@@ -562,4 +630,3 @@ extension GameEngine: AudioControllerDelegate {
         return 1.0
     }
 }
-

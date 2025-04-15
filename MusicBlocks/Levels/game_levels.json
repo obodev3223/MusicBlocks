@@ -78,7 +78,7 @@
         {
             "level_id": 0,
             "name": "Tutorial",
-            "max_score": 500,
+            "max_score": 500, // Máxima puntuación para conseguir todas las estrellas
             "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
             "falling_speed": {
                 "initial": 4.0,  // Velocidad de caida inicial 8.0 segundos
