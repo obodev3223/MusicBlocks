@@ -454,23 +454,39 @@ class GameEngine: ObservableObject {
         return 1.0 - ((absDeviation - 10.0) / (acceptableDeviation - 10.0))
     }
     
+    /// Calcula el bono por nota dificil
+    private func getComplexNoteMultiplier(for note: String) -> Double {
+        guard let currentLevel = gameManager.currentLevel,
+              let complexNotes = currentLevel.complexNotes,
+              let multiplier = complexNotes[note] else {
+            return 1.0  // Multiplicador por defecto si la nota no está en la lista
+        }
+        return multiplier
+    }
+    
     /// Calcula la puntuación base y un mensaje en función de la precisión.
-    private func calculateScore(accuracy: Double, blockConfig: Block) -> (score: Int, message: String) {
+    private func calculateScore(accuracy: Double, blockConfig: Block, note: String) -> (score: Int, message: String) {
         guard let thresholds = gameManager.gameConfig?.accuracyThresholds else {
             return (blockConfig.basePoints, "¡Bien!")
         }
         
+        // Obtener el multiplicador para notas complejas
+        let complexMultiplier = getComplexNoteMultiplier(for: note)
+        
+        // Aplicar el multiplicador de complejidad al puntaje base
+        let adjustedBasePoints = Int(Double(blockConfig.basePoints) * complexMultiplier)
+        
         if accuracy >= thresholds.perfect.threshold {
-            return (Int(Double(blockConfig.basePoints) * thresholds.perfect.multiplier), "¡Perfecto!")
+            return (Int(Double(adjustedBasePoints) * thresholds.perfect.multiplier), "¡Perfecto!")
         } else if accuracy >= thresholds.excellent.threshold {
-            return (Int(Double(blockConfig.basePoints) * thresholds.excellent.multiplier), "¡Excelente!")
+            return (Int(Double(adjustedBasePoints) * thresholds.excellent.multiplier), "¡Excelente!")
         } else if accuracy >= thresholds.good.threshold {
-            return (Int(Double(blockConfig.basePoints) * thresholds.good.multiplier), "¡Bien!")
+            return (Int(Double(adjustedBasePoints) * thresholds.good.multiplier), "¡Bien!")
         }
         
         return (0, "Fallo")
     }
-    
+        
     /// Calcula el bono por combo.
     private func calculateComboBonus(baseScore: Int) -> Int {
         // Limitar el multiplicador de combo a 10x como máximo

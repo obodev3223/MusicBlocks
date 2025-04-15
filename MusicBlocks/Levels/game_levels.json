@@ -80,6 +80,10 @@
             "name": "Tutorial",
             "max_score": 500, // Máxima puntuación para conseguir todas las estrellas
             "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
+            // Sección para definir notas complejas
+                "complex_notes": {
+                    "SOL4": 2.0    // SOL4 tiene multiplicador 2.0
+                },
             "falling_speed": {
                 "initial": 4.0,  // Velocidad de caida inicial 8.0 segundos
                 "increment": 0.0 // Incremento de velocidad de caida. Quitar 0.0 segundos en cada bloque
@@ -117,23 +121,27 @@
             "level_id": 1,
             "name": "¡Comienza la aventura!",
             "max_score": 600,
-            "allowed_styles": ["defaultBlock", "iceBlock"],
+            "allowed_styles": ["defaultBlock"],
             "falling_speed": {
                 "initial": 7.0,  // Velocidad de caida inicial
-                "increment": 0.1 // Incremento de velocidad de caida
+                "increment": 0 // Incremento de velocidad de caida
             },
+            // Sección para definir notas complejas
+                "complex_notes": {
+                    "SOL4": 2.0    // SOL4 tiene multiplicador 2.0
+                },
             "lives": {
                 "initial": 3,  // Número de vidas al inicio del nivel
                 "extra_lives": {
                     "score_thresholds": [500, 1000],  // Puntuaciones necesarias para ganar vidas extra
-                    "max_extra": 2  // Máximo de vidas extra en el nivel
+                    "max_extra": 1  // Máximo de vidas extra en el nivel
                 }
             },
             "objectives": {
                 "primary": {
                     "type": "note_accuracy",
                     "target": 10,  // número de notas a acertar
-                    "minimum_accuracy": 0.8,  // 80% de precisión mínima
+                    "minimum_accuracy": 0.7,  // 70% de precisión mínima
                     "time_limit": 0  // 0 significa sin límite de tiempo
                 }
 
@@ -150,82 +158,10 @@
                     "style": "defaultBlock",
                     "weight": 0.8,
                     "base_points": 5
-                },
-                "iceBlock": {
-                    "notes": [
-                        "FA#4",
-                        "DO5"
-                    ],
-                    "requiredHits": 2,
-                    "requiredTime": 1.2,
-                    "style": "iceBlock",
-                    "weight": 0.2,
-                    "base_points": 10
-                }
-            }
-        },
-        {
-            "level_id": 2,
-            "name": "Más bloques...!",
-            "max_score": 700,
-            "allowed_styles": ["defaultBlock", "hardIceBlock", "ghostBlock"],
-            "falling_speed": {
-                "initial": 6.0,  // Velocidad de caida inicial
-                "increment": 0.2 // Incremento de velocidad de caida
-            },
-            "lives": {
-                "initial": 3,  // Número de vidas al inicio del nivel
-                "extra_lives": {
-                    "score_thresholds": [500, 1000],  // Puntuaciones necesarias para ganar vidas extra
-                    "max_extra": 2  // Máximo de vidas extra en el nivel
-                }
-            },
-            "objectives": {
-                "primary": { // El objetivo principal que debe cumplirse para completar el nivel
-                    "type": "total_blocks",
-                    "target": 15,  // destruir 15 bloques en total
-                    "time_limit": 240
-                }
-            },
-            "blocks": {
-                "defaultBlock": {
-                    "notes": [
-                        "SOL4",
-                        "LA4",
-                        "SI4"
-                    ],
-                    "requiredHits": 1,
-                    "requiredTime": 0.8,
-                    "style": "defaultBlock",
-                    "weight": 0.4,
-                    "base_points": 10
-                },
-                "hardIceBlock": {
-                    "notes": [
-                        "DO6",
-                        "LA5",
-                        "SI5"
-                    ],
-                    "requiredHits": 3,
-                    "requiredTime": 1.6,
-                    "style": "hardIceBlock",
-                    "weight": 0.3,
-                    "base_points": 20
-                },
-                "ghostBlock": {
-                    "notes": [
-                        "SOL5",
-                        "FA5",
-                        "MI4"
-                    ],
-                    "requiredHits": 1,
-                    "requiredTime": 1,
-                    "style": "ghostBlock",
-                    "weight": 0.3,
-                    "base_points": 25
                 }
             }
         }
+
     ],
     "medals": {
         "notes_hit": [

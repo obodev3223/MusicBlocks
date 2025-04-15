@@ -76,6 +76,7 @@ struct GameLevel: Codable {
     let name: String
     let maxScore: Int
     let allowedStyles: [String]
+    let complexNotes: [String: Double]?
     let fallingSpeed: FallingSpeed
     let lives: Lives
     let objectives: Objectives
@@ -95,6 +96,7 @@ struct GameLevel: Codable {
         case name
         case maxScore = "max_score"
         case allowedStyles = "allowed_styles"
+        case complexNotes = "complex_notes" 
         case fallingSpeed = "falling_speed"
         case lives
         case objectives
