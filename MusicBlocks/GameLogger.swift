@@ -15,7 +15,7 @@ class GameLogger {
     var showScoreUpdates = true
     var showUIUpdates = true
     var showNoteDetection = true
-    var showBlockMovement = false
+    var showBlockMovement = true
     var showAudioDetection = true
     var showOverlayUpdates = true
     

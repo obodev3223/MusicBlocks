@@ -26,7 +26,7 @@ class TunerEngine {
     }
     
     // MARK: - Properties
-    private let concertPitch: Double = 440.0
+    private let concertPitch: Double = 442.0
     
     // Propiedades para la acumulación del hold
     private var noteHoldAccumulator: TimeInterval = 0
@@ -109,7 +109,7 @@ class TunerEngine {
         guard frequency > 0 else { return ("-", 0) }
         
         // Constantes para cálculo de notas
-        let concertPitch: Double = 440.0
+        let concertPitch: Double = 442.0
         let halfStepsFromA4 = 12 * log2(Double(frequency) / concertPitch)
         let roundedHalfSteps = round(halfStepsFromA4)
         let deviation = 100 * (halfStepsFromA4 - roundedHalfSteps)
@@ -120,23 +120,18 @@ class TunerEngine {
         
         // Mapeo de índices a notas con sus posibles alteraciones
         let noteMapping: [(String, MusicalNote.Alteration)] = [
-            ("DO", .natural),
-            ("DO", .sharp),
-            ("RE", .flat),
-            ("RE", .natural),
-            ("RE", .sharp),
-            ("MI", .flat),
-            ("MI", .natural),
-            ("FA", .natural),
-            ("FA", .sharp),
-            ("SOL", .flat),
-            ("SOL", .natural),
-            ("SOL", .sharp),
-            ("LA", .flat),
-            ("LA", .natural),
-            ("LA", .sharp),
-            ("SI", .flat),
-            ("SI", .natural)
+            ("DO", .natural),     // 0 - C
+            ("DO", .sharp),       // 1 - C#
+            ("RE", .natural),     // 2 - D
+            ("RE", .sharp),       // 3 - D#
+            ("MI", .natural),     // 4 - E
+            ("FA", .natural),     // 5 - F
+            ("FA", .sharp),       // 6 - F#
+            ("SOL", .natural),    // 7 - G
+            ("SOL", .sharp),      // 8 - G#
+            ("LA", .natural),     // 9 - A
+            ("LA", .sharp),       // 10 - A#
+            ("SI", .natural)      // 11 - B
         ]
         
         // Determinar la nota más cercana con su alteración
@@ -166,8 +161,8 @@ class TunerEngine {
         
         // Comprobar equivalentes enarmónicos (DO# = REb, etc.)
         let enharmonicPairs = [
-            ["DO#", "REb"], ["RE#", "MIb"],
-            ["FA#", "SOLb"], ["SOL#", "LAb"], ["LA#", "SIb"]
+            ["DO#", "RE♭"], ["RE#", "MI♭"],
+            ["FA#", "SOL♭"], ["SOL#", "LA♭"], ["LA#", "SI♭"]
         ]
         
         for pair in enharmonicPairs {

@@ -333,23 +333,23 @@ class BlocksManager {
     
     // MARK: - Block Position Management
     private func updateBlockPositions() {
-        //   print("↕️ Actualizando posiciones de \(blocks.count) bloques.")
+        GameLogger.shared.blockMovement("↕️ updateBlockPositions - Actualizando posiciones de \(blocks.count) bloques")
         let moveDistance = blockSize.height + blockSpacing
         let moveDuration = 0.5
         
+        // Para cada bloque actualizado
         for (index, block) in blocks.enumerated() {
-            // Calcular la posición final para cada bloque
             let targetY = (mainAreaHeight/2) - (blockSize.height/2) - (moveDistance * CGFloat(index))
-            //      print("   Bloque \(index): moviéndose a Y = \(targetY)")
-            // Mover el bloque a su posición con una animación suave
+            GameLogger.shared.blockMovement("   Bloque \(index): ID: \(ObjectIdentifier(block).hashValue), moviéndose a Y = \(targetY)")
+            
+            // Verificar posición final después de la animación
             let moveToPosition = SKAction.moveTo(y: targetY, duration: moveDuration)
             moveToPosition.timingMode = .easeInEaseOut
             
-            // Detener cualquier acción previa
             block.removeAllActions()
-            
-            // Aplicar solo el movimiento de posicionamiento
-            block.run(moveToPosition)
+            block.run(moveToPosition) {
+                    GameLogger.shared.blockMovement("   ✓ Bloque \(index) completó su movimiento a Y = \(block.position.y)")
+                }
         }
     }
     
@@ -484,15 +484,16 @@ class BlocksManager {
     
     // MARK: - Block Progress Management
     func updateCurrentBlockProgress(hitTime: Date) -> Bool {
-        print("⏱️ updateCurrentBlockProgress llamado a las \(hitTime)")
-        
+        GameLogger.shared.blockMovement("⏱️ updateCurrentBlockProgress llamado a las \(hitTime)")
+        GameLogger.shared.blockMovement("   Estado actual: isProcessingBlock=\(isProcessingBlock), lastHitTime=\(String(describing: lastHitTime))")
+
         // Si ya estamos procesando un bloque o ha pasado muy poco tiempo desde el último hit,
         // ignoramos esta llamada para evitar doble procesamiento
         let minTimeBetweenHits: TimeInterval = 0.5 // 500ms mínimo entre hits
         if isProcessingBlock ||
            (lastHitTime != nil && hitTime.timeIntervalSince(lastHitTime!) < minTimeBetweenHits) {
-            print("⚠️ Ignorando hit - Procesando: \(isProcessingBlock), Tiempo desde último hit: \(lastHitTime != nil ? hitTime.timeIntervalSince(lastHitTime!) : 0)")
-            return false
+            GameLogger.shared.blockMovement("⚠️ Ignorando hit - Procesando: \(isProcessingBlock), Tiempo desde último hit: \(lastHitTime != nil ? hitTime.timeIntervalSince(lastHitTime!) : 0)")
+                return false
         }
         
         // Marcar como procesando y registrar la hora del hit
@@ -510,12 +511,15 @@ class BlocksManager {
         
         // Incrementar contador de hits
         currentInfo.currentHits += 1
-        print("   Hit registrado. currentHits ahora: \(currentInfo.currentHits)")
+        GameLogger.shared.blockMovement("   Hit \(currentInfo.currentHits)/\(currentInfo.requiredHits) registrado para bloque \(currentInfo.note)")
+
         blockInfos[index] = currentInfo
         
         // Verificar si hemos alcanzado el número requerido de hits
         if currentInfo.currentHits >= currentInfo.requiredHits {
-            print("   Requisitos completos (hits: \(currentInfo.currentHits), requeridos: \(currentInfo.requiredHits)). Se eliminará el bloque.")
+            if currentInfo.currentHits >= currentInfo.requiredHits {
+                GameLogger.shared.blockMovement("🗑️ Requerimientos cumplidos, intentando eliminar bloque ID: \(ObjectIdentifier(currentInfo.node).hashValue)")
+                }
             
             // Eliminar el bloque con animación, pero solo liberar el estado cuando termine
             removeLastBlockWithCompletion { [weak self] in
@@ -532,40 +536,68 @@ class BlocksManager {
     
     // Versión modificada de removeLastBlock que acepta un closure de completion
     func removeLastBlockWithCompletion(completion: @escaping () -> Void) {
-        print("🗑️ Eliminando último bloque...")
+        GameLogger.shared.blockMovement("🗑️ removeLastBlockWithCompletion llamado. Bloques en cola: \(blocks.count)")
+
         guard let lastBlock = blocks.last,
               !blockInfos.isEmpty else {
-            print("⚠️ No hay bloque para eliminar.")
-            completion()
+            GameLogger.shared.blockMovement("⚠️ No hay bloque para eliminar, ejecutando completion handler")
+                completion()
             return
         }
         
+        let nodeID = ObjectIdentifier(lastBlock).hashValue
+        GameLogger.shared.blockMovement("🔍 Eliminando bloque ID: \(nodeID), posición actual: \(lastBlock.position)")
         let fadeOut = SKAction.fadeOut(withDuration: 0.3)
         let scaleDown = SKAction.scale(to: 0.1, duration: 0.3)
         let group = SKAction.group([fadeOut, scaleDown])
         let remove = SKAction.removeFromParent()
         let sequence = SKAction.sequence([group, remove])
         
+        // Después de ejecutar la animación
         lastBlock.run(sequence) { [weak self] in
             guard let self = self else {
+                GameLogger.shared.blockMovement("⚠️ BlocksManager fue liberado durante la animación del bloque \(nodeID)")
                 completion()
                 return
             }
-            print("🗑️ Bloque eliminado. Actualizando lista de bloques...")
-            self.blocks.removeLast()
-            self.blockInfos.removeLast()
-            self.updateBlockPositions()
             
-            // Llamar al completion handler solo cuando todo haya terminado
+            GameLogger.shared.blockMovement("✅ Animación completada para bloque ID: \(nodeID)")
+            GameLogger.shared.blockMovement("   ¿Bloque sigue siendo hijo de su padre? \(lastBlock.parent != nil)")
+            
+            // Antes de eliminar de las listas
+            GameLogger.shared.blockMovement("   Antes de eliminar - blocks.count: \(self.blocks.count), blockInfos.count: \(self.blockInfos.count)")
+            
+            if self.blocks.last != lastBlock {
+                GameLogger.shared.blockMovement("⚠️ Error crítico: el último bloque ya no es el que intentamos eliminar")
+            }
+            
+            if !self.blocks.isEmpty {
+                self.blocks.removeLast()
+            } else {
+                GameLogger.shared.blockMovement("⚠️ Error: blocks array vacío antes de eliminar")
+            }
+            
+            if !self.blockInfos.isEmpty {
+                self.blockInfos.removeLast()
+            } else {
+                GameLogger.shared.blockMovement("⚠️ Error: blockInfos array vacío antes de eliminar")
+            }
+            
+            GameLogger.shared.blockMovement("   Después de eliminar - blocks.count: \(self.blocks.count), blockInfos.count: \(self.blockInfos.count)")
+            
+            self.updateBlockPositions()
             completion()
         }
     }
 
     func resetCurrentBlockProgress() {
-        print("🔄 Reset current block progress")
-        // Restablecer el estado de procesamiento
+        GameLogger.shared.blockMovement("🔄 Reset current block progress llamado")
+        GameLogger.shared.blockMovement("   isProcessingBlock antes del reset: \(isProcessingBlock)")
+
+        // Después de resetear
         isProcessingBlock = false
-        
+        GameLogger.shared.blockMovement("   isProcessingBlock después del reset: \(isProcessingBlock)")
+
         guard let index = blockInfos.indices.last else {
             print("⚠️ No hay bloque actual para resetear.")
             return
@@ -574,7 +606,12 @@ class BlocksManager {
         currentInfo.currentHits = 0
         blockInfos[index] = currentInfo
         print("   Progreso del bloque reseteado.")
+        
+        // Al final del método
+        if let index = blockInfos.indices.last, blockInfos[index].currentHits > 0 {
+            GameLogger.shared.blockMovement("   Hits reseteados a 0 para bloque \(blockInfos[index].note)")
+        } else {
+            GameLogger.shared.blockMovement("   No se pudo resetear ningún bloque, índice válido: \(blockInfos.indices.last != nil)")
+        }
     }
-
-    
 }

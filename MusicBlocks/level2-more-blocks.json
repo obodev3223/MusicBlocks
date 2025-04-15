@@ -1,0 +1,344 @@
+{
+    "game_version": "0.7",
+    "objective_types": {
+        "score": {
+            "type": "score",
+            "description": "Alcanzar una puntuación específica en un tiempo límite",
+            "params": {
+                "target": 100,
+                "time_limit": 180
+            }
+        },
+        "total_notes": {
+            "type": "total_notes",
+            "description": "Acertar un número de notas específico",
+            "params": {
+                "target": 50,
+                "time_limit": 90
+            }
+        },
+        "note_accuracy": {
+            "type": "note_accuracy",
+            "description": "Acertar un número de notas con cierta precisión",
+            "params": {
+                "target": 10,
+                "minimum_accuracy": 0.8,
+                "time_limit": 90
+            }
+        },
+        "block_destruction": {
+            "type": "block_destruction",
+            "description": "Destruir bloques específicos",
+            "params": {
+                "details": {
+                    "ghostBlock": 2,
+                    "hardIceBlock": 3,
+                    "defaultBlock": 6
+                },
+                "time_limit": 90
+            }
+        },
+        "total_blocks": {
+            "type": "total_blocks",
+            "description": "Destruir un número total de bloques",
+            "params": {
+                "target": 15,
+                "time_limit": 240
+            }
+        }
+    },
+    "accuracy_thresholds": {
+        "perfect": {
+            "threshold": 0.90,
+            "multiplier": 3.0
+        },
+        "excellent": {
+            "threshold": 0.70,
+            "multiplier": 2.0
+        },
+        "good": {
+            "threshold": 0.50,
+            "multiplier": 1.0
+        }
+    },
+    "levels": [
+        {
+            "level_id": 2,
+            "name": "Más bloques...!",
+            "max_score": 700,
+            "allowed_styles": ["defaultBlock", "hardIceBlock", "ghostBlock"],
+            "falling_speed": {
+                "initial": 6.0,
+                "increment": 0.2
+            },
+            "lives": {
+                "initial": 3,
+                "extra_lives": {
+                    "score_thresholds": [500, 1000],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "total_blocks",
+                    "target": 15,
+                    "time_limit": 240
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.8,
+                    "style": "defaultBlock",
+                    "weight": 0.4,
+                    "base_points": 10
+                },
+                "hardIceBlock": {
+                    "notes": [
+                        "DO6",
+                        "LA5",
+                        "SI5"
+                    ],
+                    "requiredHits": 3,
+                    "requiredTime": 1.6,
+                    "style": "hardIceBlock",
+                    "weight": 0.3,
+                    "base_points": 20
+                },
+                "ghostBlock": {
+                    "notes": [
+                        "SOL5",
+                        "FA5",
+                        "MI4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 1,
+                    "style": "ghostBlock",
+                    "weight": 0.3,
+                    "base_points": 25
+                }
+            }
+        }
+    ],
+    "medals": {
+        "notes_hit": [
+            {
+                "name": "Aprendiz del Pentagrama",
+                "requirement": "50 notas acertadas",
+                "image": "Badge-azul-1",
+                "objective": {
+                    "type": "notes_hit",
+                    "target": 50,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Intérprete Prometedor",
+                "requirement": "250 notas acertadas",
+                "image": "Badge-azul-2",
+                "objective": {
+                    "type": "notes_hit",
+                    "target": 250,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Virtuoso del Ritmo",
+                "requirement": "500 notas acertadas",
+                "image": "Badge-azul-3",
+                "objective": {
+                    "type": "notes_hit",
+                    "target": 500,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Maestro Melódico",
+                "requirement": "1000 notas acertadas",
+                "image": "Badge-azul-4",
+                "objective": {
+                    "type": "notes_hit",
+                    "target": 1000,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Leyenda Musical",
+                "requirement": "5000 notas acertadas",
+                "image": "Badge-azul-5",
+                "objective": {
+                    "type": "notes_hit",
+                    "target": 5000,
+                    "lifetime": true
+                }
+            }
+        ],
+        "play_time": [
+            {
+                "name": "Toca y Aprende",
+                "requirement": "30 minutos jugados",
+                "image": "Badge-rojo-1",
+                "objective": {
+                    "type": "play_time",
+                    "target": 1800,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Sesión de Ensayo",
+                "requirement": "2 horas jugadas",
+                "image": "Badge-rojo-2",
+                "objective": {
+                    "type": "play_time",
+                    "target": 7200,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Músico Apasionado",
+                "requirement": "10 horas jugadas",
+                "image": "Badge-rojo-3",
+                "objective": {
+                    "type": "play_time",
+                    "target": 36000,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Compositor Dedicado",
+                "requirement": "25 horas jugadas",
+                "image": "Badge-rojo-4",
+                "objective": {
+                    "type": "play_time",
+                    "target": 90000,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Eterno Virtuoso",
+                "requirement": "50 horas jugadas",
+                "image": "Badge-rojo-5",
+                "objective": {
+                    "type": "play_time",
+                    "target": 180000,
+                    "lifetime": true
+                }
+            }
+        ],
+        "streaks": [
+            {
+                "name": "Afinado",
+                "requirement": "10 notas seguidas sin errores",
+                "image": "Badge-oro-1",
+                "objective": {
+                    "type": "streak",
+                    "target": 10,
+                    "reset_on_fail": true
+                }
+            },
+            {
+                "name": "Cuerda Perfecta",
+                "requirement": "50 notas seguidas sin errores",
+                "image": "Badge-oro-2",
+                "objective": {
+                    "type": "streak",
+                    "target": 50,
+                    "reset_on_fail": true
+                }
+            },
+            {
+                "name": "Ejecutante de Concierto",
+                "requirement": "100 notas seguidas sin errores",
+                "image": "Badge-oro-3",
+                "objective": {
+                    "type": "streak",
+                    "target": 100,
+                    "reset_on_fail": true
+                }
+            },
+            {
+                "name": "Prodigio Preciso",
+                "requirement": "250 notas seguidas sin errores",
+                "image": "Badge-oro-4",
+                "objective": {
+                    "type": "streak",
+                    "target": 250,
+                    "reset_on_fail": true
+                }
+            },
+            {
+                "name": "Músico Impecable",
+                "requirement": "500 notas seguidas sin errores",
+                "image": "Badge-oro-5",
+                "objective": {
+                    "type": "streak",
+                    "target": 500,
+                    "reset_on_fail": true
+                }
+            }
+        ],
+        "perfect_tuning": [
+            {
+                "name": "Afinación Perfecta",
+                "requirement": "Completa un nivel con 100% de precisión",
+                "image": "Badge-multi-1",
+                "objective": {
+                    "type": "perfect_tuning",
+                    "target": 1,
+                    "accuracy": 1.0,
+                    "lifetime": true
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Maestro de la Afinación",
+                "requirement": "Completa 5 niveles con 100% de precisión",
+                "image": "Badge-multi-2",
+                "objective": {
+                    "type": "perfect_tuning",
+                    "target": 5,
+                    "accuracy": 1.0,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Ejecutor Infalible",
+                "requirement": "Completa 10 niveles con 100% de precisión",
+                "image": "Badge-multi-3",
+                "objective": {
+                    "type": "perfect_tuning",
+                    "target": 10,
+                    "accuracy": 1.0,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Perfección Sonora",
+                "requirement": "Completa 25 niveles con 100% de precisión",
+                "image": "Badge-multi-4",
+                "objective": {
+                    "type": "perfect_tuning",
+                    "target": 25,
+                    "accuracy": 1.0,
+                    "lifetime": true
+                }
+            },
+            {
+                "name": "Leyenda de la Precisión",
+                "requirement": "Completa 50 niveles con 100% de precisión",
+                "image": "Badge-multi-5",
+                "objective": {
+                    "type": "perfect_tuning",
+                    "target": 50,
+                    "accuracy": 1.0,
+                    "lifetime": true
+                }
+            }
+        ]
+    }
+}

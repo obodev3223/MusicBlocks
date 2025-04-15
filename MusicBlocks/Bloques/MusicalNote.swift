@@ -152,19 +152,12 @@ extension MusicalNote {
     
     /// Método estático para comparar notas de manera flexible
         static func areNotesEquivalent(_ note1: String, _ note2: String) -> Bool {
-            // Función para normalizar la nota (quitar octava y dejar solo nombre base)
+            // Función para normalizar la nota (quitar octava y estandarizar bemoles)
             func normalizeNote(_ note: String) -> String {
-                return String(note.prefix(while: { !$0.isNumber }))
+                let withoutOctave = String(note.prefix(while: { !$0.isNumber }))
+                // Estandarizar representación de bemoles (convertir 'b' a '♭')
+                return withoutOctave.replacingOccurrences(of: "b", with: "♭")
             }
-            
-            // Diccionario expandido de equivalencias enarmónicas
-            let enharmonicEquivalents: [String: [String]] = [
-                "DO#": ["REb"], "RE♭": ["DO#"],
-                "RE#": ["MIb"], "MI♭": ["RE#"],
-                "FA#": ["SOLb"], "SOL♭": ["FA#"],
-                "SOL#": ["LAb"], "LA♭": ["SOL#"],
-                "LA#": ["SIb"], "SI♭": ["LA#"]
-            ]
             
             // Si son exactamente iguales
             if note1 == note2 {
@@ -173,6 +166,20 @@ extension MusicalNote {
             
             let base1 = normalizeNote(note1)
             let base2 = normalizeNote(note2)
+            
+            // Si después de normalizar son iguales
+            if base1 == base2 {
+                return true
+            }
+            
+            // Diccionario de equivalencias enarmónicas (usando solo ♭)
+            let enharmonicEquivalents: [String: [String]] = [
+                "DO#": ["RE♭"], "RE♭": ["DO#"],
+                "RE#": ["MI♭"], "MI♭": ["RE#"],
+                "FA#": ["SOL♭"], "SOL♭": ["FA#"],
+                "SOL#": ["LA♭"], "LA♭": ["SOL#"],
+                "LA#": ["SI♭"], "SI♭": ["LA#"]
+            ]
             
             // Verificar equivalencias enarmónicas
             if let equivalents = enharmonicEquivalents[base1] {
