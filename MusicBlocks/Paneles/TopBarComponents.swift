@@ -261,51 +261,31 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         contentContainer.position = CGPoint(x: TopBarLayout.padding, y: 0)
         addChild(contentContainer)
         
-        switch objective.type {
-        case "note_accuracy":
-            // Para note_accuracy creamos un contenedor especial para los tres parámetros
-            let noteAccuracyContainer = SKNode()
-            contentContainer.addChild(noteAccuracyContainer)
-            blockDestructionContainer = noteAccuracyContainer
-            
-            // No creamos los iconos tradicionales, todo se manejará en updateInfo
-            
-        case "block_destruction":
-            // Para block_destruction, creamos un contenedor especial que organizará los bloques en columnas
+        // Para todos los tipos de objetivo usamos el mismo enfoque básico
+        // Esto asegura consistencia visual entre diferentes tipos
+        
+        // 1. Definir qué tipo de icono principal usaremos
+        let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
+        
+        // 2. Crear el icono principal para todos los tipos
+        objectiveIconNode = ObjectiveIconNode(type: iconType)
+        if let objIcon = objectiveIconNode {
+            objIcon.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
+            contentContainer.addChild(objIcon)
+        }
+        
+        // 3. Crear el icono de tiempo para todos los tipos
+        timeIconNode = ObjectiveIconNode(type: .time)
+        if let timeIcon = timeIconNode {
+            timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.verticalSpacing * 2)
+            contentContainer.addChild(timeIcon)
+        }
+        
+        // 4. Para casos especiales, preparamos contenedores adicionales
+        if objective.type == "block_destruction" || objective.type == "note_accuracy" {
             let container = SKNode()
             contentContainer.addChild(container)
             blockDestructionContainer = container
-            
-        case "total_blocks":
-            // Para total_blocks, solo mostramos el total y opcionalmente el tiempo
-            objectiveIconNode = ObjectiveIconNode(type: .blocks)
-            if let objIcon = objectiveIconNode {
-                objIcon.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
-                contentContainer.addChild(objIcon)
-            }
-            
-            // Si hay límite de tiempo
-            if objective.timeLimit != nil {
-                timeIconNode = ObjectiveIconNode(type: .time)
-                if let timeIcon = timeIconNode {
-                    timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.verticalSpacing * 2)
-                    contentContainer.addChild(timeIcon)
-                }
-            }
-            
-        default:
-            let iconType: ObjectiveIcon = getObjectiveIconType(for: objective.type)
-            objectiveIconNode = ObjectiveIconNode(type: iconType)
-            if let objIcon = objectiveIconNode {
-                objIcon.position = CGPoint(x: 0, y: TopBarLayout.verticalSpacing * 2)
-                contentContainer.addChild(objIcon)
-            }
-            
-            timeIconNode = ObjectiveIconNode(type: .time)
-            if let timeIcon = timeIconNode {
-                timeIcon.position = CGPoint(x: 0, y: -TopBarLayout.verticalSpacing * 2)
-                contentContainer.addChild(timeIcon)
-            }
         }
     }
 
@@ -348,85 +328,82 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     func updateInfo(with progress: ObjectiveProgress) {
         guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
         
-        // Solo actualizamos el timeIcon en tipos que no sean note_accuracy o block_destruction
-        // ya que estos manejan su propio tiempo como parte de sus parámetros
-        if objective.type != "note_accuracy" && objective.type != "block_destruction" {
-            if let timeLimit = objective.timeLimit {
-                updateTimeIcon(progress: progress, timeLimit: timeLimit)
-            } else {
-                timeIconNode?.updateValue("∞")
-            }
-        }
-        
-        // Actualizar según el tipo de objetivo
-        switch objective.type {
-        case "block_destruction":
+        // Para objetivos especiales con sus propios contenedores
+        if objective.type == "block_destruction" {
             if let details = objective.details {
                 updateBlockDestructionLayout(with: progress, details: details)
             }
-            
-        case "note_accuracy":
+            return
+        }
+        
+        if objective.type == "note_accuracy" {
             updateNoteAccuracyLayout(with: progress, objective: objective)
-            
+            return
+        }
+        
+        // Para el resto de objetivos, actualizamos de manera estándar
+        
+        // 1. Actualizar el valor principal según el tipo de objetivo
+        switch objective.type {
         case "score":
             objectiveIconNode?.updateValue("\(progress.score)/\(objective.target ?? 0)")
-            
         case "total_notes":
             objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
-            
         case "total_blocks":
             objectiveIconNode?.updateValue("\(progress.totalBlocksDestroyed)/\(objective.target ?? 0)")
-            
         default:
-            break
+            objectiveIconNode?.updateValue("-")
+        }
+        
+        // 2. Actualizar el tiempo si hay límite de tiempo
+        if let timeLimit = objective.timeLimit {
+            updateTimeIcon(progress: progress, timeLimit: timeLimit)
+        } else {
+            timeIconNode?.updateValue("∞")
         }
     }
 
     private func updateNoteAccuracyLayout(with progress: ObjectiveProgress, objective: Objective) {
-        // Limpiar contenedor
+        // Usar la misma estructura y estilo que los demás tipos de objetivos
+        // para mantener consistencia visual
+        
+        // 1. Mostrar las notas acertadas en el icono principal
+        objectiveIconNode?.updateValue("\(progress.notesHit)/\(objective.target ?? 0)")
+        
+        // 2. Actualizar el tiempo en el formato estándar
+        if let timeLimit = objective.timeLimit {
+            updateTimeIcon(progress: progress, timeLimit: timeLimit)
+        } else {
+            timeIconNode?.updateValue("∞")
+        }
+        
+        // 3. Para la precisión, creamos un tercer elemento en la misma posición vertical que el objectiveIconNode
+        // pero a la derecha
+        
+        // Limpiar el contenedor auxiliar
         blockDestructionContainer?.removeAllChildren()
         guard let container = blockDestructionContainer else { return }
         
-        // Usamos las constantes globales para mantener consistencia con todos los demás objetivos
-        let iconSize: CGFloat = TopBarLayout.iconSize
-        let rowHeight: CGFloat = TopBarLayout.rowSpacing
-        let fontSize: CGFloat = TopBarLayout.fontSize
-        let iconOffset: CGFloat = TopBarLayout.horizontalSpacing
-        let columnSeparation: CGFloat = 60  // Separación entre columnas
-        
-        // COLUMNA 1: Notas y Precisión
-        
-        // 1. Notas acertadas/objetivo (fila superior)
-        let notesIcon = SKSpriteNode(imageNamed: "note_icon")
-        notesIcon.size = CGSize(width: iconSize, height: iconSize)
-        notesIcon.position = CGPoint(x: -columnSeparation/2 - iconOffset, y: rowHeight/2)
-        container.addChild(notesIcon)
-        
-        let notesLabel = SKLabelNode(fontNamed: "Helvetica")
-        notesLabel.fontSize = fontSize
-        notesLabel.fontColor = .darkGray
-        notesLabel.text = "\(progress.notesHit)/\(objective.target ?? 0)"
-        notesLabel.horizontalAlignmentMode = .left
-        notesLabel.verticalAlignmentMode = .center
-        notesLabel.position = CGPoint(x: -columnSeparation/2 + iconSize/2, y: rowHeight/2)
-        container.addChild(notesLabel)
-        
-        // 2. Precisión (fila inferior)
+        // Crear el icono de precisión
         let accuracyIcon = SKSpriteNode(imageNamed: "target_icon")
+        let iconSize = TopBarLayout.iconSize
         accuracyIcon.size = CGSize(width: iconSize, height: iconSize)
-        accuracyIcon.position = CGPoint(x: -columnSeparation/2 - iconOffset, y: -rowHeight/2)
+        
+        // Posicionar en la misma altura que el objectiveIconNode (fila superior)
+        // pero desplazado a la derecha
+        accuracyIcon.position = CGPoint(x: size.width/3, y: TopBarLayout.verticalSpacing * 2)
         container.addChild(accuracyIcon)
         
+        // Etiqueta con el valor de precisión (sin signos %)
         let accuracyPercentage = Int(progress.averageAccuracy * 100)
         let minAccuracyPercentage = Int((objective.minimumAccuracy ?? 0) * 100)
         
         let accuracyLabel = SKLabelNode(fontNamed: "Helvetica")
-        accuracyLabel.fontSize = fontSize
-        // Quitar los signos % para ahorrar espacio
+        accuracyLabel.fontSize = TopBarLayout.fontSize
         accuracyLabel.text = "\(accuracyPercentage)/\(minAccuracyPercentage)"
         accuracyLabel.horizontalAlignmentMode = .left
         accuracyLabel.verticalAlignmentMode = .center
-        accuracyLabel.position = CGPoint(x: -columnSeparation/2 + iconSize/2, y: -rowHeight/2)
+        accuracyLabel.position = CGPoint(x: accuracyIcon.position.x + iconSize/2 + TopBarLayout.horizontalSpacing, y: accuracyIcon.position.y)
         
         // Color según precisión
         if progress.averageAccuracy < (objective.minimumAccuracy ?? 0) {
@@ -435,57 +412,6 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             accuracyLabel.fontColor = .darkGray
         }
         container.addChild(accuracyLabel)
-        
-        // COLUMNA 2: Tiempo - alineado con la fila superior
-        
-        // Mostrar el tiempo en la columna derecha, alineado con la fila superior
-        if let timeLimit = objective.timeLimit {
-            let timeIcon = SKSpriteNode(imageNamed: "timer_icon")
-            timeIcon.size = CGSize(width: iconSize, height: iconSize)
-            // Alineado con la fila superior
-            timeIcon.position = CGPoint(x: columnSeparation/2 - iconOffset, y: rowHeight/2)
-            container.addChild(timeIcon)
-            
-            let timeLimitInterval = TimeInterval(timeLimit)
-            let remainingTime = max(timeLimitInterval - progress.timeElapsed, 0)
-            let minutes = Int(remainingTime) / 60
-            let seconds = Int(remainingTime) % 60
-            
-            let timeLabel = SKLabelNode(fontNamed: "Helvetica")
-            timeLabel.fontSize = fontSize
-            timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
-            timeLabel.horizontalAlignmentMode = .left
-            timeLabel.verticalAlignmentMode = .center
-            // Alineado con la fila superior
-            timeLabel.position = CGPoint(x: columnSeparation/2 + iconSize/2, y: rowHeight/2)
-            
-            // Color según tiempo restante
-            if remainingTime < 30 {
-                timeLabel.fontColor = .red
-            } else {
-                timeLabel.fontColor = .darkGray
-            }
-            container.addChild(timeLabel)
-        } else {
-            let timeIcon = SKSpriteNode(imageNamed: "timer_icon")
-            timeIcon.size = CGSize(width: iconSize, height: iconSize)
-            // Alineado con la fila superior
-            timeIcon.position = CGPoint(x: columnSeparation/2 - iconOffset, y: rowHeight/2)
-            container.addChild(timeIcon)
-            
-            let timeLabel = SKLabelNode(fontNamed: "Helvetica")
-            timeLabel.fontSize = fontSize
-            timeLabel.text = "∞"
-            timeLabel.horizontalAlignmentMode = .left
-            timeLabel.verticalAlignmentMode = .center
-            // Alineado con la fila superior
-            timeLabel.position = CGPoint(x: columnSeparation/2 + iconSize/2, y: rowHeight/2)
-            timeLabel.fontColor = .darkGray
-            container.addChild(timeLabel)
-        }
-        
-        // Ajustar posición general del contenedor para centrarlo mejor
-        container.position = CGPoint(x: size.width/4, y: 0)
     }
     
     // Método para actualizar el layout de block_destruction en formato de columnas
