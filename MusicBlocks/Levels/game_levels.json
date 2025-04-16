@@ -1,17 +1,17 @@
 {
     /*
-    Configuración principal del juego MusicBlocks
-    Última actualización: 15-04-2025
-    */
+     Configuración principal del juego MusicBlocks
+     Última actualización: 15-04-2025
+     */
     "game_version": "0.8",
     /*
-    Tipos de objetivos soportados:
-    score: Alcanzar una puntuación específica en un tiempo límite
-    total_notes: Acertar un número de notas específico
-    note_accuracy: Acertar un número determinado de notas con cierta precisión de afinación
-    block_destruction: Destruir un número específico de bloques de ciertos tipos
-    total_blocks: Destruir un número total de bloques sin importar el tipo
-    */
+     Tipos de objetivos soportados:
+     score: Alcanzar una puntuación específica en un tiempo límite
+     total_notes: Acertar un número de notas específico
+     note_accuracy: Acertar un número determinado de notas con cierta precisión de afinación
+     block_destruction: Destruir un número específico de bloques de ciertos tipos
+     total_blocks: Destruir un número total de bloques sin importar el tipo
+     */
     "objective_types": {
         // El tipo de objetivo score, total_notes, note_accuracy, block_destruction, total_blocks
         "score": {
@@ -76,14 +76,14 @@
     },
     "levels": [
         {
-            "level_id": 0,
+            "level_id": 1,
             "name": "Tutorial",
             "max_score": 500, // Máxima puntuación para conseguir todas las estrellas
             "allowed_styles": ["defaultBlock"], // Estilos de bloque en el nivel
             // Sección para definir notas complejas
-                "complex_notes": {
-                    "SOL4": 2.0    // SOL4 tiene multiplicador 2.0
-                },
+            "complex_notes": {
+                "SOL4": 2.0    // SOL4 tiene multiplicador 2.0
+            },
             "falling_speed": {
                 "initial": 4.0,  // Velocidad de caida inicial 8.0 segundos
                 "increment": 0.0 // Incremento de velocidad de caida. Quitar 0.0 segundos en cada bloque
@@ -118,7 +118,7 @@
             }
         },
         {
-            "level_id": 1,
+            "level_id": 2,
             "name": "¡Comienza la aventura!",
             "max_score": 600,
             "allowed_styles": ["defaultBlock"],
@@ -127,9 +127,9 @@
                 "increment": 0 // Incremento de velocidad de caida
             },
             // Sección para definir notas complejas
-                "complex_notes": {
-                    "SOL4": 2.0    // SOL4 tiene multiplicador 2.0
-                },
+            "complex_notes": {
+                "SOL4": 1.5    // SOL4 tiene multiplicador 1.5
+            },
             "lives": {
                 "initial": 3,  // Número de vidas al inicio del nivel
                 "extra_lives": {
@@ -144,7 +144,7 @@
                     "minimum_accuracy": 0.7,  // 70% de precisión mínima
                     "time_limit": 0  // 0 significa sin límite de tiempo
                 }
-
+                
             },
             "blocks": {
                 "defaultBlock": {
@@ -160,8 +160,392 @@
                     "base_points": 5
                 }
             }
+        },
+        {
+            /* Nivel 3: Introduciendo nuevo objetivo total_notes */
+            "level_id": 3,
+            "name": "Ritmo Constante",
+            "max_score": 750,
+            "allowed_styles": ["defaultBlock"],
+            "complex_notes": {
+                "SOL4": 1.5
+            },
+            "falling_speed": {
+                "initial": 6.5,  // Velocidad de caída inicial un poco más rápida que nivel anterior
+                "increment": 0.05 // Pequeño incremento de velocidad al destruir bloques
+            },
+            "lives": {
+                "initial": 3,
+                "extra_lives": {
+                    "score_thresholds": [600, 1200],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "total_notes",
+                    "target": 30,  // 30 notas acertadas para completar
+                    "time_limit": 120  // 2 minutos para completarlo
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.9, // Un poco más de tiempo sosteniendo la nota
+                    "style": "defaultBlock",
+                    "weight": 1.0,
+                    "base_points": 5
+                }
+            }
+        },
+        {
+            /* Nivel 4: Introduciendo objetivo total_blocks con velocidad creciente */
+            "level_id": 4,
+            "name": "Destructor de Bloques",
+            "max_score": 900,
+            "allowed_styles": ["defaultBlock"],
+            "falling_speed": {
+                "initial": 6.0,  // Velocidad de caída un poco más lenta para compensar el incremento
+                "increment": 0.1 // Mayor incremento de velocidad al destruir bloques
+            },
+            "lives": {
+                "initial": 3,
+                "extra_lives": {
+                    "score_thresholds": [700, 1400],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "total_blocks",
+                    "target": 25,  // 25 bloques a destruir
+                    "time_limit": 150  // 2 minutos y medio para completarlo
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.75, // Menos tiempo sosteniendo la nota
+                    "style": "defaultBlock",
+                    "weight": 1.0,
+                    "base_points": 5
+                }
+            }
+        },
+        {
+            /* Nivel 5: Combinando precisión y puntuación alta */
+            "level_id": 5,
+            "name": "Sinfonía Perfecta",
+            "max_score": 1200,
+            "allowed_styles": ["defaultBlock"],
+            "falling_speed": {
+                "initial": 5.5,  // Velocidad más desafiante
+                "increment": 0.15 // Incremento de velocidad aún mayor
+            },
+            "lives": {
+                "initial": 3,
+                "extra_lives": {
+                    "score_thresholds": [800, 1600],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "score",
+                    "target": 500,  // Puntuación objetivo más alta
+                    "time_limit": 180  // 3 minutos para completarlo
+                },
+                "secondary": {  // Añadiendo un objetivo secundario de precisión
+                    "type": "note_accuracy",
+                    "target": 20,
+                    "minimum_accuracy": 0.8,  // 80% de precisión mínima
+                    "time_limit": 180
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes""notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.7, // Aún menos tiempo sosteniendo la nota
+                    "style": "defaultBlock",
+                    "weight": 1.0,
+                    "base_points": 5
+                }
+            }
+        },
+        {
+            /*
+             Nivel 6: Introduciendo la nota DO5 con objetivo accesible de score
+             */
+            "level_id": 6,
+            "name": "Melodía Ascendente",
+            "max_score": 1000,
+            "allowed_styles": ["defaultBlock"],
+            "complex_notes": {
+                "SOL4": 1.5,
+                "DO5": 2.0
+            },
+            "falling_speed": {
+                "initial": 6.0,  // Velocidad más moderada que el nivel 5
+                "increment": 0.1  // Incremento moderado
+            },
+            "lives": {
+                "initial": 4,    // Una vida inicial extra para compensar la nueva nota
+                "extra_lives": {
+                    "score_thresholds": [750, 1500],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "score",
+                    "target": 400,  // Objetivo de puntuación accesible
+                    "time_limit": 210  // 3 minutos y medio para completarlo
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4",
+                        "DO5"  // Añadida la nota DO5
+                    ],
+                    "requiredHits": 1,  // Parámetro fijo según instrucciones
+                    "requiredTime": 0.8,
+                    "style": "defaultBlock",
+                    "weight": 1.0,
+                    "base_points": 5   // Parámetro fijo según instrucciones
+                }
+            }
+        },
+        {
+            /*
+             Nivel 7: Melodía con objetivo de notas totales
+             */
+            "level_id": 7,
+            "name": "Armonía Musical",
+            "max_score": 1500,
+            "allowed_styles": ["defaultBlock"],
+            "complex_notes": {
+                "SOL4": 1.5,
+                "DO5": 2.0
+            },
+            "falling_speed": {
+                "initial": 5.8,  // Ligeramente más rápido que el nivel 6
+                "increment": 0.05  // Menor incremento para compensar la dificultad añadida
+            },
+            "lives": {
+                "initial": 4,
+                "extra_lives": {
+                    "score_thresholds": [800, 1600],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "total_notes",
+                    "target": 35,  // Objetivo accesible de notas totales
+                    "time_limit": 180  // 3 minutos para completarlo
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4",
+                        "DO5"  // Añadida la nota DO5
+                    ],
+                    "requiredHits": 1,  // Parámetro fijo según instrucciones
+                    "requiredTime": 0.8,
+                    "style": "defaultBlock",
+                    "weight": 1.0,
+                    "base_points": 5   // Parámetro fijo según instrucciones
+                }
+            }
+        },
+        {
+            /*
+             Nivel 8: Introduciendo la nota FA#4 junto con DO5 como notas complejas
+             */
+            "level_id": 8,
+            "name": "Escala Ampliada",
+            "max_score": 1800,
+            "allowed_styles": ["defaultBlock"],
+            "complex_notes": {
+                "DO5": 2.0,
+                "FA#4": 2.0
+            },
+            "falling_speed": {
+                "initial": 5.5,  // Ligeramente más rápido que niveles anteriores
+                "increment": 0.08
+            },
+            "lives": {
+                "initial": 4,
+                "extra_lives": {
+                    "score_thresholds": [900, 1800],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "score",
+                    "target": 500,
+                    "time_limit": 200
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4",
+                        "DO5",
+                        "FA#4"  // Añadida la nota FA#4
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.8,
+                    "style": "defaultBlock",
+                    "weight": 1.0,
+                    "base_points": 5
+                }
+            }
+        },
+        {
+            /*
+             Nivel 9: Manteniendo FA#4 como nota compleja e introduciendo iceBlock
+             */
+            "level_id": 9,
+            "name": "Hielo Sutil",
+            "max_score": 2000,
+            "allowed_styles": ["defaultBlock", "iceBlock"],
+            "complex_notes": {
+                "FA#4": 2.0
+            },
+            "falling_speed": {
+                "initial": 5.3,
+                "increment": 0.1
+            },
+            "lives": {
+                "initial": 4,
+                "extra_lives": {
+                    "score_thresholds": [1000, 2000],
+                    "max_extra": 2
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "total_notes",
+                    "target": 45,
+                    "time_limit": 210
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4",
+                        "DO5",
+                        "FA#4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.75,
+                    "style": "defaultBlock",
+                    "weight": 0.9,  // 90% de probabilidad
+                    "base_points": 5
+                },
+                "iceBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4",
+                        "DO5",
+                        "FA#4"
+                    ],
+                    "requiredHits": 2,  // Parámetro fijo según instrucciones
+                    "requiredTime": 0.7,
+                    "style": "iceBlock",
+                    "weight": 0.1,  // 10% de probabilidad como solicitado
+                    "base_points": 10  // Parámetro fijo según instrucciones
+                }
+            }
+        },
+        {
+            /*
+             Nivel 10: Incrementando la dificultad y el peso del iceBlock
+             */
+            "level_id": 10,
+            "name": "Sinfonía de Hielo",
+            "max_score": 2500,
+            "allowed_styles": ["defaultBlock", "iceBlock"],
+            "complex_notes": {
+                "FA#4": 2.0
+            },
+            "falling_speed": {
+                "initial": 5.0,  // Más rápido que niveles anteriores
+                "increment": 0.12
+            },
+            "lives": {
+                "initial": 4,
+                "extra_lives": {
+                    "score_thresholds": [1200, 2400],
+                    "max_extra": 3
+                }
+            },
+            "objectives": {
+                "primary": {
+                    "type": "total_blocks",
+                    "target": 40,
+                    "time_limit": 240
+                }
+            },
+            "blocks": {
+                "defaultBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4",
+                        "DO5",
+                        "FA#4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.7,
+                    "style": "defaultBlock",
+                    "weight": 0.8,  // 80% de probabilidad
+                    "base_points": 5
+                },
+                "iceBlock": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4",
+                        "DO5",
+                        "FA#4"
+                    ],
+                    "requiredHits": 2,  // Parámetro fijo según instrucciones
+                    "requiredTime": 0.65,
+                    "style": "iceBlock",
+                    "weight": 0.2,  // 20% de probabilidad como solicitado
+                    "base_points": 10  // Parámetro fijo según instrucciones
+                }
+            }
         }
-
     ],
     "medals": {
         "notes_hit": [

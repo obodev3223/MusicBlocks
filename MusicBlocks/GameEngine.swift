@@ -69,12 +69,18 @@ class GameEngine: ObservableObject {
     /// Inicia una nueva partida, reseteando todas las métricas y configurando el nivel actual.
 
     func startNewGame() {
-        guard let currentLevel = gameManager.currentLevel else {
-            print("No se pudo iniciar el juego: no hay nivel actual")
+        // Verificar si ya estamos en estado playing para evitar inicializaciones múltiples
+        if case .playing = gameState {
+            print("⚠️ El juego ya está en curso, evitando reinicializaciones")
             return
         }
         
-        print("Iniciando nueva partida para el nivel \(currentLevel.levelId)")
+        guard let currentLevel = gameManager.currentLevel else {
+            print("❌ No se pudo iniciar el juego: no hay nivel actual")
+            return
+        }
+        
+        print("🎮 Iniciando nueva partida para el nivel \(currentLevel.levelId)")
         resetGameState()
         
         // Reiniciar contadores por estilo de bloque
@@ -142,7 +148,6 @@ class GameEngine: ObservableObject {
     }
     
     /// Finaliza la partida, calcula estadísticas y actualiza el perfil del usuario.
-
     func endGame(reason: GameOverReason) {
         // Establecer estado de gameOver
         gameState = .gameOver(reason: reason)
@@ -153,7 +158,7 @@ class GameEngine: ObservableObject {
         // 2. Detener AudioController
         AudioController.sharedInstance.stop()
         
-        // Calcular tiempo de juego ANTES de cualquier otra cosa
+        // Calcular tiempo de juego
         let playTime: TimeInterval
         if let startTime = gameStartTime {
             playTime = Date().timeIntervalSince(startTime)
@@ -192,51 +197,11 @@ class GameEngine: ObservableObject {
             ]
         )
         
-        // Resto del código para calcular estadísticas...
+        // Calcular estadísticas finales
         let averageAccuracy = accuracyMeasurements > 0 ? totalAccuracyInGame / Double(accuracyMeasurements) : 0.0
-        let isGameWon = reason == .victory
         
-        // Actualizar estadísticas de juegos ganados/perdidos
-        if isGameWon {
-            gamesWon += 1
-        } else {
-            gamesLost += 1
-        }
-        
-        // Guardar estadísticas del perfil
-        let userProfile = UserProfile.load()
-        var updatedProfile = userProfile
-        updatedProfile.updateStatistics(
-            score: score,
-            noteHits: notesHitInGame,
-            currentStreak: combo,
-            bestStreak: bestStreakInGame,
-            accuracy: averageAccuracy,
-            levelCompleted: isGameWon,
-            isPerfect: averageAccuracy >= 0.95,
-            playTime: playTime,    // Asegurarse de que se pasa el tiempo calculado
-            gamesWon: isGameWon ? 1 : 0,
-            gamesLost: isGameWon ? 0 : 1
-        )
-        
-        // Guardar el perfil actualizado
-        updatedProfile.save()
-        
-        print("📊 Estadísticas finales:")
-        print("⏱️ Tiempo jugado: \(Int(playTime))s")
-        print("🎵 Notas acertadas: \(notesHitInGame)")
-        print("🔄 Mejor racha: \(bestStreakInGame)")
-        print("📏 Precisión: \(Int(averageAccuracy * 100))%")
-        print("🏆 Estado: \(isGameWon ? "Victoria" : "Derrota")")
-        print("🎮 Total partidas - Ganadas: \(gamesWon), Perdidas: \(gamesLost)")
-        
-        let totalBlocksAcertados = blockHitsByStyle.values.reduce(0, +)
-        print("📦 Bloques acertados: \(totalBlocksAcertados)")
-        for (style, count) in blockHitsByStyle {
-            print("• \(style): \(count)")
-        }
-        
-        // Actualizar estadísticas en GameManager con todos los datos recopilados
+        // IMPORTANTE: Solo actualizar estadísticas a través de GameManager
+        // NO actualizar aquí directamente el perfil para evitar duplicación
         if let currentLevel = gameManager.currentLevel {
             gameManager.updateGameStatistics(
                 levelId: currentLevel.levelId,
@@ -246,8 +211,22 @@ class GameEngine: ObservableObject {
                 currentStreak: combo,
                 bestStreak: bestStreakInGame,
                 accuracy: averageAccuracy,
-                playTime: playTime    // Asegurarse de que se pasa el tiempo calculado
+                playTime: playTime
             )
+        }
+        
+        // Impresión de estadísticas para debug
+        print("📊 Estadísticas finales:")
+        print("⏱️ Tiempo jugado: \(Int(playTime))s")
+        print("🎵 Notas acertadas: \(notesHitInGame)")
+        print("🔄 Mejor racha: \(bestStreakInGame)")
+        print("📏 Precisión: \(Int(averageAccuracy * 100))%")
+        print("🏆 Estado: \(isGameWon ? "Victoria" : "Derrota")")
+        
+        let totalBlocksAcertados = blockHitsByStyle.values.reduce(0, +)
+        print("📦 Bloques acertados: \(totalBlocksAcertados)")
+        for (style, count) in blockHitsByStyle {
+            print("• \(style): \(count)")
         }
         
         resetGameState()

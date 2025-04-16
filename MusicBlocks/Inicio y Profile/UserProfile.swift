@@ -106,7 +106,7 @@ struct Statistics: Codable {
     
     /// Inicializador con valores por defecto para nuevas estadísticas
     init(totalScore: Int = 0,
-         currentLevel: Int = 0,
+         currentLevel: Int = 1,
          playTime: TimeInterval = 0,
          notesHit: Int = 0,
          currentStreak: Int = 0,
@@ -239,62 +239,88 @@ extension UserProfile {
     ///   - playTime: Tiempo jugado en la partida
     // En UserProfile.swift - método updateStatistics()
 
+    // En UserProfile.swift - Método updateStatistics()
+
     mutating func updateStatistics(
         score: Int = 0,
-        noteHit: Bool = false,
-        noteHits: Int = 0,
+        noteHit: Bool = false,      // Usar solo para incrementos individuales durante el juego
+        noteHits: Int = 0,          // Usar para actualizar el total al final del juego
         currentStreak: Int = 0,
         bestStreak: Int = 0,
         accuracy: Double? = nil,
         levelCompleted: Bool = false,
         isPerfect: Bool = false,
         playTime: TimeInterval = 0,
-        gamesWon: Int = 0,
-        gamesLost: Int = 0) {
+        gamesWon: Int = 0,          // Incremento para partidas ganadas (0 o 1)
+        gamesLost: Int = 0) {       // Incremento para partidas perdidas (0 o 1)
+            
+            // Puntuación siempre se acumula
             statistics.totalScore += score
             
-            // Añadir notas individuales si se especifica
+            // SOLO cuando estamos en modo "incremento individual"
             if noteHit {
                 statistics.notesHit += 1
                 statistics.updateStreak(hitNote: true)
-            } else {
+            } else if noteHit == false && (gamesWon > 0 || gamesLost > 0) {
+                // Si es una actualización de fin de juego y no hay noteHit
                 statistics.updateStreak(hitNote: false)
             }
             
-            // Añadir múltiples notas si se especifica
+            // Actualización en bloque de notas acertadas (solo si hay un valor positivo)
             if noteHits > 0 {
                 statistics.notesHit += noteHits
+                print("🎵 Incrementadas \(noteHits) notas acertadas, total: \(statistics.notesHit)")
             }
             
-            // Actualizar racha actual
-            if currentStreak > statistics.currentStreak {
+            // Actualizar rachas
+            if currentStreak > 0 && currentStreak > statistics.currentStreak {
                 statistics.currentStreak = currentStreak
             }
             
-            // Actualizar mejor racha
-            if bestStreak > statistics.bestStreak {
+            if bestStreak > 0 && bestStreak > statistics.bestStreak {
                 statistics.bestStreak = bestStreak
             }
             
+            // Actualizar precision si se proporciona
             if let accuracy = accuracy {
-                statistics.updateAccuracy(with: accuracy)
+                // En lugar de llamar a updateAccuracy que incrementa totalGamesPlayed
+                // lo hacemos manualmente para evitar incrementos extra
+                if accuracy > 0 {
+                    // Calculamos el nuevo promedio directamente
+                    if statistics.totalGamesPlayed == 0 {
+                        statistics.averageAccuracy = accuracy
+                    } else {
+                        let totalAccuracy = statistics.averageAccuracy * Double(statistics.totalGamesPlayed)
+                        statistics.averageAccuracy = (totalAccuracy + accuracy) / Double(statistics.totalGamesPlayed + 1)
+                    }
+                    
+                    // NO incrementamos totalGamesPlayed aquí, lo hacemos abajo
+                    print("📊 Actualizada precisión a: \(statistics.formattedAccuracy)")
+                }
             }
             
-            // Nota: Ya no incrementamos el nivel aquí, lo hacemos en GameManager
+            // Solo contar niveles perfectos al final del juego si se indica
             if isPerfect {
                 statistics.perfectLevelsCount += 1
+                print("🌟 Incrementado contador de niveles perfectos: \(statistics.perfectLevelsCount)")
             }
             
-            // CORREGIDO: Asegurarse de que el tiempo se añade correctamente
+            // Acumular tiempo de juego si es mayor que cero
             if playTime > 0 {
                 statistics.addPlayTime(playTime)
-                print("⏱️ Tiempo añadido: \(Int(playTime))s, Tiempo total acumulado: \(Int(statistics.playTime))s")
+                print("⏱️ Tiempo añadido: \(Int(playTime))s, Total: \(Int(statistics.playTime))s")
             }
             
-            // Actualizar estadísticas de partidas
-            statistics.gamesWon += gamesWon
-            statistics.gamesLost += gamesLost
-            statistics.totalGamesPlayed = statistics.gamesWon + statistics.gamesLost
+            // Incrementar contadores de partidas SOLO si se proporciona un incremento (0 o 1)
+            if gamesWon > 0 || gamesLost > 0 {
+                statistics.gamesWon += gamesWon
+                statistics.gamesLost += gamesLost
+                
+                // Recalcular el total basado en los contadores individuales
+                statistics.totalGamesPlayed = statistics.gamesWon + statistics.gamesLost
+                
+                print("🎮 Partidas jugadas: \(statistics.totalGamesPlayed) (ganadas: \(statistics.gamesWon), perdidas: \(statistics.gamesLost))")
+            }
             
             // Actualizar medallas
             MedalManager.shared.updateMedals(

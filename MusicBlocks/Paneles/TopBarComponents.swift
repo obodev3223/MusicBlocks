@@ -556,6 +556,7 @@ extension ObjectivePreviewContainer {
             name: "Nivel de prueba",
             maxScore: 500,
             allowedStyles: allowedStyles,
+            complexNotes: nil,
             fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
             lives: Lives(
                 initial: 3,
@@ -692,6 +693,7 @@ struct BlockDestructionObjectivePreviewContainer: View, ObjectivePreviewContaine
             name: "Nivel de prueba",
             maxScore: 500,
             allowedStyles: allowedStyles,
+            complexNotes: nil,
             fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
             lives: Lives(
                 initial: 3,

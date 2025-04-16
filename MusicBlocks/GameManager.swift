@@ -140,7 +140,8 @@ class GameManager {
     func updateGameStatistics(levelId: Int, score: Int, completed: Bool,
                              notesHit: Int = 0, currentStreak: Int = 0, bestStreak: Int = 0,
                              accuracy: Double = 0.0, playTime: TimeInterval = 0) {
-        // Actualizar estadísticas locales
+        // Actualizar estadísticas locales - SOLO CONTAR UNA VEZ
+        // Solo se llama cuando hay un fin de juego real
         totalGamesPlayed += 1
         
         // Actualizar highscore si es necesario
@@ -159,7 +160,6 @@ class GameManager {
         var updatedProfile = userProfile
         
         // Si el nivel fue completado, actualizar progreso al siguiente nivel
-        // IMPORTANTE: Hacer esto ANTES de actualizar las estadísticas
         if completed {
             let nextLevelId = levelId + 1
             print("🎯 Nivel \(levelId) completado! Verificando progreso a nivel \(nextLevelId)")
@@ -179,28 +179,31 @@ class GameManager {
             }
         }
         
-        // Actualizar estadísticas con todos los datos proporcionados
+        // Actualizar estadísticas SOLO UNA VEZ con los valores finales
+        // Incrementar las partidas jugadas/ganadas/perdidas sólo cuando hay un resultado real
         updatedProfile.updateStatistics(
-            score: score,
-            noteHits: notesHit,
+            score: score,                        // Puntuación final
+            noteHit: false,                      // No usar este método incremental
+            noteHits: notesHit,                  // Usar el contador total directamente
             currentStreak: currentStreak,
             bestStreak: bestStreak,
             accuracy: accuracy,
-            levelCompleted: false, // IMPORTANTE: Ya manejamos el level completed arriba
+            levelCompleted: false,               // No queremos incrementar el nivel aquí
             isPerfect: accuracy >= 0.95,
             playTime: playTime,
-            gamesWon: completed ? 1 : 0,
-            gamesLost: completed ? 0 : 1
+            gamesWon: completed ? 1 : 0,         // Solo contar como ganada si se completó el nivel
+            gamesLost: completed ? 0 : 1         // Solo contar como perdida si no se completó
         )
         
         // Guardar el perfil actualizado
         updatedProfile.save()
         
-        // Imprimir información de debug
-        print("📊 Estadísticas actualizadas:")
+        print("📊 Estadísticas actualizadas en GameManager:")
         print("   Nivel actual: \(updatedProfile.statistics.currentLevel)")
         print("   Tiempo total: \(updatedProfile.statistics.formattedPlayTime)")
+        print("   Partidas jugadas: \(updatedProfile.statistics.totalGamesPlayed)")
         print("   Partidas ganadas/perdidas: \(updatedProfile.statistics.gamesWon)/\(updatedProfile.statistics.gamesLost)")
+        print("   Notas acertadas: \(updatedProfile.statistics.notesHit)")
     }
     
     // MARK: - Helper Methods

@@ -336,6 +336,7 @@ struct TopBarPreviewContainer: View {
             name: "Nivel de prueba",
             maxScore: 600,
             allowedStyles: [],
+            complexNotes: nil,
             fallingSpeed: FallingSpeed(initial: 8.0, increment: 0.0),
             lives: Lives(
                 initial: 3,

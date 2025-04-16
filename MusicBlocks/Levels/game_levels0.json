@@ -42,8 +42,9 @@
             "type": "total_blocks",
             "description": "Destruir un número total de bloques",
             "params": {
-                "target": 15,
-                "time_limit": 240
+                "target": 6,
+                "minimum_accuracy": 0.8,
+                "time_limit": 60
             }
         }
     },
@@ -63,7 +64,7 @@
     },
     "levels": [
         {
-            "level_id": 0,
+            "level_id": 1,
             "name": "Tutorial",
             "max_score": 500,
             "allowed_styles": ["defaultBlock"],
@@ -80,8 +81,8 @@
             },
             "objectives": {
                 "primary": {
-                    "type": "score",
-                    "target": 100,
+                    "type": "note_accuracy",
+                    "target": 10,
                     "time_limit": 180
                 }
             },
