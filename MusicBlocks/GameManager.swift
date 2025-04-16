@@ -24,7 +24,7 @@ class GameManager {
     // MARK: - Constants
     private struct Constants {
         static let maxUnlockedLevel = 10
-        static let tutorialLevelId = 0
+        static let tutorialLevelId = 1
         static let defaultLives = 3
     }
     

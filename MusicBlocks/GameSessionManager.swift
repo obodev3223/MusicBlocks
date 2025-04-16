@@ -65,9 +65,9 @@ class GameSessionManager {
         if gameManager.loadLevel(levelId) {
             print("✅ Nivel \(levelId) cargado correctamente")
         } else {
-            print("⚠️ Error al cargar nivel \(levelId), intentando cargar tutorial")
-            if gameManager.loadLevel(0) {
-                print("✅ Tutorial (nivel 0) cargado como respaldo")
+            print("⚠️ Error al cargar nivel \(levelId), intentando cargar nivel 1")
+            if gameManager.loadLevel(1) {
+                print("✅ Nivel 1 cargado como respaldo")
             } else {
                 print("❌ Error crítico: No se pudo cargar ningún nivel")
                 return
@@ -208,7 +208,7 @@ class GameSessionManager {
                     // Reset the flag and load the first level again
                     var updatedProfile = userProfile
                     updatedProfile.hasCompletedAllLevels = false
-                    updatedProfile.statistics.currentLevel = 0 // Back to tutorial
+                    updatedProfile.statistics.currentLevel = 1 // Back to tutorial
                     updatedProfile.save()
                     self?.setupGame()
                 },

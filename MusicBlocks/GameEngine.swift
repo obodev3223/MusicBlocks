@@ -221,8 +221,8 @@ class GameEngine: ObservableObject {
         print("🎵 Notas acertadas: \(notesHitInGame)")
         print("🔄 Mejor racha: \(bestStreakInGame)")
         print("📏 Precisión: \(Int(averageAccuracy * 100))%")
-        print("🏆 Estado: \(isGameWon ? "Victoria" : "Derrota")")
-        
+        print("🏆 Estado: \(reason == .victory ? "Victoria" : "Derrota")")
+
         let totalBlocksAcertados = blockHitsByStyle.values.reduce(0, +)
         print("📦 Bloques acertados: \(totalBlocksAcertados)")
         for (style, count) in blockHitsByStyle {
