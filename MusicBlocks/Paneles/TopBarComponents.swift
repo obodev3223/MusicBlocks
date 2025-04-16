@@ -387,11 +387,11 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         blockDestructionContainer?.removeAllChildren()
         guard let container = blockDestructionContainer else { return }
         
-        // Definir constantes de diseño - ajustadas para maximizar espacio
-        let iconSize: CGFloat = 16
-        let rowHeight: CGFloat = 20
-        let labelWidth: CGFloat = 40
-        let iconOffset: CGFloat = 8
+        // Usamos las constantes globales para mantener consistencia con todos los demás objetivos
+        let iconSize: CGFloat = TopBarLayout.iconSize
+        let rowHeight: CGFloat = TopBarLayout.rowSpacing
+        let fontSize: CGFloat = TopBarLayout.fontSize
+        let iconOffset: CGFloat = TopBarLayout.horizontalSpacing
         let columnSeparation: CGFloat = 60  // Separación entre columnas
         
         // COLUMNA 1: Notas y Precisión
@@ -399,34 +399,34 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         // 1. Notas acertadas/objetivo (fila superior)
         let notesIcon = SKSpriteNode(imageNamed: "note_icon")
         notesIcon.size = CGSize(width: iconSize, height: iconSize)
-        notesIcon.position = CGPoint(x: -columnSeparation/2 - labelWidth/2 - iconOffset, y: rowHeight/2)
+        notesIcon.position = CGPoint(x: -columnSeparation/2 - iconOffset, y: rowHeight/2)
         container.addChild(notesIcon)
         
         let notesLabel = SKLabelNode(fontNamed: "Helvetica")
-        notesLabel.fontSize = TopBarLayout.fontSize
+        notesLabel.fontSize = fontSize
         notesLabel.fontColor = .darkGray
         notesLabel.text = "\(progress.notesHit)/\(objective.target ?? 0)"
         notesLabel.horizontalAlignmentMode = .left
         notesLabel.verticalAlignmentMode = .center
-        notesLabel.position = CGPoint(x: -columnSeparation/2 - labelWidth/2 + 5, y: rowHeight/2)
+        notesLabel.position = CGPoint(x: -columnSeparation/2 + iconSize/2, y: rowHeight/2)
         container.addChild(notesLabel)
         
         // 2. Precisión (fila inferior)
         let accuracyIcon = SKSpriteNode(imageNamed: "target_icon")
         accuracyIcon.size = CGSize(width: iconSize, height: iconSize)
-        accuracyIcon.position = CGPoint(x: -columnSeparation/2 - labelWidth/2 - iconOffset, y: -rowHeight/2)
+        accuracyIcon.position = CGPoint(x: -columnSeparation/2 - iconOffset, y: -rowHeight/2)
         container.addChild(accuracyIcon)
         
         let accuracyPercentage = Int(progress.averageAccuracy * 100)
         let minAccuracyPercentage = Int((objective.minimumAccuracy ?? 0) * 100)
         
         let accuracyLabel = SKLabelNode(fontNamed: "Helvetica")
-        accuracyLabel.fontSize = TopBarLayout.fontSize
+        accuracyLabel.fontSize = fontSize
         // Quitar los signos % para ahorrar espacio
         accuracyLabel.text = "\(accuracyPercentage)/\(minAccuracyPercentage)"
         accuracyLabel.horizontalAlignmentMode = .left
         accuracyLabel.verticalAlignmentMode = .center
-        accuracyLabel.position = CGPoint(x: -columnSeparation/2 - labelWidth/2 + 5, y: -rowHeight/2)
+        accuracyLabel.position = CGPoint(x: -columnSeparation/2 + iconSize/2, y: -rowHeight/2)
         
         // Color según precisión
         if progress.averageAccuracy < (objective.minimumAccuracy ?? 0) {
@@ -436,13 +436,14 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         }
         container.addChild(accuracyLabel)
         
-        // COLUMNA 2: Tiempo
+        // COLUMNA 2: Tiempo - alineado con la fila superior
         
-        // Mostrar el tiempo en la columna derecha, centrado verticalmente
+        // Mostrar el tiempo en la columna derecha, alineado con la fila superior
         if let timeLimit = objective.timeLimit {
             let timeIcon = SKSpriteNode(imageNamed: "timer_icon")
             timeIcon.size = CGSize(width: iconSize, height: iconSize)
-            timeIcon.position = CGPoint(x: columnSeparation/2 - labelWidth/2 - iconOffset, y: 0)
+            // Alineado con la fila superior
+            timeIcon.position = CGPoint(x: columnSeparation/2 - iconOffset, y: rowHeight/2)
             container.addChild(timeIcon)
             
             let timeLimitInterval = TimeInterval(timeLimit)
@@ -451,11 +452,12 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             let seconds = Int(remainingTime) % 60
             
             let timeLabel = SKLabelNode(fontNamed: "Helvetica")
-            timeLabel.fontSize = TopBarLayout.fontSize
+            timeLabel.fontSize = fontSize
             timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
             timeLabel.horizontalAlignmentMode = .left
             timeLabel.verticalAlignmentMode = .center
-            timeLabel.position = CGPoint(x: columnSeparation/2 - labelWidth/2 + 5, y: 0)
+            // Alineado con la fila superior
+            timeLabel.position = CGPoint(x: columnSeparation/2 + iconSize/2, y: rowHeight/2)
             
             // Color según tiempo restante
             if remainingTime < 30 {
@@ -467,15 +469,17 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         } else {
             let timeIcon = SKSpriteNode(imageNamed: "timer_icon")
             timeIcon.size = CGSize(width: iconSize, height: iconSize)
-            timeIcon.position = CGPoint(x: columnSeparation/2 - labelWidth/2 - iconOffset, y: 0)
+            // Alineado con la fila superior
+            timeIcon.position = CGPoint(x: columnSeparation/2 - iconOffset, y: rowHeight/2)
             container.addChild(timeIcon)
             
             let timeLabel = SKLabelNode(fontNamed: "Helvetica")
-            timeLabel.fontSize = TopBarLayout.fontSize
+            timeLabel.fontSize = fontSize
             timeLabel.text = "∞"
             timeLabel.horizontalAlignmentMode = .left
             timeLabel.verticalAlignmentMode = .center
-            timeLabel.position = CGPoint(x: columnSeparation/2 - labelWidth/2 + 5, y: 0)
+            // Alineado con la fila superior
+            timeLabel.position = CGPoint(x: columnSeparation/2 + iconSize/2, y: rowHeight/2)
             timeLabel.fontColor = .darkGray
             container.addChild(timeLabel)
         }
