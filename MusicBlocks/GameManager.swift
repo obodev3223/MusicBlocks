@@ -192,7 +192,7 @@ class GameManager {
             isPerfect: accuracy >= 0.95,
             playTime: playTime,
             gamesWon: completed ? 1 : 0,         // Solo contar como ganada si se completó el nivel
-            gamesLost: completed ? 0 : 1         // Solo contar como perdida si no se completó
+            gamesLost: completed ? 1 : 0         // Solo contar como perdida si no se completó
         )
         
         // Guardar el perfil actualizado
