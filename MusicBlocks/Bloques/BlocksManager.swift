@@ -747,8 +747,6 @@ class BlocksManager {
         // Añadir partículas de hielo
         addIceParticles(to: block, intensity: 0.5)
         
-        // Reproducir sonido de hielo agrietándose (si está disponible)
-        playCrackSound(intensity: 0.5)
     }
 
     // 4. Método para actualizar la apariencia de los bloques de hielo duro (con efectos más intensos)
@@ -770,9 +768,6 @@ class BlocksManager {
         
         // Añadir partículas de hielo más intensas
         addIceParticles(to: block, intensity: 1.0)
-        
-        // Reproducir sonido de hielo agrietándose más prominente
-        playCrackSound(intensity: 1.0)
         
         // Añadir un efecto de brillo temporal para hielo duro
         addFrostGlowEffect(to: block)
@@ -819,12 +814,6 @@ class BlocksManager {
         let waitAction = SKAction.wait(forDuration: 0.3)
         let removeAction = SKAction.removeFromParent()
         emitter.run(SKAction.sequence([waitAction, removeAction]))
-    }
-
-    // Método para reproducir sonido de hielo agrietándose
-    private func playCrackSound(intensity: CGFloat) {
-        // Usar el controlador de sonidos de UI para reproducir un sonido
-        UISoundController.shared.playUISound(.impact, pitchMultiplier: 1.0 + Float(intensity * 0.2))
     }
 
     // Método para añadir un efecto de brillo helado (sólo para bloques duros)
