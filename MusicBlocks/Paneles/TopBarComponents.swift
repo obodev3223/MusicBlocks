@@ -166,12 +166,14 @@ class TimeDisplayNode: SKNode {
     private let timeLimit: TimeInterval
     var startTime: Date
     
+    // Añadir un timer para actualización automática
+    private var updateTimer: Timer?
+    
     init(timeLimit: TimeInterval) {
-        // Crear icono de tiempo
+        // Configuración existente
         let iconTexture = SKTexture(imageNamed: "timer_icon")
         timeIcon = SKSpriteNode(texture: iconTexture)
         
-        // Mantener la relación de aspecto para el icono del tiempo
         let originalSize = iconTexture.size()
         let w = originalSize.width
         let h = originalSize.height
@@ -187,6 +189,7 @@ class TimeDisplayNode: SKNode {
         super.init()
         
         setupTimeComponents()
+        startAutoUpdate()
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -194,11 +197,10 @@ class TimeDisplayNode: SKNode {
     }
     
     private func setupTimeComponents() {
-        // Posición del icono
+        // Configuración existente sin cambios
         timeIcon.position = CGPoint(x: -TopBarLayout.iconTextSpacing/2, y: 0)
         addChild(timeIcon)
         
-        // Configuración de la etiqueta
         timeLabel.fontSize = TopBarLayout.fontSize
         timeLabel.fontColor = .darkGray
         timeLabel.verticalAlignmentMode = .center
@@ -206,7 +208,28 @@ class TimeDisplayNode: SKNode {
         timeLabel.position = CGPoint(x: timeIcon.position.x + TopBarLayout.iconTextSpacing, y: 0)
         addChild(timeLabel)
         
-        // Actualizar el tiempo inicial
+        update()
+    }
+    
+    // NUEVO MÉTODO: Inicia la actualización automática
+    private func startAutoUpdate() {
+        // Crear y configurar un Timer para actualizar cada segundo
+        updateTimer = Timer.scheduledTimer(
+            timeInterval: 0.5,  // Actualizar cada 0.5 segundos
+            target: self,
+            selector: #selector(timerFired),
+            userInfo: nil,
+            repeats: true
+        )
+        
+        // Asegurar que el timer se ejecute incluso durante animaciones
+        if let timer = updateTimer {
+            RunLoop.current.add(timer, forMode: .common)
+        }
+    }
+    
+    // NUEVO MÉTODO: Callback para el timer
+    @objc private func timerFired() {
         update()
     }
     
@@ -222,7 +245,31 @@ class TimeDisplayNode: SKNode {
         let seconds = Int(remainingTime) % 60
         
         timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
-        timeLabel.fontColor = remainingTime < 30 ? .red : .darkGray
+        
+        // Cambiar color cuando queda poco tiempo
+        if remainingTime < 30 {
+            timeLabel.fontColor = .red
+        } else {
+            timeLabel.fontColor = .darkGray
+        }
+        
+        // Si el tiempo ha expirado, detener el timer
+        if remainingTime <= 0 {
+            updateTimer?.invalidate()
+            updateTimer = nil
+        }
+    }
+    
+    // NUEVO MÉTODO: Detener el timer cuando el nodo se elimina
+    func stopTimer() {
+        updateTimer?.invalidate()
+        updateTimer = nil
+    }
+    
+    // Se llama cuando el nodo se elimina de la escena
+    override func removeFromParent() {
+        stopTimer()
+        super.removeFromParent()
     }
 }
 
@@ -378,13 +425,50 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             objectiveIconNode?.updateValue("-")
         }
         
-        // 2. Actualizar el TimeDisplayNode si existe
-        if let timeDisplay = timeDisplayNode {
-            // TimeDisplayNode ya maneja internamente el cálculo del tiempo
-            timeDisplay.startTime = Date(timeIntervalSinceReferenceDate: Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+        // 2. Actualizar todos los TimeDisplayNode que pudieran existir
+        updateTimeDisplay(with: progress, timeLimit: objective.timeLimit)
+    }
+
+    // Nuevo método para actualizar todos los TimeDisplayNode
+    private func updateTimeDisplay(with progress: ObjectiveProgress, timeLimit: Int?) {
+        // Si hay un límite de tiempo y tenemos un TimeDisplayNode
+        if let timeLimit = timeLimit, let timeDisplay = findTimeDisplayNode() {
+            // Actualizar el startTime para reflejar el tiempo transcurrido
+            let newStartTime = Date(timeIntervalSinceReferenceDate:
+                Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+            timeDisplay.startTime = newStartTime
             timeDisplay.update()
         }
     }
+
+    // Método auxiliar para encontrar el primer TimeDisplayNode
+    private func findTimeDisplayNode() -> TimeDisplayNode? {
+        // Primero buscar en los hijos directos
+        for child in children {
+            if let timeNode = child as? TimeDisplayNode {
+                return timeNode
+            }
+        }
+        
+        // Luego buscar recursivamente en todos los hijos
+        return findTimeDisplayNodeRecursively(in: self)
+    }
+
+    // Búsqueda recursiva en la jerarquía de nodos
+    private func findTimeDisplayNodeRecursively(in node: SKNode) -> TimeDisplayNode? {
+        for child in node.children {
+            if let timeNode = child as? TimeDisplayNode {
+                return timeNode
+            }
+            
+            if let found = findTimeDisplayNodeRecursively(in: child) {
+                return found
+            }
+        }
+        
+        return nil
+    }
+
     
     private func updateNoteAccuracyLayout(with progress: ObjectiveProgress, objective: Objective) {
         // Limpiar el contenedor auxiliar
@@ -426,19 +510,25 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         container.addChild(accuracyLabel)
         
         // 3. El tiempo va en la segunda columna, alineado con la fila superior (notas)
-        // Crear un TimeDisplayNode para esta ubicación específica
-        if let timeLimit = objective.timeLimit {
-            let timeNode = TimeDisplayNode(timeLimit: TimeInterval(timeLimit))
-            timeNode.position = CGPoint(x: size.width/3, y: TopBarLayout.verticalSpacing * 2)
-            // Ajustar el tiempo inicial para reflejar el tiempo transcurrido
-            timeNode.startTime = Date(timeIntervalSinceReferenceDate: Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
-            timeNode.update()
-            container.addChild(timeNode)
+        // Actualizar el tiempo explícitamente
+            if let timeLimit = objective.timeLimit {
+                let timeStart = Date(timeIntervalSinceReferenceDate:
+                    Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+                
+                // Buscar todos los TimeDisplayNode y actualizarlos
+                for child in container.children {
+                    if let timeNode = child as? TimeDisplayNode {
+                        timeNode.startTime = timeStart
+                        timeNode.update()
+                    }
+                }
+            }
+            
+            // Asegurar que el timeDisplayNode estándar esté oculto o actualizado
+            if let timeDisplayNode = timeDisplayNode {
+                timeDisplayNode.alpha = 0
+            }
         }
-        
-        // Ocultamos el timeDisplayNode estándar ya que mostramos el tiempo en la segunda columna
-        timeDisplayNode?.alpha = 0
-    }
     
     // Método para actualizar el layout de block_destruction
     private func updateBlockDestructionLayout(with progress: ObjectiveProgress, details: [String: Int]) {
@@ -514,25 +604,28 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             container.addChild(label)
         }
         
-        // Añadir tiempo después de todos los bloques, en su propia columna
-        if let timeLimit = objective.timeLimit {
-            let column = columnsNeeded
-            let xPos = startX + CGFloat(column) * columnWidth
-            
-            // Crear un TimeDisplayNode para esta ubicación específica
-            let timeNode = TimeDisplayNode(timeLimit: TimeInterval(timeLimit))
-            timeNode.position = CGPoint(x: xPos, y: rowHeight/2)
-            // Ajustar el tiempo inicial para reflejar el tiempo transcurrido
-            timeNode.startTime = Date(timeIntervalSinceReferenceDate: Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
-            timeNode.update()
-            container.addChild(timeNode)
-        }
+        // Actualizar tiempo explícitamente
+         if let objective = objectiveTracker?.getPrimaryObjective(),
+            let timeLimit = objective.timeLimit {
+             let timeStart = Date(timeIntervalSinceReferenceDate:
+                 Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+             
+             // Buscar todos los TimeDisplayNode en el container y actualizarlos
+             for child in container.children {
+                 if let timeNode = child as? TimeDisplayNode {
+                     timeNode.startTime = timeStart
+                     timeNode.update()
+                 }
+             }
+         }
         
         // Centrar todo el contenedor horizontalmente
         container.position = CGPoint(x: 0, y: 0)
         
         // Ocultamos el timeDisplayNode estándar ya que mostramos el tiempo en la última columna
-        timeDisplayNode?.alpha = 0
+        if let timeDisplayNode = timeDisplayNode {
+                timeDisplayNode.alpha = 0
+            }
     }
     
     // Método auxiliar para crear iconos de bloque como SKSpriteNode (no ObjectiveIconNode)

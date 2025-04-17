@@ -282,9 +282,38 @@ class TopBar: SKNode {
     }
     
     // MARK: - Objetivos
+    // Modificación del método existente en la clase TopBar
     func updateObjectiveInfo(with progress: ObjectiveProgress) {
         if type == .objectives {
             objectivePanel?.updateInfo(with: progress)
+            
+            // Además, buscar y actualizar todos los TimeDisplayNode dentro del panel
+            updateTimeDisplayNodes(with: progress)
+        }
+    }
+
+    // Nuevo método en la clase TopBar
+    private func updateTimeDisplayNodes(with progress: ObjectiveProgress) {
+        // Usar el objectivePanel como punto de partida para la búsqueda
+        guard let panel = objectivePanel else { return }
+        
+        // Buscar en el panel todos los TimeDisplayNode
+        findAndUpdateTimeDisplayNodes(in: panel, with: progress)
+    }
+
+    // Nuevo método en la clase TopBar
+    private func findAndUpdateTimeDisplayNodes(in node: SKNode, with progress: ObjectiveProgress) {
+        // Primero procesar el nodo actual
+        if let timeDisplay = node as? TimeDisplayNode {
+            // Actualizar el startTime para reflejar el tiempo transcurrido
+            timeDisplay.startTime = Date(timeIntervalSinceReferenceDate:
+                Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+            timeDisplay.update()
+        }
+        
+        // Luego procesar recursivamente los hijos
+        for child in node.children {
+            findAndUpdateTimeDisplayNodes(in: child, with: progress)
         }
     }
     
