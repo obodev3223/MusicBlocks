@@ -44,7 +44,7 @@ class BlocksManager {
     // MARK: - Block Processing State
     
     /// Flag indicating if a block is currently being processed
-    private var isProcessingBlock: Bool = false
+    public var isProcessingBlock: Bool = false
     
     /// Timestamp of the last block hit
     private var lastHitTime: Date? = nil
