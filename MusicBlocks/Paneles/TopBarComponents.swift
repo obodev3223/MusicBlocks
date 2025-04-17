@@ -432,7 +432,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
     // Nuevo método para actualizar todos los TimeDisplayNode
     private func updateTimeDisplay(with progress: ObjectiveProgress, timeLimit: Int?) {
         // Si hay un límite de tiempo y tenemos un TimeDisplayNode
-        if let timeLimit = timeLimit, let timeDisplay = findTimeDisplayNode() {
+        if let timeDisplay = findTimeDisplayNode() {
             // Actualizar el startTime para reflejar el tiempo transcurrido
             let newStartTime = Date(timeIntervalSinceReferenceDate:
                 Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
@@ -511,7 +511,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         
         // 3. El tiempo va en la segunda columna, alineado con la fila superior (notas)
         // Actualizar el tiempo explícitamente
-            if let timeLimit = objective.timeLimit {
+        if objective.timeLimit != nil {
                 let timeStart = Date(timeIntervalSinceReferenceDate:
                     Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
                 
@@ -536,7 +536,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         blockDestructionContainer?.removeAllChildren()
         guard let container = blockDestructionContainer else { return }
         
-        guard let objective = objectiveTracker?.getPrimaryObjective() else { return }
+        guard objectiveTracker?.getPrimaryObjective() != nil else { return }
         
         // Definir el orden de los tipos de bloques
         let blockOrder = [
@@ -605,8 +605,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         }
         
         // Actualizar tiempo explícitamente
-         if let objective = objectiveTracker?.getPrimaryObjective(),
-            let timeLimit = objective.timeLimit {
+        if let objective = objectiveTracker?.getPrimaryObjective(), objective.timeLimit != nil {
              let timeStart = Date(timeIntervalSinceReferenceDate:
                  Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
              

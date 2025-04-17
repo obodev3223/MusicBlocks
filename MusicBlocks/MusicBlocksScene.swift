@@ -314,10 +314,11 @@ class MusicBlocksScene: SKScene  {
                 // Actualizar el panel de objetivos usando el progreso actualizado
                 self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
                 
-                // Importante: Forzar actualización de cualquier TimeDisplayNode visible
-                if let objectivePanel = self.uiManager.rightTopBarNode?.objectivePanel {
-                    objectivePanel.updateInfo(with: progress)
-                }
+                // Ya no necesitamos esta parte pues updateObjectiveInfo se encarga de actualizar
+                // todos los TimeDisplayNode dentro del panel
+                // if let objectivePanel = self.uiManager.rightTopBarNode?.objectivePanel {
+                //     objectivePanel.updateInfo(with: progress)
+                // }
             }
         }
     }
