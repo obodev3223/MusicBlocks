@@ -291,7 +291,7 @@ class GameEngine: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak blockManager] in
                 guard let self = self, let blockManager = blockManager else { return }
                 
-                if blockManager.isBlockProcessing,
+                if blockManager.isProcessingBlock,
                    let startTime = self.lastProcessingStartTime,
                    Date().timeIntervalSince(startTime) > self.maxProcessingTime {
                     GameLogger.shared.noteDetection("⚠️ Detectado bloque atascado después de handleCorrectNote")
@@ -557,7 +557,7 @@ extension GameEngine: AudioControllerDelegate {
         }
         
         // Detección y corrección de bloque atascado
-        if blockManager.isBlockProcessing {
+        if blockManager.isProcessingBlock {
             // Si tenemos un registro del tiempo de inicio
             if let startTime = lastProcessingStartTime {
                 // Si ha pasado demasiado tiempo, el bloque probablemente está atascado
@@ -599,7 +599,7 @@ extension GameEngine: AudioControllerDelegate {
         }
         
         // Verificar estado de procesamiento de bloques
-        if let blockManager = blockManager, blockManager.isBlockProcessing {
+        if let blockManager = blockManager, blockManager.isProcessingBlock {
             // Si existe un tiempo de inicio registrado
             if let startTime = lastProcessingStartTime,
                Date().timeIntervalSince(startTime) > maxProcessingTime {
