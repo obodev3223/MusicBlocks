@@ -524,9 +524,39 @@ class ObjectiveInfoPanel: TopBarBaseNode {
                 }
             }
             
-            // Asegurar que el timeDisplayNode estándar esté oculto o actualizado
-            if let timeDisplayNode = timeDisplayNode {
-                timeDisplayNode.alpha = 0
+        // Verificar si existe timeLimit
+            if let timeLimit = objective.timeLimit {
+                // Buscar si ya existe un timeDisplayNode en el container
+                var foundTimeNode = false
+                for child in container.children {
+                    if let timeNode = child as? TimeDisplayNode {
+                        foundTimeNode = true
+                        // Actualizar el nodo existente
+                        timeNode.startTime = Date(timeIntervalSinceReferenceDate:
+                            Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+                        timeNode.update()
+                    }
+                }
+                
+                // Si no encontramos un timeDisplayNode, crear uno nuevo
+                if !foundTimeNode {
+                    // Crear un nuevo TimeDisplayNode
+                    let timeNode = TimeDisplayNode(timeLimit: TimeInterval(timeLimit))
+                    timeNode.position = CGPoint(x: spacing * 5, y: -TopBarLayout.verticalSpacing * 2) // Posición ajustada
+                    timeNode.startTime = Date(timeIntervalSinceReferenceDate:
+                        Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+                    container.addChild(timeNode)
+                    
+                    // Ahora que tenemos un nodo específico podemos ocultar el estándar
+                    if let standardTimeNode = timeDisplayNode {
+                        standardTimeNode.alpha = 0
+                    }
+                }
+            } else {
+                // Si no hay timeLimit, mostrar el timeDisplayNode estándar
+                if let standardTimeNode = timeDisplayNode {
+                    standardTimeNode.alpha = 1
+                }
             }
         }
     
@@ -604,28 +634,43 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             container.addChild(label)
         }
         
-        // Actualizar tiempo explícitamente
-        if let objective = objectiveTracker?.getPrimaryObjective(), objective.timeLimit != nil {
-             let timeStart = Date(timeIntervalSinceReferenceDate:
-                 Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
-             
-             // Buscar todos los TimeDisplayNode en el container y actualizarlos
-             for child in container.children {
-                 if let timeNode = child as? TimeDisplayNode {
-                     timeNode.startTime = timeStart
-                     timeNode.update()
-                 }
-             }
-         }
-        
-        // Centrar todo el contenedor horizontalmente
-        container.position = CGPoint(x: 0, y: 0)
-        
-        // Ocultamos el timeDisplayNode estándar ya que mostramos el tiempo en la última columna
-        if let timeDisplayNode = timeDisplayNode {
-                timeDisplayNode.alpha = 0
+        // Verificar si existe timeLimit en el objetivo
+            if let objective = objectiveTracker?.getPrimaryObjective(), let timeLimit = objective.timeLimit {
+                // Buscar si ya existe un timeDisplayNode en el container
+                var foundTimeNode = false
+                for child in container.children {
+                    if let timeNode = child as? TimeDisplayNode {
+                        foundTimeNode = true
+                        // Actualizar el nodo existente
+                        timeNode.startTime = Date(timeIntervalSinceReferenceDate:
+                            Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+                        timeNode.update()
+                    }
+                }
+                
+                // Si no encontramos un timeDisplayNode, crear uno nuevo
+                if !foundTimeNode {
+                    // Crear un nuevo TimeDisplayNode específico para este layout
+                    let timeNode = TimeDisplayNode(timeLimit: TimeInterval(timeLimit))
+                    // Posicionar en algún lugar visible del container (ajusta según necesites)
+                    let xPos = startX + CGFloat(columnsNeeded) * columnWidth
+                    timeNode.position = CGPoint(x: xPos, y: 0)
+                    timeNode.startTime = Date(timeIntervalSinceReferenceDate:
+                        Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+                    container.addChild(timeNode)
+                    
+                    // Ahora que tenemos un nodo específico podemos ocultar el estándar
+                    if let standardTimeNode = timeDisplayNode {
+                        standardTimeNode.alpha = 0
+                    }
+                }
+            } else {
+                // Si no hay timeLimit, mostrar el timeDisplayNode estándar
+                if let standardTimeNode = timeDisplayNode {
+                    standardTimeNode.alpha = 1
+                }
             }
-    }
+        }
     
     // Método auxiliar para crear iconos de bloque como SKSpriteNode (no ObjectiveIconNode)
     private func createBlockIcon(for blockType: String) -> SKSpriteNode {
