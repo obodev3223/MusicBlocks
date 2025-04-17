@@ -497,7 +497,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             
             // Crear icono para este bloque
             let iconNode = createBlockIcon(for: item.type)
-            iconNode.size = CGSize(width: iconSize, height: iconSize)
+            // Ya no necesitamos ajustar el tamaño aquí, ya que lo hace createBlockIcon
             iconNode.position = CGPoint(x: xPos, y: yPos)
             
             // Crear etiqueta para este bloque
@@ -549,13 +549,28 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         
         // Obtener nombre de imagen para este tipo de bloque
         let imageName = iconMapping[blockType] ?? "defaultBlock_icon"
+        let iconTexture = SKTexture(imageNamed: imageName)
         
-        // Crear y devolver el nodo de sprite
-        return SKSpriteNode(imageNamed: imageName)
+        // Usar el mismo método de escalado que se usa en ObjectiveIconNode
+        // para mantener las mismas proporciones que en total_blocks
+        let originalSize = iconTexture.size()
+        let w = originalSize.width
+        let h = originalSize.height
+        
+        // Ratio para ajustar la dimensión más larga a 'iconSize'
+        let maxDim: CGFloat = TopBarLayout.iconSize
+        let scale = max(w, h) > 0 ? (maxDim / max(w, h)) : 1.0
+        
+        let finalWidth = w * scale
+        let finalHeight = h * scale
+        
+        // Crear el sprite con el tamaño correcto
+        let spriteNode = SKSpriteNode(texture: iconTexture)
+        spriteNode.size = CGSize(width: finalWidth, height: finalHeight)
+        
+        return spriteNode
     }
     
-    // Este método ya no es necesario ya que usamos TimeDisplayNode
-    // private func updateTimeIcon(progress: ObjectiveProgress, timeLimit: Int) { ... }
 }
 
 // MARK: - Fábrica de Paneles
