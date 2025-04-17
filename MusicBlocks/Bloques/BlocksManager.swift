@@ -179,6 +179,7 @@ class BlocksManager {
         }
     }
     
+    // Método modificado para crear el bloque completo
     private func createBlock() -> SKNode {
         print("➡️ Creando nuevo bloque...")
         guard let currentLevel = gameManager.currentLevel else {
@@ -190,7 +191,6 @@ class BlocksManager {
         blockNode.zPosition = 2
         
         let allowedStyles = currentLevel.allowedStyles
-        print("📝 Estilos permitidos: \(allowedStyles)")
         
         guard let randomStyle = allowedStyles.randomElement() else {
             print("❌ Error: No hay estilos permitidos")
@@ -222,6 +222,7 @@ class BlocksManager {
             leftMargin: 30,
             rightMargin: 30
         )
+        contentNode.name = "content"
         contentNode.position = .zero
         contentNode.zPosition = 3
         blockNode.addChild(contentNode)
@@ -233,6 +234,16 @@ class BlocksManager {
         userData.setValue(config.requiredHits, forKey: "requiredHits")
         userData.setValue(config.requiredTime, forKey: "requiredTime")
         blockNode.userData = userData
+        
+        // Si el bloque requiere múltiples hits, añadir el contador inicial
+        if config.requiredHits > 1 {
+            // Esperamos un poco para agregar el contador para que la animación sea más fluida
+            let waitAction = SKAction.wait(forDuration: 0.2)
+            let addCounterAction = SKAction.run { [weak self] in
+                self?.updateHitCounter(on: blockNode, currentHits: 0, requiredHits: config.requiredHits)
+            }
+            blockNode.run(SKAction.sequence([waitAction, addCounterAction]))
+        }
         
         print("✅ Bloque creado con nota: \(note.fullName) y estilo: \(randomStyle)")
         return blockNode
@@ -299,9 +310,11 @@ class BlocksManager {
     }
     
     // MARK: - Block Visual Components
+    // 10. Modificaciones al método createBlockContainer para que sea más fácil acceder a sus componentes
     private func createBlockContainer(with style: BlockStyle) -> SKNode {
-        //        print("🖼️ Creando contenedor para bloque con estilo: \(style)")
+        print("🖼️ Creando contenedor para bloque con estilo: \(style.name)")
         let container = SKNode()
+        container.name = "container"
         container.zPosition = 0
         
         if let shadowColor = style.shadowColor,
@@ -313,13 +326,13 @@ class BlocksManager {
                 blur: shadowBlur,
                 cornerRadius: style.cornerRadius
             )
+            shadowNode.name = "shadow"
             container.addChild(shadowNode)
-            //            print("🖼️ Sombra añadida al contenedor.")
         }
         
         let background = createBackground(with: style)
+        background.name = "background" // Importante para poder referenciarlo después
         container.addChild(background)
-        //        print("🖼️ Fondo añadido al contenedor.")
         
         return container
     }
@@ -511,60 +524,7 @@ class BlocksManager {
     }
     
     // MARK: - Block Progress Management
-    func updateCurrentBlockProgress(hitTime: Date) -> Bool {
-        GameLogger.shared.blockMovement("⏱️ updateCurrentBlockProgress llamado a las \(hitTime)")
-        GameLogger.shared.blockMovement("   Estado actual: isProcessingBlock=\(isProcessingBlock), lastHitTime=\(String(describing: lastHitTime))")
-
-        // Si ya estamos procesando un bloque o ha pasado muy poco tiempo desde el último hit,
-            // ignoramos esta llamada para evitar doble procesamiento
-            let minTimeBetweenHits: TimeInterval = 0.5 // 500ms mínimo entre hits
-            if isProcessingBlock ||
-               (lastHitTime != nil && hitTime.timeIntervalSince(lastHitTime!) < minTimeBetweenHits) {
-                GameLogger.shared.blockMovement("⚠️ Ignorando hit - Procesando: \(isProcessingBlock), Tiempo desde último hit: \(lastHitTime != nil ? hitTime.timeIntervalSince(lastHitTime!) : 0)")
-                return false
-            }
-            
-            // Marcar como procesando y registrar la hora del hit
-            isProcessingBlock = true
-            lastHitTime = hitTime
-            
-            // Iniciar timeout de seguridad
-            setupProcessingTimeout()
-            
-            guard let index = blockInfos.indices.last else {
-                print("⚠️ No hay bloque actual para actualizar.")
-                isProcessingBlock = false
-                return false
-            }
-            
-            var currentInfo = blockInfos[index]
-            print("   Bloque actual: nota \(currentInfo.note), currentHits: \(currentInfo.currentHits)")
-            
-            // Incrementar contador de hits
-            currentInfo.currentHits += 1
-            GameLogger.shared.blockMovement("   Hit \(currentInfo.currentHits)/\(currentInfo.requiredHits) registrado para bloque \(currentInfo.note)")
-
-            blockInfos[index] = currentInfo
-            
-            // Verificar si hemos alcanzado el número requerido de hits
-            if currentInfo.currentHits >= currentInfo.requiredHits {
-                GameLogger.shared.blockMovement("🗑️ Requerimientos cumplidos, intentando eliminar bloque ID: \(ObjectIdentifier(currentInfo.node).hashValue)")
-                
-                // Eliminar el bloque con animación, pero solo liberar el estado cuando termine
-                removeLastBlockWithCompletion { [weak self] in
-                    self?.isProcessingBlock = false
-                    self?.processingStartTime = nil
-                    print("✅ Procesamiento de bloque completado.")
-                }
-                return true
-            }
-            
-            // Si no se eliminó el bloque, liberamos el estado de procesamiento inmediatamente
-            isProcessingBlock = false
-            processingStartTime = nil
-            return false
-        }
-    
+        
     // Versión modificada de removeLastBlock que acepta un closure de completion
     func removeLastBlockWithCompletion(completion: @escaping () -> Void) {
         GameLogger.shared.blockMovement("🗑️ removeLastBlockWithCompletion llamado. Bloques en cola: \(blocks.count)")
@@ -688,4 +648,509 @@ class BlocksManager {
             GameLogger.shared.blockMovement("   No se pudo resetear ningún bloque, índice válido: \(blockInfos.indices.last != nil)")
         }
     }
+    
+    // 1. Modificar el método updateCurrentBlockProgress para incluir feedback visual
+    func updateCurrentBlockProgress(hitTime: Date) -> Bool {
+        GameLogger.shared.blockMovement("⏱️ updateCurrentBlockProgress llamado a las \(hitTime)")
+        GameLogger.shared.blockMovement("   Estado actual: isProcessingBlock=\(isProcessingBlock), lastHitTime=\(String(describing: lastHitTime))")
+
+        // Si ya estamos procesando un bloque o ha pasado muy poco tiempo desde el último hit,
+        // ignoramos esta llamada para evitar doble procesamiento
+        let minTimeBetweenHits: TimeInterval = 0.5 // 500ms mínimo entre hits
+        if isProcessingBlock ||
+           (lastHitTime != nil && hitTime.timeIntervalSince(lastHitTime!) < minTimeBetweenHits) {
+            GameLogger.shared.blockMovement("⚠️ Ignorando hit - Procesando: \(isProcessingBlock), Tiempo desde último hit: \(lastHitTime != nil ? hitTime.timeIntervalSince(lastHitTime!) : 0)")
+            return false
+        }
+        
+        // Marcar como procesando y registrar la hora del hit
+        isProcessingBlock = true
+        lastHitTime = hitTime
+        
+        // Iniciar timeout de seguridad
+        setupProcessingTimeout()
+        
+        guard let index = blockInfos.indices.last else {
+            print("⚠️ No hay bloque actual para actualizar.")
+            isProcessingBlock = false
+            return false
+        }
+        
+        var currentInfo = blockInfos[index]
+        print("   Bloque actual: nota \(currentInfo.note), currentHits: \(currentInfo.currentHits)")
+        
+        // Incrementar contador de hits
+        currentInfo.currentHits += 1
+        GameLogger.shared.blockMovement("   Hit \(currentInfo.currentHits)/\(currentInfo.requiredHits) registrado para bloque \(currentInfo.note)")
+
+        // NUEVO: Actualizamos la apariencia visual del bloque si requiere múltiples hits
+        if currentInfo.requiredHits > 1 && currentInfo.currentHits < currentInfo.requiredHits {
+            updateBlockAppearanceForHit(
+                node: currentInfo.node,
+                style: currentInfo.style,
+                currentHits: currentInfo.currentHits,
+                requiredHits: currentInfo.requiredHits
+            )
+        }
+        
+        blockInfos[index] = currentInfo
+        
+        // Verificar si hemos alcanzado el número requerido de hits
+        if currentInfo.currentHits >= currentInfo.requiredHits {
+            GameLogger.shared.blockMovement("🗑️ Requerimientos cumplidos, intentando eliminar bloque ID: \(ObjectIdentifier(currentInfo.node).hashValue)")
+            
+            // Eliminar el bloque con animación, pero solo liberar el estado cuando termine
+            removeLastBlockWithCompletion { [weak self] in
+                self?.isProcessingBlock = false
+                self?.processingStartTime = nil
+                print("✅ Procesamiento de bloque completado.")
+            }
+            return true
+        }
+        
+        // Si no se eliminó el bloque, liberamos el estado de procesamiento inmediatamente
+        isProcessingBlock = false
+        processingStartTime = nil
+        return false
+    }
+    
+    // 2. Nuevo método para gestionar la actualización visual de los bloques multi-hit
+    private func updateBlockAppearanceForHit(node: SKNode, style: String, currentHits: Int, requiredHits: Int) {
+        // Solo procesamos tipos de bloques que sabemos que requieren múltiples hits
+        switch style {
+        case "iceBlock":
+            updateIceBlockAppearance(block: node, currentHits: currentHits, requiredHits: requiredHits)
+        case "hardiceBlock":
+            updateHardIceBlockAppearance(block: node, currentHits: currentHits, requiredHits: requiredHits)
+        default:
+            break // No hacemos nada para otros tipos de bloques
+        }
+    }
+
+    // 3. Método para actualizar la apariencia de los bloques de hielo
+    private func updateIceBlockAppearance(block: SKNode, currentHits: Int, requiredHits: Int) {
+        // Calcular progreso (0.0 a 1.0)
+        let progress = CGFloat(currentHits) / CGFloat(requiredHits)
+        
+        // Actualizar contador numérico
+        updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits)
+        
+        // Añadir textura de grietas con intensidad estándar
+        addCracksTexture(to: block, progress: progress, intensity: 1.0)
+        
+        // Aumentar transparencia
+        updateTransparency(for: block, progress: progress)
+        
+        // Efecto de "golpe" temporal
+        addImpactEffect(to: block)
+        
+        // Añadir partículas de hielo
+        addIceParticles(to: block, intensity: 0.5)
+        
+        // Reproducir sonido de hielo agrietándose (si está disponible)
+        playCrackSound(intensity: 0.5)
+    }
+
+    // 4. Método para actualizar la apariencia de los bloques de hielo duro (con efectos más intensos)
+    private func updateHardIceBlockAppearance(block: SKNode, currentHits: Int, requiredHits: Int) {
+        // Calcular progreso (0.0 a 1.0)
+        let progress = CGFloat(currentHits) / CGFloat(requiredHits)
+        
+        // Actualizar contador numérico
+        updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits)
+        
+        // Añadir textura de grietas con mayor intensidad para el hielo duro
+        addCracksTexture(to: block, progress: progress, intensity: 1.5)
+        
+        // Cambiar transparencia más lentamente que el bloque normal de hielo
+        updateTransparency(for: block, progress: progress * 0.7)
+        
+        // Efecto de "golpe" más intenso
+        addImpactEffect(to: block, intensity: 1.2)
+        
+        // Añadir partículas de hielo más intensas
+        addIceParticles(to: block, intensity: 1.0)
+        
+        // Reproducir sonido de hielo agrietándose más prominente
+        playCrackSound(intensity: 1.0)
+        
+        // Añadir un efecto de brillo temporal para hielo duro
+        addFrostGlowEffect(to: block)
+    }
+
+    // Método para crear partículas de hielo al golpear
+    private func addIceParticles(to block: SKNode, intensity: CGFloat) {
+        // Crear el nodo emisor
+        let emitter = SKEmitterNode()
+        emitter.name = "iceParticles"
+        emitter.targetNode = block.parent // Para que las partículas se queden en la escena incluso si el bloque se mueve
+        
+        // Configurar las partículas
+        emitter.particleBirthRate = 15 * intensity
+        emitter.numParticlesToEmit = Int(10 * intensity)
+        emitter.particleLifetime = 0.6
+        emitter.particleLifetimeRange = 0.3
+        emitter.emissionAngle = .pi / 2
+        emitter.emissionAngleRange = .pi * 2 // Emitir en todas direcciones
+        
+        // Velocidad y tamaño
+        emitter.particleSpeed = 20 * intensity
+        emitter.particleSpeedRange = 15
+        emitter.particleScale = 0.03 + (0.02 * intensity)
+        emitter.particleScaleRange = 0.02
+        emitter.xAcceleration = 0
+        emitter.yAcceleration = -50 // Gravedad sutil
+        
+        // Color y apariencia
+        emitter.particleColor = SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
+        emitter.particleColorBlendFactor = 1.0
+        emitter.particleAlpha = 0.7
+        emitter.particleAlphaRange = 0.3
+        emitter.particleTexture = SKTexture(imageNamed: "spark") // Usar una textura simple de chispa/partícula
+        
+        // Colocar el emisor en el centro del bloque
+        emitter.position = .zero
+        emitter.zPosition = 20
+        
+        // Añadir el emisor al bloque
+        block.addChild(emitter)
+        
+        // Eliminar el emisor después de un tiempo
+        let waitAction = SKAction.wait(forDuration: 0.3)
+        let removeAction = SKAction.removeFromParent()
+        emitter.run(SKAction.sequence([waitAction, removeAction]))
+    }
+
+    // Método para reproducir sonido de hielo agrietándose
+    private func playCrackSound(intensity: CGFloat) {
+        // Usar el controlador de sonidos de UI para reproducir un sonido
+        UISoundController.shared.playUISound(.impact, pitchMultiplier: 1.0 + Float(intensity * 0.2))
+    }
+
+    // Método para añadir un efecto de brillo helado (sólo para bloques duros)
+    private func addFrostGlowEffect(to block: SKNode) {
+        // Buscar el nodo de fondo
+        guard let background = findBackgroundNode(in: block) else { return }
+        
+        // Crear un nodo de efecto para aplicar un filtro de brillo
+        let glowNode = SKEffectNode()
+        glowNode.name = "frostGlow"
+        glowNode.zPosition = 2
+        
+        // Aplicar un filter de brillo
+        glowNode.filter = CIFilter(name: "CIGaussianBlur", parameters: ["inputRadius": 3.0])
+        glowNode.shouldRasterize = true
+        
+        // Crear una copia del fondo como forma con resplandor
+        let glowShape = SKShapeNode(rectOf: background.frame.size, cornerRadius: 15)
+        glowShape.fillColor = SKColor(red: 0.7, green: 0.9, blue: 1.0, alpha: 0.5)
+        glowShape.strokeColor = .clear
+        glowShape.alpha = 0
+        
+        glowNode.addChild(glowShape)
+        
+        // Añadir el nodo de brillo
+        block.addChild(glowNode)
+        
+        // Animación de brillo
+        let fadeIn = SKAction.fadeAlpha(to: 0.7, duration: 0.1)
+        let wait = SKAction.wait(forDuration: 0.1)
+        let fadeOut = SKAction.fadeAlpha(to: 0, duration: 0.2)
+        let remove = SKAction.removeFromParent()
+        
+        glowShape.run(SKAction.sequence([fadeIn, wait, fadeOut, remove]))
+    }
+
+    // 5. Método para el contador numérico en la esquina superior derecha
+    private func updateHitCounter(on block: SKNode, currentHits: Int, requiredHits: Int) {
+        // Eliminar contador anterior si existe
+        block.childNode(withName: "hitCounter")?.removeFromParent()
+        
+        // Calcular hits restantes
+        let remainingHits = requiredHits - currentHits
+        
+        // Obtener información del estilo para personalizar el contador
+        let blockStyle = block.userData?.value(forKey: "blockStyle") as? String ?? "defaultBlock"
+        
+        // Crear un nuevo nodo contenedor para el contador
+        let counterContainer = SKNode()
+        counterContainer.name = "hitCounter"
+        counterContainer.zPosition = 10
+        
+        // Posicionarlo en la esquina superior derecha, con un pequeño margen
+        counterContainer.position = CGPoint(x: blockSize.width/2 - 15, y: blockSize.height/2 - 15)
+        
+        // Configurar apariencia según el tipo de bloque
+        let counterBg: SKShapeNode
+        let radius: CGFloat = 12
+        let counterColor: SKColor
+        let textColor: SKColor
+        
+        switch blockStyle {
+        case "iceBlock":
+            counterBg = SKShapeNode(circleOfRadius: radius)
+            counterColor = SKColor(red: 0.8, green: 0.95, blue: 1.0, alpha: 0.9)
+            textColor = SKColor(red: 0.1, green: 0.4, blue: 0.8, alpha: 1.0)
+        case "hardiceBlock":
+            counterBg = SKShapeNode(circleOfRadius: radius)
+            counterColor = SKColor(red: 0.7, green: 0.85, blue: 1.0, alpha: 0.9)
+            textColor = SKColor(red: 0.0, green: 0.3, blue: 0.7, alpha: 1.0)
+            
+            // Agregar borde más grueso para hardiceBlock
+            counterBg.lineWidth = 2.0
+            counterBg.strokeColor = SKColor(red: 0.0, green: 0.5, blue: 0.9, alpha: 0.8)
+        default:
+            counterBg = SKShapeNode(circleOfRadius: radius)
+            counterColor = .white
+            textColor = .darkGray
+        }
+        
+        counterBg.fillColor = counterColor
+        counterBg.strokeColor = textColor.withAlphaComponent(0.3)
+        counterBg.lineWidth = 1.5
+        counterBg.alpha = 0.85
+        counterContainer.addChild(counterBg)
+        
+        // Crear etiqueta con el número
+        let countLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        countLabel.text = "\(remainingHits)"
+        countLabel.fontSize = 14
+        countLabel.fontColor = textColor
+        countLabel.verticalAlignmentMode = .center
+        countLabel.horizontalAlignmentMode = .center
+        countLabel.position = .zero
+        counterContainer.addChild(countLabel)
+        
+        // Añadir el contador al bloque
+        block.addChild(counterContainer)
+        
+        // Efecto de aparición
+        counterContainer.setScale(0)
+        let scaleAction = SKAction.scale(to: 1.0, duration: 0.2)
+        scaleAction.timingMode = .easeOut
+        counterContainer.run(scaleAction)
+    }
+
+    // 6. Método para añadir grietas utilizando una textura de imagen
+    private func addCracksTexture(to block: SKNode, progress: CGFloat, intensity: CGFloat = 1.0) {
+        // Eliminar grietas anteriores si existen
+        block.childNode(withName: "cracksTexture")?.removeFromParent()
+        
+        // Crear nodo de sprite para la textura de grietas
+        let cracksTexture = SKSpriteNode(imageNamed: "grietas.png")
+        cracksTexture.name = "cracksTexture"
+        cracksTexture.zPosition = 5
+        
+        // Ajustar el tamaño para que cubra todo el bloque
+        cracksTexture.size = blockSize
+        
+        // Obtener el estilo del bloque para personalizar las grietas
+        let blockStyle = block.userData?.value(forKey: "blockStyle") as? String ?? "defaultBlock"
+        
+        // Calcular la intensidad de la textura basada en el progreso y el tipo de bloque
+        let baseAlpha: CGFloat = progress * 0.8 * intensity
+        var textureTint: SKColor
+        
+        switch blockStyle {
+        case "iceBlock":
+            // Para bloques de hielo regular, grietas más claras
+            textureTint = SKColor.black.withAlphaComponent(baseAlpha)
+        case "hardiceBlock":
+            // Para bloques de hielo duro, grietas más azuladas y oscuras
+            textureTint = SKColor(red: 0.0, green: 0.1, blue: 0.3, alpha: baseAlpha * 1.2)
+        default:
+            textureTint = SKColor.black.withAlphaComponent(baseAlpha)
+        }
+        
+        // Configurar el tinte y la mezcla
+        cracksTexture.color = textureTint
+        cracksTexture.colorBlendFactor = 1.0
+        
+        // Añadir efecto de mezcla para que la textura se combine con el fondo
+        cracksTexture.blendMode = .multiply
+        
+        // Añadir al bloque
+        block.addChild(cracksTexture)
+        
+        // Añadir efecto de aparición
+        cracksTexture.alpha = 0
+        cracksTexture.run(SKAction.fadeIn(withDuration: 0.2))
+    }
+
+    // 7. Método para actualizar transparencia gradualmente
+    private func updateTransparency(for block: SKNode, progress: CGFloat) {
+        // Obtener el nodo de fondo del bloque
+        guard let background = findBackgroundNode(in: block) else { return }
+        
+        // Obtener el estilo del bloque
+        let blockStyle = block.userData?.value(forKey: "blockStyle") as? String ?? "defaultBlock"
+        
+        // Ajustar la transparencia basada en el tipo de bloque
+        let startAlpha: CGFloat
+        let endAlpha: CGFloat
+        
+        switch blockStyle {
+        case "iceBlock":
+            // El hielo normal se vuelve bastante transparente
+            startAlpha = 0.95
+            endAlpha = 0.5
+        case "hardiceBlock":
+            // El hielo duro mantiene más opacidad
+            startAlpha = 0.95
+            endAlpha = 0.7
+        default:
+            startAlpha = 0.95
+            endAlpha = 0.6
+        }
+        
+        // Calcular nueva alpha basada en el progreso
+        let newAlpha = startAlpha - (progress * (startAlpha - endAlpha))
+        
+        // Animar el cambio gradualmente
+        let fadeAction = SKAction.fadeAlpha(to: newAlpha, duration: 0.3)
+        fadeAction.timingMode = .easeOut
+        background.run(fadeAction)
+        
+        // Para el hielo, también podemos cambiar sutilmente el color para simular "derretimiento"
+        if blockStyle.contains("ice") {
+            // Color base
+            var baseColor: SKColor
+            var targetColor: SKColor
+            
+            if blockStyle == "iceBlock" {
+                // Azul claro a un tono más acuoso
+                baseColor = SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: newAlpha)
+                targetColor = SKColor(red: 0.9, green: 0.95, blue: 1.0, alpha: newAlpha)
+            } else {
+                // Azul más intenso a un tono más claro
+                baseColor = SKColor(red: 0.6, green: 0.8, blue: 1.0, alpha: newAlpha)
+                targetColor = SKColor(red: 0.7, green: 0.85, blue: 0.95, alpha: newAlpha)
+            }
+            
+            // Mezclar colores según el progreso
+            let blendedColor = blendColors(baseColor, targetColor, percentage: progress)
+            
+            // Animar el cambio de color
+            let colorAction = SKAction.colorize(with: blendedColor, colorBlendFactor: 1.0, duration: 0.3)
+            colorAction.timingMode = .easeOut
+            background.run(colorAction)
+        }
+    }
+
+    // Función auxiliar para mezclar colores
+    private func blendColors(_ color1: SKColor, _ color2: SKColor, percentage: CGFloat) -> SKColor {
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        
+        color1.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        color2.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        
+        return SKColor(
+            red: r1 + (r2 - r1) * percentage,
+            green: g1 + (g2 - g1) * percentage,
+            blue: b1 + (b2 - b1) * percentage,
+            alpha: a1 + (a2 - a1) * percentage
+        )
+    }
+
+    // 8. Método para añadir efecto visual de impacto
+    private func addImpactEffect(to block: SKNode, intensity: CGFloat = 1.0) {
+        // Efecto de "golpe" - pulso rápido
+        let scaleDown = SKAction.scale(to: 0.97, duration: 0.05 * intensity)
+        let scaleUp = SKAction.scale(to: 1.0, duration: 0.1 * intensity)
+        let sequence = SKAction.sequence([scaleDown, scaleUp])
+        block.run(sequence)
+        
+        // Pequeño temblor
+        let shakeSequence = SKAction.sequence([
+            SKAction.moveBy(x: 2 * intensity, y: 0, duration: 0.02),
+            SKAction.moveBy(x: -4 * intensity, y: 0, duration: 0.04),
+            SKAction.moveBy(x: 2 * intensity, y: 0, duration: 0.02)
+        ])
+        block.run(shakeSequence)
+        
+        // Efecto de pulsación en las grietas
+        if let cracksTexture = block.childNode(withName: "cracksTexture") as? SKSpriteNode {
+            let crackPulse = SKAction.sequence([
+                SKAction.fadeAlpha(to: 1.0, duration: 0.05),
+                SKAction.fadeAlpha(to: cracksTexture.alpha, duration: 0.1)
+            ])
+            cracksTexture.run(crackPulse)
+        }
+    }
+
+    // Método mejorado para manejar múltiples texturas en un bloque
+    private func setupBlockMultiTexture(block: SKNode, background: SKShapeNode, baseTexture: SKTexture?, cracksTexture: SKTexture, progress: CGFloat, blockStyle: String) {
+        // Eliminar textura compuesta anterior si existe
+        block.childNode(withName: "blockMultiTexture")?.removeFromParent()
+        
+        // Crear un nodo contenedor para las texturas combinadas
+        let multiTextureNode = SKNode()
+        multiTextureNode.name = "blockMultiTexture"
+        multiTextureNode.zPosition = 3 // Por encima del fondo pero debajo del contenido
+        
+        // 1. Primero añadir la textura base si existe
+        if let baseTexture = baseTexture {
+            let baseTextureSprite = SKSpriteNode(texture: baseTexture)
+            baseTextureSprite.size = blockSize
+            baseTextureSprite.alpha = 1.0 // La textura base siempre es completamente visible
+            multiTextureNode.addChild(baseTextureSprite)
+        }
+        
+        // 2. Luego añadir la textura de grietas con la opacidad adecuada
+        let cracksOpacity = calculateCracksOpacity(progress: progress, blockStyle: blockStyle)
+        let cracksSprite = SKSpriteNode(texture: cracksTexture)
+        cracksSprite.size = blockSize
+        cracksSprite.alpha = cracksOpacity
+        
+        // Ajustar el modo de mezcla para que las grietas se integren con la textura base
+        cracksSprite.blendMode = .multiply
+        
+        // Ajustar el color tinte según el tipo de bloque
+        if blockStyle == "hardiceBlock" {
+            cracksSprite.color = SKColor(red: 0.0, green: 0.1, blue: 0.3, alpha: 1.0)
+            cracksSprite.colorBlendFactor = 0.3
+        } else {
+            cracksSprite.color = SKColor.black
+            cracksSprite.colorBlendFactor = 0.2
+        }
+        
+        multiTextureNode.addChild(cracksSprite)
+        
+        // Añadir la composición de texturas al bloque
+        block.addChild(multiTextureNode)
+    }
+
+    // Función auxiliar para calcular la opacidad de las grietas según el progreso
+    private func calculateCracksOpacity(progress: CGFloat, blockStyle: String) -> CGFloat {
+        switch blockStyle {
+        case "iceBlock":
+            // Para hielo normal, las grietas se ven más rápido
+            return min(1.0, progress * 1.5)
+        case "hardiceBlock":
+            // Para hielo duro, las grietas aparecen más gradualmente
+            return min(1.0, progress * 1.2)
+        default:
+            return progress
+        }
+    }
+
+    // 9. Método para encontrar el nodo de fondo en la jerarquía del bloque
+    private func findBackgroundNode(in block: SKNode) -> SKShapeNode? {
+        // Buscar primero en los hijos directos
+        for child in block.children {
+            if let container = child as? SKNode {
+                // Buscar en los hijos del contenedor
+                for subChild in container.children {
+                    if let background = subChild as? SKShapeNode {
+                        return background
+                    }
+                }
+            }
+        }
+        
+        // Si no se encuentra, buscamos más profundamente
+        return block.childNode(withName: "//background") as? SKShapeNode
+    }
+    
 }
