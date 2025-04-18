@@ -18,14 +18,14 @@ struct TopBarViewModel {
     
     /// Datos de vidas
     struct LivesData {
-        let current: Int
+        var current: Int // Changed from let to var
         let total: Int
         let extraLivesAvailable: Int
     }
     
     /// Datos de puntuación
     struct ScoreData {
-        let current: Int
+        var current: Int // Changed from let to var
         let max: Int
         var progress: Double
     }
@@ -33,7 +33,7 @@ struct TopBarViewModel {
     /// Datos de objetivo
     struct ObjectiveData {
         let type: String
-        var current: Double
+        var current: Double // Changed from let to var
         let target: Double
         var timeRemaining: TimeInterval?
         
@@ -70,8 +70,8 @@ struct TopBarViewModel {
         self.lives = lives
         self.score = score
         self.objective = ObjectiveData(
-            type: "none", 
-            current: 0, 
+            type: "none",
+            current: 0,
             target: 0
         )
     }

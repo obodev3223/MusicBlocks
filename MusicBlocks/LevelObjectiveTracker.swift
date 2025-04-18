@@ -14,6 +14,7 @@ class LevelObjectiveTracker {
     init(level: GameLevel) {
         self.primaryObjective = level.objectives.primary
         self.currentProgress = ObjectiveProgress()
+        self.currentProgress.objectiveTracker = self
         
         // Inicializar contadores para cada estilo permitido en el nivel
         for style in level.allowedStyles {
@@ -68,26 +69,20 @@ class LevelObjectiveTracker {
     }
     
     func resetProgress() {
-        self.currentProgress = ObjectiveProgress()
+        // Create a new instance but maintain the reference to self
+        var newProgress = ObjectiveProgress() // Changed from let to var
+        newProgress.objectiveTracker = self
         
         // Comprobar si hay detalles en el objetivo primario
         if let details = primaryObjective.details {
             // Inicializar contadores para cada estilo permitido en el nivel
             for style in details.keys {
-                currentProgress.blocksByType[style] = 0
+                newProgress.blocksByType[style] = 0
             }
-        } else {
-            // Si no hay detalles específicos, iniciamos currentProgress.blocksByType como un diccionario vacío
-            currentProgress.blocksByType = [:]
         }
         
-        // Resetear otros valores importantes
-        currentProgress.timeElapsed = 0
-        currentProgress.accuracySum = 0
-        currentProgress.accuracyCount = 0
-        currentProgress.notesHit = 0
-        currentProgress.score = 0
-        currentProgress.totalBlocksDestroyed = 0
+        // Replace the current progress with the new one
+        self.currentProgress = newProgress
         
         print("🔄 Progreso de objetivos reseteado completamente")
     }
@@ -132,6 +127,8 @@ class LevelObjectiveTracker {
     }
     
     func getCurrentProgress() -> ObjectiveProgress {
+        // Ensure the objectiveTracker reference is set before returning
+        currentProgress.objectiveTracker = self
         return currentProgress
     }
     

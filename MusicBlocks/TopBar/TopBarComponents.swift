@@ -40,8 +40,21 @@ struct ObjectiveProgress {
     var totalBlocksDestroyed: Int = 0
     var timeElapsed: TimeInterval = 0
     
+    // Reference to the objective tracker (needed for timeLimit extension)
+    weak var objectiveTracker: LevelObjectiveTracker?
+    
     var averageAccuracy: Double {
         return accuracyCount > 0 ? accuracySum / Double(accuracyCount) : 0
+    }
+    
+    /// The time limit for this objective, calculated from the current objective type
+    var timeLimit: TimeInterval? {
+        guard let objective = objectiveTracker?.getPrimaryObjective() else { return nil }
+        
+        if let limit = objective.timeLimit, limit > 0 {
+            return TimeInterval(limit)
+        }
+        return nil
     }
 }
 
@@ -717,18 +730,6 @@ class ObjectivePanelFactory {
     }
 }
 
-// Extension to add timeLimit property to ObjectiveProgress
-extension ObjectiveProgress {
-    /// The time limit for this objective, calculated from the current objective type
-    var timeLimit: TimeInterval? {
-        guard let objective = objectiveTracker?.getPrimaryObjective() else { return nil }
-        
-        if let limit = objective.timeLimit, limit > 0 {
-            return TimeInterval(limit)
-        }
-        return nil
-    }
-}
 
 // MARK: - Preview
 #if DEBUG
