@@ -717,19 +717,6 @@ class ObjectivePanelFactory {
     }
 }
 
-// Extension to add timeLimit property to ObjectiveProgress
-extension ObjectiveProgress {
-    /// The time limit for this objective, calculated from the current objective type
-    var timeLimit: TimeInterval? {
-        guard let objective = objectiveTracker?.getPrimaryObjective() else { return nil }
-        
-        if let limit = objective.timeLimit, limit > 0 {
-            return TimeInterval(limit)
-        }
-        return nil
-    }
-}
-
 // MARK: - Preview
 #if DEBUG
 import SwiftUI

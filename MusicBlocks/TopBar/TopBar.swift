@@ -9,13 +9,13 @@
 import SpriteKit
 
 class TopBar: SKNode {
-    // Renderer for the bar
+    // Renderer para la barra
     private let renderer: TopBarViewRenderer
     
-    // ViewModel to handle the data
+    // ViewModel para manejar los datos
     private var viewModel: TopBarViewModel
     
-    // Creation method like the previous one, but using the new system
+    // Método de creación similar al anterior, pero usando el nuevo sistema
     class func create(
         width: CGFloat,
         height: CGFloat,
@@ -27,13 +27,13 @@ class TopBar: SKNode {
         return topBar
     }
     
-    // Main initializer
+    // Inicializador principal
     init(type: TopBarType) {
-        // Determine the renderer type based on the bar type
-        let barType = type.toBarType
+        // Determinar el tipo de renderizador basado en el tipo de barra
+        let barType: TopBarViewModel.BarType = type == .main ? .main : .objectives
         self.renderer = TopBarRendererFactory.createRenderer(for: barType)
         
-        // Create an initial default ViewModel
+        // Crear un ViewModel inicial por defecto
         self.viewModel = barType == .main
             ? TopBarViewModel(
                 levelId: 1,
@@ -52,19 +52,19 @@ class TopBar: SKNode {
         
         super.init()
         
-        // Render the initial view
+        // Renderizar la vista inicial
         let renderedNode = renderer.render(viewModel: viewModel)
         addChild(renderedNode)
     }
     
-    // Required initializer for SKNode
+    // Inicializador requerido para SKNode
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // Configure the bar with a specific level
+    // Configurar la barra con un nivel específico
     func configure(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
-        // For the main bar
+        // Para la barra principal
         if viewModel.barType == .main {
             viewModel = TopBarViewModel(
                 levelId: level.levelId,
@@ -76,12 +76,12 @@ class TopBar: SKNode {
                 score: .init(current: 0, max: level.maxScore, progress: 0)
             )
         }
-        // For the objectives bar
+        // Para la barra de objetivos
         else {
-            // Extract information from the primary objective
+            // Extraer información del objetivo primario
             let primaryObjective = level.objectives.primary
             
-            // Create objective data based on the type
+            // Crear datos del objetivo basados en el tipo
             let objectiveData: TopBarViewModel.ObjectiveData
             switch primaryObjective.type {
             case "score":
@@ -98,7 +98,7 @@ class TopBar: SKNode {
                     target: Double(primaryObjective.target ?? 0),
                     timeRemaining: TimeInterval(primaryObjective.timeLimit ?? 0)
                 )
-            // Add more cases as needed
+            // Añadir más casos según sea necesario
             default:
                 objectiveData = .init(
                     type: primaryObjective.type,
@@ -114,31 +114,31 @@ class TopBar: SKNode {
             )
         }
         
-        // Render with the new ViewModel
+        // Renderizar con el nuevo ViewModel
         removeAllChildren()
         let renderedNode = renderer.render(viewModel: viewModel)
         addChild(renderedNode)
     }
     
-    // Update the bar with new data
+    // Actualizar la barra con nuevos datos
     func updateScore(_ score: Int) {
         switch viewModel.barType {
         case .main:
-            // Update only if it's the main bar
+            // Actualizar solo si es la barra principal
             viewModel.score.current = score
             viewModel.score.progress = Double(score) / Double(viewModel.score.max)
         case .objectives:
-            // For the objectives bar, update the current objective if it's of score type
+            // Para la barra de objetivos, actualizar el objetivo actual si es de tipo puntuación
             if viewModel.objective.type == "score" {
                 viewModel.objective.current = Double(score)
             }
         }
         
-        // Update the view
+        // Actualizar la vista
         renderer.update(viewModel: viewModel)
     }
     
-    // Update lives
+    // Actualizar vidas
     func updateLives(_ lives: Int) {
         guard viewModel.barType == .main else { return }
         
@@ -146,11 +146,11 @@ class TopBar: SKNode {
         renderer.update(viewModel: viewModel)
     }
     
-    // Update objective progress
+    // Actualizar progreso del objetivo
     func updateObjectiveInfo(with progress: ObjectiveProgress) {
         guard viewModel.barType == .objectives else { return }
         
-        // Update according to objective type
+        // Actualizar según el tipo de objetivo
         switch viewModel.objective.type {
         case "score":
             viewModel.objective.current = Double(progress.score)
@@ -164,16 +164,16 @@ class TopBar: SKNode {
             break
         }
         
-        // Update elapsed time if available
-        if let timeLimit = progress.timeLimit {
-            viewModel.objective.timeRemaining = max(0, timeLimit - progress.timeElapsed)
-        }
+        // Actualizar tiempo transcurrido si está disponible
+        viewModel.objective.timeRemaining = progress.timeLimit > 0
+            ? max(0, progress.timeLimit - progress.timeElapsed)
+            : nil
         
-        // Update the view
+        // Actualizar la vista
         renderer.update(viewModel: viewModel)
     }
     
-    // Method to update the objective progress
+    // Método para actualizar el progreso del objetivo
     func updateProgress(progress: Double) {
         guard viewModel.barType == .main else { return }
         
@@ -227,7 +227,7 @@ struct TopBarPreviewContainer: View {
             blocks: [:]
         )
         
-        // TopBar of type .main (left)
+        // TopBar de tipo .main (izquierda)
         let topBarWidth = min(size.width * 0.45, 300)
         let topBarHeight: CGFloat = 60
         
@@ -243,7 +243,7 @@ struct TopBarPreviewContainer: View {
         
         scene.addChild(leftBar)
         
-        // TopBar of type .objectives (right)
+        // TopBar de tipo .objectives (derecha)
         let rightBar = TopBar.create(
             width: topBarWidth,
             height: topBarHeight,
