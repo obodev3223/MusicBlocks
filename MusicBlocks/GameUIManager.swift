@@ -138,7 +138,7 @@ class GameUIManager {
         let leftXPosition = Layout.margins.left + topBarWidth/2
         let rightXPosition = scene.size.width - Layout.margins.right - topBarWidth/2
         
-        // Crear TopBars usando la nueva implementación
+        // Crear TopBars
         leftTopBarNode = TopBar.create(
             width: topBarWidth,
             height: height,
@@ -172,6 +172,12 @@ class GameUIManager {
             // Añadir a la escena
             scene.addChild(leftBar)
             scene.addChild(rightBar)
+            
+            // Debug de posiciones
+            //            print("Left TopBar position: \(leftXPosition)")
+            //            print("Right TopBar position: \(rightXPosition)")
+            //            print("TopBar width: \(topBarWidth)")
+            //            print("Scene width: \(scene.size.width)")
         }
     }
     
@@ -198,6 +204,8 @@ class GameUIManager {
         containerNode.addChild(mainContent)
         mainAreaNode = mainContent
         scene.addChild(containerNode)
+        
+        //  print("MainArea configurada - Tamaño: \(width)x\(height)")
     }
     
     private func addDangerZone(to container: SKNode, width: CGFloat, height: CGFloat) {
@@ -413,7 +421,7 @@ class GameUIManager {
             overlay?.hide(duration: 0.2)
         }
     }
-    
+
     func showFailureOverlay() {
         guard let scene = scene else { return }
         
@@ -547,7 +555,7 @@ class GameUIManager {
         
         print("🎉 GameUIManager: Overlay de felicitaciones mostrado correctamente")
     }
-    
+
     func clearCurrentOverlay() {
         // Remover overlay actual con una animación de desvanecimiento
         if let overlay = currentOverlay {
@@ -555,6 +563,7 @@ class GameUIManager {
             currentOverlay = nil
         }
     }
+    
     // MARK: - Public Accessors
     func getMainAreaNode() -> SKNode? {
         return mainAreaNode
