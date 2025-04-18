@@ -2,183 +2,337 @@
 //  TopBar.swift
 //  MusicBlocks
 //
-//  Created by Jose R. García on 18/4/25.
+//  Created by Jose R. García on 9/23/25.
 //
 
-
 import SpriteKit
+import UIKit
 
 class TopBar: SKNode {
-    // Renderer para la barra
-    private let renderer: TopBarViewRenderer
     
-    // ViewModel para manejar los datos
-    private var viewModel: TopBarViewModel
-    
-    // Método de creación similar al anterior, pero usando el nuevo sistema
-    class func create(
-        width: CGFloat,
-        height: CGFloat,
-        position: CGPoint,
-        type: TopBarType
-    ) -> TopBar {
-        let topBar = TopBar(type: type)
-        topBar.position = position
-        return topBar
+    enum TopBarType {
+        case main       // Para nivel, puntuación y vidas
+        case objectives // Para objetivos
     }
     
-    // Inicializador principal
-    init(type: TopBarType) {
-        // Determinar el tipo de renderizador basado en el tipo de barra
-        let barType: TopBarViewModel.BarType = type == .main ? .main : .objectives
-        self.renderer = TopBarRendererFactory.createRenderer(for: barType)
+    // MARK: - Layout
+    private struct Layout {
+        // Tamaño fijo del TopBar
+        static let cornerRadius: CGFloat = 10
         
-        // Crear un ViewModel inicial por defecto
-        self.viewModel = barType == .main
-            ? TopBarViewModel(
-                levelId: 1,
-                lives: .init(current: 3, total: 3, extraLivesAvailable: 0),
-                score: .init(current: 0, max: 1000, progress: 0)
-            )
-            : TopBarViewModel(
-                levelId: 1,
-                objective: .init(
-                    type: "score",
-                    current: 0,
-                    target: 1000,
-                    timeRemaining: 180
-                )
-            )
+        // Separaciones
+        static let horizontalPadding: CGFloat = 10 // Se usa para desplazar la fila superior hacia la derecha desde el borde izquierdo del contenedor
+        static let verticalPadding: CGFloat = 12 // Se usa para desplazar la fila superior hacia abajo desde el borde superior del contenedor.
         
+        // Separaciones para la fila inferior
+            static let bottomRowHorizontalPadding: CGFloat = 18
+
+        static let itemSpacing: CGFloat = 8
+        
+        // Texto
+        static let fontSize: CGFloat = 14
+        
+        // Corazones
+        static let heartSize: CGFloat = 16
+        static let heartSpacing: CGFloat = 6
+        
+        // Distancia vertical entre fila superior y fila inferior
+        static let rowSpacing: CGFloat = 14
+    }
+    
+    // MARK: - Propiedades
+    private let barSize: CGSize
+    private let type: TopBarType
+    
+    // Fila superior
+    private let topRow = SKNode()
+    private var levelLabel: SKLabelNode?
+    private var heartsContainer = SKNode()
+    
+    // Fila inferior
+    private let bottomRow = SKNode()
+    private var scoreProgressNode: ScoreProgressNode?
+    private var objectivePanel: ObjectiveInfoPanel?
+    
+    // Vidas
+    private var heartNodes: [SKSpriteNode] = []
+    private var maxLives: Int = 0
+    private var maxExtraLives: Int = 0
+    private var lives: Int = 0
+    
+    // MARK: - Init
+    private init(width: CGFloat, height: CGFloat, position: CGPoint, type: TopBarType) {
+        self.barSize = CGSize(width: width, height: height)
+        self.type = type
         super.init()
         
-        // Renderizar la vista inicial
-        let renderedNode = renderer.render(viewModel: viewModel)
-        addChild(renderedNode)
+        self.position = position
+        
+        // Fondo y sombra (definido en tu UIContainer.swift)
+        applyContainerStyle(size: barSize)
+        
+        // Añadir las dos filas
+        addChild(topRow)
+        addChild(bottomRow)
+        
+        switch type {
+        case .main:
+            setupMainTopBar()
+        case .objectives:
+            // El panel de objetivos se configura luego en configureObjectivesBar(...)
+            break
+        }
     }
     
-    // Inicializador requerido para SKNode
     required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // Configurar la barra con un nivel específico
+    // MARK: - Crear la TopBar
+    static func create(width: CGFloat, height: CGFloat, position: CGPoint, type: TopBarType) -> TopBar {
+        return TopBar(width: width, height: height, position: position, type: type)
+    }
+    
+    // MARK: - Setup para la barra principal
+    private func setupMainTopBar() {
+        // Fila superior: Nivel, separador y contenedor de corazones
+        levelLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        levelLabel?.fontSize = Layout.fontSize
+        levelLabel?.fontColor = .purple
+        levelLabel?.verticalAlignmentMode = .center
+        levelLabel?.horizontalAlignmentMode = .left
+        levelLabel?.text = "Nivel ?" // Se actualiza en configure(...)
+        
+        let separator = SKLabelNode(fontNamed: "Helvetica-Bold")
+        separator.text = "·"
+        separator.fontSize = Layout.fontSize
+        separator.fontColor = .darkGray
+        separator.verticalAlignmentMode = .center
+        separator.horizontalAlignmentMode = .left
+        
+        // Layout horizontal en topRow
+        var currentX: CGFloat = -barSize.width/2 + Layout.horizontalPadding
+        let rowY: CGFloat = barSize.height/2 - Layout.verticalPadding
+        
+        // 1) levelLabel
+        if let label = levelLabel {
+            label.position = CGPoint(x: currentX, y: rowY)
+            topRow.addChild(label)
+            currentX += label.frame.width + Layout.itemSpacing
+        }
+        
+        // 2) separador
+        separator.position = CGPoint(x: currentX, y: rowY)
+        topRow.addChild(separator)
+        currentX += separator.frame.width + Layout.itemSpacing + 5
+        
+        // 3) heartsContainer
+        heartsContainer.position = CGPoint(x: currentX, y: rowY)
+        topRow.addChild(heartsContainer)
+        // (los corazones se crean en setupHearts(...) luego)
+
+    }
+    
+    private func setupScoreDisplay() {
+        let topRowHeight = topRow.calculateAccumulatedFrame().height
+        bottomRow.position = CGPoint(
+            x: 0,
+            y: (barSize.height/2 - Layout.verticalPadding) - topRowHeight - Layout.rowSpacing
+        )
+        
+        // Ahora restamos bottomRowHorizontalPadding en lugar de horizontalPadding
+        let availableWidth = barSize.width - (Layout.bottomRowHorizontalPadding * 2)
+        
+        let progressNode = ScoreProgressNode(width: availableWidth)
+        
+        // Centrarlo horizontalmente en bottomRow,
+        // dejando bottomRowHorizontalPadding desde el borde izquierdo del TopBar
+        progressNode.position = CGPoint(
+            x: -barSize.width/2 + Layout.bottomRowHorizontalPadding,
+            y: 0
+        )
+        
+        bottomRow.addChild(progressNode)
+        scoreProgressNode = progressNode
+    }
+
+    
+    // MARK: - Configuración
     func configure(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
-        // Para la barra principal
-        if viewModel.barType == .main {
-            viewModel = TopBarViewModel(
-                levelId: level.levelId,
-                lives: .init(
-                    current: level.lives.initial,
-                    total: level.lives.initial,
-                    extraLivesAvailable: level.lives.extraLives.maxExtra
-                ),
-                score: .init(current: 0, max: level.maxScore, progress: 0)
-            )
-        }
-        // Para la barra de objetivos
-        else {
-            // Extraer información del objetivo primario
-            let primaryObjective = level.objectives.primary
-            
-            // Crear datos del objetivo basados en el tipo
-            let objectiveData: TopBarViewModel.ObjectiveData
-            switch primaryObjective.type {
-            case "score":
-                objectiveData = .init(
-                    type: "score",
-                    current: 0,
-                    target: Double(primaryObjective.target ?? 0),
-                    timeRemaining: TimeInterval(primaryObjective.timeLimit ?? 0)
-                )
-            case "total_notes":
-                objectiveData = .init(
-                    type: "total_notes",
-                    current: 0,
-                    target: Double(primaryObjective.target ?? 0),
-                    timeRemaining: TimeInterval(primaryObjective.timeLimit ?? 0)
-                )
-            // Añadir más casos según sea necesario
-            default:
-                objectiveData = .init(
-                    type: primaryObjective.type,
-                    current: 0,
-                    target: 1,
-                    timeRemaining: nil
-                )
-            }
-            
-            viewModel = TopBarViewModel(
-                levelId: level.levelId,
-                objective: objectiveData
-            )
-        }
-        
-        // Renderizar con el nuevo ViewModel
-        removeAllChildren()
-        let renderedNode = renderer.render(viewModel: viewModel)
-        addChild(renderedNode)
-    }
-    
-    // Actualizar la barra con nuevos datos
-    func updateScore(_ score: Int) {
-        switch viewModel.barType {
+        switch type {
         case .main:
-            // Actualizar solo si es la barra principal
-            viewModel.score.current = score
-            viewModel.score.progress = Double(score) / Double(viewModel.score.max)
+            configureMainBar(withLevel: level)
         case .objectives:
-            // Para la barra de objetivos, actualizar el objetivo actual si es de tipo puntuación
-            if viewModel.objective.type == "score" {
-                viewModel.objective.current = Double(score)
+            configureObjectivesBar(withLevel: level, objectiveTracker: objectiveTracker)
+        }
+    }
+    
+    private func configureMainBar(withLevel level: GameLevel) {
+        // 1) Ajustamos el texto y las vidas
+        levelLabel?.text = "Nivel \(level.levelId)"
+
+        maxLives = level.lives.initial
+        maxExtraLives = level.lives.extraLives.maxExtra
+        lives = level.lives.initial
+
+        setupHearts(in: heartsContainer)
+        updateLives(lives)
+
+        // 2) En vez de llamar a setupScoreDisplay() directamente,
+        //    lo hacemos en la siguiente iteración del runloop:
+        DispatchQueue.main.async {
+            self.setupScoreDisplay()
+        }
+    }
+    
+    private func configureObjectivesBar(withLevel level: GameLevel, objectiveTracker: LevelObjectiveTracker) {
+        topRow.removeFromParent()  // si no usas la fila superior
+
+        objectivePanel?.removeFromParent()
+        
+        let panelSize = CGSize(width: barSize.width, height: barSize.height)
+        let panel = ObjectivePanelFactory.createPanel(
+            for: level.objectives.primary,
+            size: panelSize,
+            tracker: objectiveTracker
+        )
+        objectivePanel = panel
+        
+        // bottomRow centrado en (0,0)
+        bottomRow.position = .zero
+        bottomRow.removeAllChildren()
+        
+        // AHORA, para alinear el borde izquierdo del panel con la TopBar:
+        // la TopBar va de x = -barSize.width/2 a x = +barSize.width/2
+        // si pones panel.position.x = -barSize.width/2 + 10, dejas 10 px de margen
+        panel.position = CGPoint(x: -barSize.width/2 + 10, y: 0)
+        
+        bottomRow.addChild(panel)
+    }
+
+
+    
+    // MARK: - Score y Vidas
+    func updateScore(_ newScore: Int) {
+        // No actualizar si el scoreProgressNode aún no está inicializado
+        guard type == .main,
+              let scoreNode = scoreProgressNode,
+              let currentLevel = GameManager.shared.currentLevel,
+              currentLevel.maxScore > 0 else { return }
+        
+        // Usar maxScore directamente del nivel actual
+        scoreNode.updateProgress(score: newScore, maxScore: currentLevel.maxScore)
+    }
+    
+    func updateLives(_ newLives: Int) {
+        if type == .main {
+            lives = newLives
+            updateHeartsDisplay()
+        }
+    }
+    
+    // MARK: - Corazones
+    private func setupHearts(in container: SKNode) {
+        // Limpia corazones anteriores
+        heartNodes.forEach { $0.removeFromParent() }
+        heartNodes.removeAll()
+        
+        var currentX: CGFloat = 0
+        // Vidas base
+        for _ in 0..<maxLives {
+            let heart = SKSpriteNode(imageNamed: "heart_filled")
+            heart.size = CGSize(width: Layout.heartSize, height: Layout.heartSize)
+            heart.position = CGPoint(x: currentX, y: 0)
+            container.addChild(heart)
+            heartNodes.append(heart)
+            currentX += Layout.heartSize + Layout.heartSpacing
+        }
+        
+        // Vidas extra
+        for _ in 0..<maxExtraLives {
+            let heart = SKSpriteNode(imageNamed: "heart_extra")
+            heart.size = CGSize(width: Layout.heartSize, height: Layout.heartSize)
+            heart.alpha = 0
+            heart.position = CGPoint(x: currentX, y: 0)
+            container.addChild(heart)
+            heartNodes.append(heart)
+            currentX += Layout.heartSize + Layout.heartSpacing
+        }
+    }
+    
+    private func updateHeartsDisplay() {
+        for (index, heart) in heartNodes.enumerated() {
+            heart.alpha = 1.0
+            
+            if index < maxLives {
+                if index < lives {
+                    heart.texture = SKTexture(imageNamed: "heart_filled")
+                } else {
+                    heart.texture = SKTexture(imageNamed: "heart_empty")
+                }
+            } else if index < (maxLives + maxExtraLives) {
+                if index < lives {
+                    heart.texture = SKTexture(imageNamed: "heart_extra_filled")
+                    heart.alpha = 1.0
+                } else {
+                    heart.alpha = 0
+                }
             }
         }
-        
-        // Actualizar la vista
-        renderer.update(viewModel: viewModel)
     }
     
-    // Actualizar vidas
-    func updateLives(_ lives: Int) {
-        guard viewModel.barType == .main else { return }
-        
-        viewModel.lives.current = lives
-        renderer.update(viewModel: viewModel)
-    }
-    
-    // Actualizar progreso del objetivo
+    // MARK: - Objetivos
+    // Modificación del método existente en la clase TopBar
     func updateObjectiveInfo(with progress: ObjectiveProgress) {
-        guard viewModel.barType == .objectives else { return }
+        if type == .objectives {
+            objectivePanel?.updateInfo(with: progress)
+            
+            // Además, buscar y actualizar todos los TimeDisplayNode dentro del panel
+            updateTimeDisplayNodes(with: progress)
+        }
+    }
+
+    // Nuevo método en la clase TopBar
+    private func updateTimeDisplayNodes(with progress: ObjectiveProgress) {
+        // Usar el objectivePanel como punto de partida para la búsqueda
+        guard let panel = objectivePanel else { return }
         
-        // Actualizar según el tipo de objetivo
-        switch viewModel.objective.type {
-        case "score":
-            viewModel.objective.current = Double(progress.score)
-        case "total_notes":
-            viewModel.objective.current = Double(progress.notesHit)
-        case "note_accuracy":
-            viewModel.objective.current = progress.accuracySum / Double(max(progress.accuracyCount, 1))
-        case "block_destruction", "total_blocks":
-            viewModel.objective.current = Double(progress.totalBlocksDestroyed)
-        default:
-            break
+        // Buscar en el panel todos los TimeDisplayNode
+        findAndUpdateTimeDisplayNodes(in: panel, with: progress)
+    }
+
+    // Nuevo método en la clase TopBar
+    private func findAndUpdateTimeDisplayNodes(in node: SKNode, with progress: ObjectiveProgress) {
+        // Primero procesar el nodo actual
+        if let timeDisplay = node as? TimeDisplayNode {
+            // Actualizar el startTime para reflejar el tiempo transcurrido
+            timeDisplay.startTime = Date(timeIntervalSinceReferenceDate:
+                Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+            timeDisplay.update()
         }
         
-        // Actualizar tiempo transcurrido si está disponible
-        viewModel.objective.timeRemaining = progress.timeLimit > 0
-            ? max(0, progress.timeLimit - progress.timeElapsed)
-            : nil
-        
-        // Actualizar la vista
-        renderer.update(viewModel: viewModel)
+        // Luego procesar recursivamente los hijos
+        for child in node.children {
+            findAndUpdateTimeDisplayNodes(in: child, with: progress)
+        }
     }
     
-    // Método para actualizar el progreso del objetivo
+    // MARK: - Actualización de Progreso
     func updateProgress(progress: Double) {
-        guard viewModel.barType == .main else { return }
-        
-        viewModel.score.progress = progress
-        renderer.update(viewModel: viewModel)
+        // Solo actualizar en la barra principal
+        if type == .main, let progressNode = scoreProgressNode {
+            if let currentLevel = GameManager.shared.currentLevel {
+                // Calcular la puntuación actual basada en el progreso y la puntuación máxima
+                let maxScore = currentLevel.maxScore
+                let currentScore = Int(progress * Double(maxScore))
+                
+                // Actualizar usando la puntuación calculada y maxScore del nivel
+                progressNode.updateProgress(score: currentScore, maxScore: maxScore)
+                
+                // Debug
+                GameLogger.shared.scoreUpdate("TopBar: progreso \(Int(progress * 100))% (score \(currentScore)/\(maxScore))")
+            }
+        }
     }
 }
 
