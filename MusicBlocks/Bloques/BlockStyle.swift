@@ -62,7 +62,7 @@ extension BlockStyle {
         shadowColor: SKColor.blue,
         shadowOffset: CGSize(width: 2, height: -2),
         shadowBlur: 4.0,
-        fillTexture: SKTexture(imageNamed: "iceTexture4"),
+        fillTexture: SKTexture(imageNamed: "iceTexture"),
         textureOpacity: 0.5,
         textureScale: 1.0,
         specialBehavior: nil
@@ -77,7 +77,7 @@ extension BlockStyle {
         shadowColor: SKColor.darkGray,
         shadowOffset: CGSize(width: 3, height: -3),
         shadowBlur: 3.0,
-        fillTexture: SKTexture(imageNamed: "iceTexture3"),
+        fillTexture: SKTexture(imageNamed: "iceTexture2"),
         textureOpacity: 0.2,
         textureScale: 1.0,
         specialBehavior: nil
