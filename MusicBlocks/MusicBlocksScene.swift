@@ -307,15 +307,18 @@ class MusicBlocksScene: SKScene  {
             let progress = tracker.getCurrentProgress()
             
             // Debug
-            GameLogger.shared.timeUpdate("⏱️ Tiempo actualizado: \(Int(progress.timeElapsed)) segundos")
+            GameLogger.shared.timeUpdate("⏱️ Tiempo actualizado: \(progress.timeElapsed) segundos (restantes: \(Int(180 - progress.timeElapsed))s)")
             
             // Actualizar directamente el componente de UI asegurando que se ejecuta en el hilo principal
             DispatchQueue.main.async {
-                // Actualizar tiempo en UI Manager (método nuevo)
-                self.uiManager.updateTimeDisplay(with: progress)
-                
                 // Actualizar el panel de objetivos usando el progreso actualizado
                 self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+                
+                // Ya no necesitamos esta parte pues updateObjectiveInfo se encarga de actualizar
+                // todos los TimeDisplayNode dentro del panel
+                // if let objectivePanel = self.uiManager.rightTopBarNode?.objectivePanel {
+                //     objectivePanel.updateInfo(with: progress)
+                // }
             }
         }
     }
