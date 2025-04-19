@@ -250,7 +250,7 @@ class GameLevelProcessor {
     /// Carga el archivo json y procesa sus datos
     /// - Returns: Objeto GameConfig con los datos del juego
     static func loadGameLevelsFromFile() -> GameConfig? {
-        guard let path = Bundle.main.path(forResource: "game_levels_note_accuracy", ofType: "json") else {
+        guard let path = Bundle.main.path(forResource: "game_levels_score", ofType: "json") else {
             print("No se pudo encontrar el archivo game_levels.json")
             return nil
         }

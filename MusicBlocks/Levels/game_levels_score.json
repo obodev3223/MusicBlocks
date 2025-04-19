@@ -57,7 +57,7 @@
             "level_id": 1,
             "name": "Tutorial",
             "max_score": 500,
-            "allowed_styles": ["defaultBlock"],
+            "allowed_styles": ["iceBlock"],
             "falling_speed": {
                 "initial": 4.0,
                 "increment": 0.0

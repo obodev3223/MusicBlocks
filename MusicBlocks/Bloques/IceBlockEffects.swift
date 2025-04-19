@@ -374,3 +374,77 @@ struct IceBlockEffects {
         glowShape.run(SKAction.sequence([fadeIn, wait, fadeOut, remove]))
     }
 }
+
+// Añadir función para cambiar la nota del bloque
+
+extension IceBlockEffects {
+    
+    /// Actualiza el contenido visual del bloque para mostrar una nueva nota
+    /// - Parameters:
+    ///   - block: El nodo del bloque a modificar
+    ///   - newNote: La nueva nota musical a mostrar
+    ///   - blockSize: Tamaño del bloque
+    static func updateBlockNote(block: SKNode, newNote: MusicalNote, blockSize: CGSize) {
+        // Eliminar el contenido actual primero
+        block.childNode(withName: "content")?.removeFromParent()
+        
+        // Obtener el estilo desde userData
+        guard let userData = block.userData,
+              let styleData = userData.value(forKey: "blockStyle") as? String,
+              let blockStyle = getBlockStyle(for: styleData) else {
+            print("❌ No se pudo determinar el estilo del bloque para actualizar la nota")
+            return
+        }
+        
+        // Crear nuevo contenido con la nueva nota
+        let contentNode = BlockContentGenerator.generateBlockContent(
+            with: blockStyle,
+            blockSize: blockSize,
+            desiredNote: newNote,
+            baseNoteX: 5,
+            baseNoteY: 0,
+            leftMargin: 30,
+            rightMargin: 30
+        )
+        contentNode.name = "content"
+        contentNode.position = .zero
+        contentNode.zPosition = 3
+        block.addChild(contentNode)
+        
+        // Actualizar userData con la nueva nota
+        userData.setValue(newNote.fullName, forKey: "noteName")
+        
+        // Añadir un efecto visual para resaltar el cambio
+        animateNoteChange(node: contentNode)
+    }
+    
+    /// Genera una animación para destacar el cambio de nota
+    /// - Parameter node: El nodo de contenido a animar
+    private static func animateNoteChange(node: SKNode) {
+        // Escala inicial
+        node.setScale(0.85)
+        node.alpha = 0.7
+        
+        // Secuencia de animación
+        let scaleUp = SKAction.scale(to: 1.0, duration: 0.3)
+        let fadeIn = SKAction.fadeIn(withDuration: 0.3)
+        let group = SKAction.group([scaleUp, fadeIn])
+        group.timingMode = .easeOut
+        
+        // Ejecutar la animación
+        node.run(group)
+    }
+    
+    /// Obtiene el estilo de bloque a partir del nombre del estilo
+    private static func getBlockStyle(for styleName: String) -> BlockStyle? {
+        switch styleName {
+        case "defaultBlock": return .defaultBlock
+        case "iceBlock": return .iceBlock
+        case "hardiceBlock": return .hardiceBlock
+        case "ghostBlock": return .ghostBlock
+        case "changingBlock": return .changingBlock
+        case "explosiveBlock": return .explosiveBlock
+        default: return nil
+        }
+    }
+}

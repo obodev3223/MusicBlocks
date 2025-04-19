@@ -484,12 +484,18 @@ class BlocksManager {
         
         // Update block appearance for multi-hit blocks
         if currentInfo.requiredHits > 1 && currentInfo.currentHits < currentInfo.requiredHits {
+            // Actualizar apariencia visual del bloque
             updateBlockAppearanceForHit(
                 node: currentInfo.node,
                 style: currentInfo.style,
                 currentHits: currentInfo.currentHits,
                 requiredHits: currentInfo.requiredHits
             )
+            
+            // NUEVO: Si es un bloque de hielo, cambiar la nota
+            if currentInfo.style == "iceBlock" || currentInfo.style == "hardiceBlock" {
+                changeBlockNote(node: currentInfo.node, config: currentInfo.config)
+            }
         }
         
         blockInfos[index] = currentInfo
@@ -507,6 +513,48 @@ class BlocksManager {
         
         isProcessingBlock = false
         return false
+    }
+
+    // Nueva función a añadir en la clase BlocksManager
+    private func changeBlockNote(node: SKNode, config: Block) {
+        // Solo proceder si hay notas disponibles en la configuración
+        guard !config.notes.isEmpty else { return }
+        
+        // Obtener la nota actual
+        guard let userData = node.userData,
+              let currentNoteStr = userData.value(forKey: "noteName") as? String else {
+            return
+        }
+        
+        // Seleccionar una nueva nota aleatoria diferente de la actual
+        var availableNotes = config.notes
+        if let currentIndex = availableNotes.firstIndex(where: { MusicalNote.areNotesEquivalent($0, currentNoteStr) }) {
+            availableNotes.remove(at: currentIndex)
+        }
+        
+        // Si no quedan más notas, usar la lista completa
+        if availableNotes.isEmpty {
+            availableNotes = config.notes
+        }
+        
+        // Seleccionar una nota aleatoria
+        guard let randomNoteString = availableNotes.randomElement(),
+              let newNote = MusicalNote.parseSpanishFormat(randomNoteString) else {
+            return
+        }
+        
+        // Actualizar el bloque con la nueva nota
+        IceBlockEffects.updateBlockNote(
+            block: node,
+            newNote: newNote,
+            blockSize: blockSize
+        )
+        
+        GameLogger.shared.blockMovement("Nota del bloque cambiada de \(currentNoteStr) a \(newNote.fullName)")
+                
+        // Importante: NO actualizar las estadísticas de bloques destruidos aquí,
+        // ya que el bloque aún no ha sido destruido completamente.
+        // Las notas acertadas se contabilizarán en GameEngine.handleSuccess
     }
     
     /// Resets the current block's progress

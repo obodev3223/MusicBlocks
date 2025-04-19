@@ -343,8 +343,11 @@ class GameEngine: ObservableObject {
         // Asegúrate de tener acceso a la nota actual
         let currentNote = blockManager?.getCurrentBlock()?.note ?? ""
         
-        // Incrementar contador de bloques por estilo
-        if let currentBlock = blockManager?.getCurrentBlock() {
+        // Determinar si el bloque ha sido completamente destruido
+        let isBlockFullyDestroyed = blockManager?.updateCurrentBlockProgress(hitTime: Date()) ?? false
+        
+        // Incrementar contador de bloques por estilo SOLO SI fue completamente destruido
+        if isBlockFullyDestroyed, let currentBlock = blockManager?.getCurrentBlock() {
             blockHitsByStyle[currentBlock.style] = (blockHitsByStyle[currentBlock.style] ?? 0) + 1
             print("📊 Bloque estilo \(currentBlock.style) acertado: ahora \(blockHitsByStyle[currentBlock.style]!)")
         }
@@ -376,12 +379,14 @@ class GameEngine: ObservableObject {
         checkForExtraLife(currentScore: score)
         
         // 6. Actualizar el progreso de los objetivos
+        // MODIFICADO: Solo contar el bloque si fue destruido completamente
         let blockStyle = blockManager?.getCurrentBlock()?.style ?? "defaultBlock"
         objectiveTracker?.updateProgress(
-            score: score,             // Para objetivos tipo "score"
-            noteHit: true,            // Para objetivos tipo "total_notes"
-            accuracy: accuracy,       // Para objetivos tipo "note_accuracy"
-            blockDestroyed: blockStyle // Para objetivos tipo "block_destruction" y "total_blocks"
+            score: score,             // Para objetivos tipo "score" - siempre
+            noteHit: true,            // Para objetivos tipo "total_notes" - siempre contar la nota
+            accuracy: accuracy,       // Para objetivos tipo "note_accuracy" - siempre
+            blockDestroyed: isBlockFullyDestroyed ? blockStyle : nil,  // Solo contar el bloque si fue destruido completamente
+            deltaTime: nil
         )
             
         // 7. Send immediate notification to UI
