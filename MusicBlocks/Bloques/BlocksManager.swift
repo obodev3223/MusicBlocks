@@ -217,6 +217,15 @@ class BlocksManager {
             return createDefaultBlock()
         }
         
+        // VERIFICAR: Imprimir configuración para debug
+            GameLogger.shared.blockMovement("""
+                Creando bloque:
+                - Estilo: \(randomStyle)
+                - Nota: \(randomNoteString)
+                - requiredHits: \(config.requiredHits)
+                - requiredTime: \(config.requiredTime)
+                """)
+        
         // Create block container and content
         let container = createBlockContainer(with: blockStyle)
         blockNode.addChild(container)
@@ -271,7 +280,17 @@ class BlocksManager {
               let config = gameManager.getBlockConfig(for: styleData),
               let requiredHits = userData.value(forKey: "requiredHits") as? Int,
               let requiredTime = userData.value(forKey: "requiredTime") as? TimeInterval else {
-            GameLogger.shared.blockMovement("Failed to create block info: Invalid block data")
+            
+            // VERIFICAR: Imprimir info detallada para debug
+            GameLogger.shared.blockMovement("""
+                ❌ Failed to create BlockInfo:
+                - userData exists: \(block.userData != nil)
+                - noteData: \(block.userData?.value(forKey: "noteName") as? String ?? "nil")
+                - styleData: \(block.userData?.value(forKey: "blockStyle") as? String ?? "nil")
+                - requiredHits: \(block.userData?.value(forKey: "requiredHits") ?? "nil")
+                - requiredTime: \(block.userData?.value(forKey: "requiredTime") ?? "nil")
+                """)
+            
             return nil
         }
         
@@ -285,7 +304,7 @@ class BlocksManager {
         )
         
         GameLogger.shared.blockMovement("""
-            Block Info Created:
+            ✅ BlockInfo Created:
             - Note: \(noteData)
             - Style: \(styleData)
             - Required Hits: \(requiredHits)
@@ -467,13 +486,24 @@ class BlocksManager {
         setupProcessingTimeout()
         
         // Validate current block
-        guard let index = blockInfos.indices.last else {
-            GameLogger.shared.blockMovement("No block to process")
+        guard let index = blockInfos.indices.last,
+              index < blockInfos.count else {
+            GameLogger.shared.blockMovement("No block to process or index out of range")
             isProcessingBlock = false
             return false
         }
         
         var currentInfo = blockInfos[index]
+        
+        // VERIFICAR: Imprimir info para debug
+        GameLogger.shared.blockMovement("""
+            Procesando golpe:
+            - Bloque: \(currentInfo.style)
+            - Nota: \(currentInfo.note)
+            - Golpes actuales: \(currentInfo.currentHits)
+            - Golpes requeridos: \(currentInfo.requiredHits)
+            """)
+        
         currentInfo.currentHits += 1
         
         GameLogger.shared.blockMovement("""
@@ -492,7 +522,7 @@ class BlocksManager {
                 requiredHits: currentInfo.requiredHits
             )
             
-            // NUEVO: Si es un bloque de hielo, cambiar la nota
+            // Si es un bloque de hielo o hielo duro, cambiar la nota
             if currentInfo.style == "iceBlock" || currentInfo.style == "hardiceBlock" {
                 changeBlockNote(node: currentInfo.node, config: currentInfo.config)
             }
@@ -501,19 +531,22 @@ class BlocksManager {
         blockInfos[index] = currentInfo
         
         // Check if block is completed
-        if currentInfo.currentHits >= currentInfo.requiredHits {
+        let isCompleted = currentInfo.currentHits >= currentInfo.requiredHits
+        
+        if isCompleted {
             GameLogger.shared.blockMovement("Block completed, removing")
             
             removeLastBlockWithCompletion { [weak self] in
                 self?.isProcessingBlock = false
                 self?.processingStartTime = nil
             }
-            return true
+        } else {
+            isProcessingBlock = false
         }
         
-        isProcessingBlock = false
-        return false
+        return isCompleted
     }
+
 
     // Nueva función a añadir en la clase BlocksManager
     private func changeBlockNote(node: SKNode, config: Block) {
@@ -637,11 +670,7 @@ class BlocksManager {
     }
     
     /// Updates the hit counter for blocks requiring multiple hits
-    private func updateHitCounter(
-        on block: SKNode,
-        currentHits: Int,
-        requiredHits: Int
-    ) {
+    private func updateHitCounter(on block: SKNode, currentHits: Int, requiredHits: Int) {
         // Remove existing counter
         block.childNode(withName: "hitCounter")?.removeFromParent()
         
@@ -665,13 +694,18 @@ class BlocksManager {
         background.lineWidth = 1.5
         counterContainer.addChild(background)
         
+        let remainingHits = requiredHits - currentHits
+        
         let label = SKLabelNode(fontNamed: "Helvetica-Bold")
-        label.text = "\(requiredHits - currentHits)"
+        label.text = "\(remainingHits)"
         label.fontSize = 14
         label.fontColor = .darkGray
         label.verticalAlignmentMode = .center
         label.horizontalAlignmentMode = .center
         counterContainer.addChild(label)
+        
+        // VERIFICAR: Imprimir info para debug
+        GameLogger.shared.blockMovement("Actualizado contador de hits: \(remainingHits)/\(requiredHits)")
         
         // Add counter to block with animation
         block.addChild(counterContainer)

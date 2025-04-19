@@ -188,7 +188,7 @@ struct BlockPreviewView: View {
         
         // Generar el contenido (pentagrama, nota, etc.)
         let content = BlockContentGenerator.generateBlockContent(
-            with: .defaultBlock,
+            with: .iceBlock,
             blockSize: blockSize,
             desiredNote: exampleNote,
             baseNoteX: 0,

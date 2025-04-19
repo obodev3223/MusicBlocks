@@ -78,17 +78,17 @@
                 }
             },
             "blocks": {
-                "defaultBlock": {
+                "iceBlock": {
                     "notes": [
                         "SOL4",
                         "LA4",
                         "SI4"
                     ],
-                    "requiredHits": 1,
+                    "requiredHits": 2,
                     "requiredTime": 0.8,
                     "style": "default",
                     "weight": 1,
-                    "base_points": 5
+                    "base_points": 10
                 }
             }
         }
