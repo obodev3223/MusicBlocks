@@ -27,13 +27,12 @@ class TimeDisplayNode: SKNode {
     
     // Control de tiempo
     private let timeLimit: TimeInterval
-    private var startTime: Date
+    private(set) var startTime: Date
     private var lastUpdateTime: TimeInterval = 0
     
     // Control de actualización
     private var displayLink: CADisplayLink?
     private var runLoop: RunLoop?
-    private var updateTimer: Timer?
     
     // MARK: - Inicialización
     
@@ -92,54 +91,34 @@ class TimeDisplayNode: SKNode {
     
     // MARK: - Control de DisplayLink
     
-    /// Inicia el mecanismo de actualización automática (DisplayLink o Timer)
+    /// Inicia el DisplayLink para actualización sincronizada con el refresco de pantalla
     private func startDisplayLink() {
-        // Detener cualquier actualización existente
+        // Detener cualquier DisplayLink existente
         stopDisplayLink()
         
-        // Intentar usar DisplayLink (más eficiente) primero
+        // Crear nuevo DisplayLink en el hilo principal
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             
-            // Usar un método de actualización alternativo en caso de que DisplayLink no sea ideal
-            #if targetEnvironment(simulator)
-                // Usar Timer en el simulador (más compatible)
-                self.startTimerUpdate()
-            #else
-                // Usar DisplayLink en dispositivos reales
-                self.displayLink = CADisplayLink(target: self, selector: #selector(self.displayLinkFired))
-                self.runLoop = RunLoop.current
-                
-                // Configurar para que se ejecute cada cuadro en el modo común
-                self.displayLink?.add(to: self.runLoop!, forMode: .common)
-                
-                // Reducir frecuencia para mejor rendimiento (6 actualizaciones por segundo)
-                if #available(iOS 15.0, *) {
-                    self.displayLink?.preferredFrameRateRange = CAFrameRateRange(minimum: 6, maximum: 6, preferred: 6)
-                } else {
-                    self.displayLink?.preferredFramesPerSecond = 6
-                }
-            #endif
+            self.displayLink = CADisplayLink(target: self, selector: #selector(self.displayLinkFired))
+            self.runLoop = RunLoop.current
+            
+            // Configurar para que se ejecute cada cuadro en el modo común
+            self.displayLink?.add(to: self.runLoop!, forMode: .common)
+            
+            // Reducir frecuencia para mejor rendimiento (6 actualizaciones por segundo)
+            if #available(iOS 15.0, *) {
+                self.displayLink?.preferredFrameRateRange = CAFrameRateRange(minimum: 6, maximum: 6, preferred: 6)
+            } else {
+                self.displayLink?.preferredFramesPerSecond = 6
+            }
         }
     }
     
-    /// Inicia un Timer como método alternativo de actualización
-    private func startTimerUpdate() {
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: true) { [weak self] _ in
-            self?.update()
-        }
-        RunLoop.current.add(updateTimer!, forMode: .common)
-    }
-    
-    /// Detiene todos los mecanismos de actualización automática
+    /// Detiene el DisplayLink para evitar fugas de memoria
     private func stopDisplayLink() {
-        // Detener DisplayLink
         displayLink?.invalidate()
         displayLink = nil
-        
-        // Detener Timer si existe
-        updateTimer?.invalidate()
-        updateTimer = nil
     }
     
     // MARK: - Actualización
@@ -194,7 +173,6 @@ class TimeDisplayNode: SKNode {
     /// Establece un nuevo tiempo de inicio para el contador
     /// - Parameter newStartTime: Nueva fecha de inicio
     func setStartTime(_ newStartTime: Date) {
-        // Asignar la nueva fecha de inicio
         startTime = newStartTime
         update()
         
@@ -206,17 +184,17 @@ class TimeDisplayNode: SKNode {
     
     // MARK: - Ciclo de vida
     
-    /// Se llama cuando el nodo se añade o elimina de una escena
-    override func didChangeParents() {
-        super.didChangeParents()
-        
-        // Si el nodo ahora tiene un parent, activar el DisplayLink
-        if self.parent != nil {
-            startDisplayLink()
-        } else {
-            // Si el nodo ya no tiene un parent, detener el DisplayLink
-            stopDisplayLink()
-        }
+    /// Se llama cuando el nodo se añade a una escena
+    override func didMove(to scene: SKScene) {
+        super.didMove(to: scene)
+        // Asegurar que el DisplayLink está activo cuando el nodo está visible
+        startDisplayLink()
+    }
+    
+    /// Se llama cuando el nodo se elimina de una escena
+    override func removeFromParent() {
+        stopDisplayLink()
+        super.removeFromParent()
     }
 }
 

@@ -379,12 +379,8 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         if let timeLimit = objective.timeLimit {
             let timeNode = TimeDisplayNode(timeLimit: TimeInterval(timeLimit))
             timeNode.position = CGPoint(x: columnWidth, y: TopBarLayout.verticalSpacing * 2)
-            
-            // CORRECCIÓN: Usar setStartTime en lugar de asignar directamente a startTime
-            let referenceDate = Date(timeIntervalSinceReferenceDate:
+            timeNode.startTime = Date(timeIntervalSinceReferenceDate:
                 Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
-            
-            timeNode.setStartTime(referenceDate)
             container.addChild(timeNode)
         }
         
@@ -517,52 +513,48 @@ class ObjectiveInfoPanel: TopBarBaseNode {
         
         // CORRECCIÓN: Posicionamiento del tiempo en la primera fila de la última columna
         if let objective = objectiveTracker?.getPrimaryObjective(), let timeLimit = objective.timeLimit {
-                // Calcular la posición del tiempo en la última columna
-                let lastColumnX = startX + CGFloat(columnsNeeded) * columnWidth
-                
-                // Crear un nuevo TimeDisplayNode si no existe uno
-                var timeNode: TimeDisplayNode?
-                
-                // Primero buscar si ya existe un TimeDisplayNode en el container
-                for child in container.children {
-                    if let existingTimeNode = child as? TimeDisplayNode {
-                        timeNode = existingTimeNode
-                        break
-                    }
-                }
-                
-                // Si no existe, crear uno nuevo
-                if timeNode == nil {
-                    timeNode = TimeDisplayNode(timeLimit: TimeInterval(timeLimit))
-                }
-                
-                if let timeNode = timeNode {
-                    // Posicionar en la primera fila (usando un valor positivo para Y)
-                    // IMPORTANTE: Usar rowHeight/2 para alinearlo con la primera fila de bloques
-                    timeNode.position = CGPoint(x: lastColumnX, y: rowHeight/2)
-                    
-                    // CORRECCIÓN: Usar setStartTime en lugar de asignar directamente a startTime
-                    let referenceDate = Date(timeIntervalSinceReferenceDate:
-                        Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
-                    
-                    timeNode.setStartTime(referenceDate)
-                    
-                    // Añadir al container solo si no estaba ya añadido
-                    if timeNode.parent == nil {
-                        container.addChild(timeNode)
-                    }
-                    
-                    // Ahora que tenemos un nodo específico podemos ocultar el estándar
-                    if let standardTimeNode = timeDisplayNode {
-                        standardTimeNode.alpha = 0
-                    }
-                }
-            } else {
-                // Si no hay timeLimit, mostrar el timeDisplayNode estándar
-                if let standardTimeNode = timeDisplayNode {
-                    standardTimeNode.alpha = 1
+            // Calcular la posición del tiempo en la última columna
+            let lastColumnX = startX + CGFloat(columnsNeeded) * columnWidth
+            
+            // Crear un nuevo TimeDisplayNode si no existe uno
+            var timeNode: TimeDisplayNode?
+            
+            // Primero buscar si ya existe un TimeDisplayNode en el container
+            for child in container.children {
+                if let existingTimeNode = child as? TimeDisplayNode {
+                    timeNode = existingTimeNode
+                    break
                 }
             }
+            
+            // Si no existe, crear uno nuevo
+            if timeNode == nil {
+                timeNode = TimeDisplayNode(timeLimit: TimeInterval(timeLimit))
+            }
+            
+            if let timeNode = timeNode {
+                // Posicionar en la primera fila (usando un valor positivo para Y)
+                // IMPORTANTE: Usar rowHeight/2 para alinearlo con la primera fila de bloques
+                timeNode.position = CGPoint(x: lastColumnX, y: rowHeight/2)
+                timeNode.startTime = Date(timeIntervalSinceReferenceDate:
+                    Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+                
+                // Añadir al container solo si no estaba ya añadido
+                if timeNode.parent == nil {
+                    container.addChild(timeNode)
+                }
+                
+                // Ahora que tenemos un nodo específico podemos ocultar el estándar
+                if let standardTimeNode = timeDisplayNode {
+                    standardTimeNode.alpha = 0
+                }
+            }
+        } else {
+            // Si no hay timeLimit, mostrar el timeDisplayNode estándar
+            if let standardTimeNode = timeDisplayNode {
+                standardTimeNode.alpha = 1
+            }
+        }
         
         // CORRECCIÓN: Asegurarnos de ocultar cualquier icono de fondo adicional
         // Esto podría estar ocurriendo si objectiveIconNode o algún otro nodo
