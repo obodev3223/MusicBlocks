@@ -157,6 +157,12 @@ class TimeDisplayNode: SKNode {
     
     /// Actualiza la visualización del tiempo
     func update() {
+        // Verificar si el nodo todavía está en la escena
+        if parent == nil {
+            stopDisplayLink()
+            return
+        }
+        
         // Si no hay límite de tiempo, mostrar infinito
         if timeLimit <= 0 {
             timeLabel.text = "∞"
@@ -206,17 +212,26 @@ class TimeDisplayNode: SKNode {
     
     // MARK: - Ciclo de vida
     
-    /// Se llama cuando el nodo se añade o elimina de una escena
-    override func didChangeParents() {
-        super.didChangeParents()
-        
-        // Si el nodo ahora tiene un parent, activar el DisplayLink
-        if self.parent != nil {
-            startDisplayLink()
-        } else {
-            // Si el nodo ya no tiene un parent, detener el DisplayLink
-            stopDisplayLink()
-        }
+    /// Inicia la actualización cuando se agrega a la vista
+    func startUpdating() {
+        startDisplayLink()
+    }
+    
+    /// Detiene la actualización cuando se elimina de la vista
+    func stopUpdating() {
+        stopDisplayLink()
+    }
+    
+    /// Se llama al completar la inicialización (primera vez añadido a la escena)
+    override func didMoveToParent() {
+        super.didMoveToParent()
+        startUpdating()
+    }
+    
+    /// Llamar manualmente al eliminar el nodo
+    override func removeFromParent() {
+        stopUpdating()
+        super.removeFromParent()
     }
 }
 
