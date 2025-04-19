@@ -1,50 +1,41 @@
 {
     "game_version": "0.7",
     "objective_types": {
+        // El tipo de objetivo score, total_notes, note_accuracy, block_destruction, total_blocks
         "score": {
             "type": "score",
             "description": "Alcanzar una puntuación específica en un tiempo límite",
-            "params": {
-                "target": 100,
-                "time_limit": 180
-            }
+            "target": 100, // La puntuación a alcanzar
+            "time_limit": 180 // Límite de tiempo (0 para sin límite)
         },
         "total_notes": {
             "type": "total_notes",
             "description": "Acertar un número de notas específico",
-            "params": {
-                "target": 50,
-                "time_limit": 90
-            }
+            "target": 50, // El número de notas a acertar
+            "time_limit": 90 // Límite de tiempo (0 para sin límite)
         },
         "note_accuracy": {
             "type": "note_accuracy",
             "description": "Acertar un número de notas con cierta precisión",
-            "params": {
-                "target": 10,
-                "minimum_accuracy": 0.8,
-                "time_limit": 90
-            }
+            "target": 10, // El número de notas a acertar
+            "minimum_accuracy": 0.8, // Precisión mínima requerida
+            "time_limit": 90 // Límite de tiempo (0 para sin límite)
         },
         "block_destruction": {
             "type": "block_destruction",
             "description": "Destruir bloques específicos",
-            "params": {
-                "details": {
-                    "ghostBlock": 2,
+            "blocks_type": {
+                    "ghostBlock": 2, // El tipo de bloque y el número de bloques a acertar
                     "hardIceBlock": 3,
                     "defaultBlock": 6
                 },
-                "time_limit": 90
-            }
-        },
+                "time_limit": 90, // Límite de tiempo (0 para sin límite)
+            },
         "total_blocks": {
             "type": "total_blocks",
             "description": "Destruir un número total de bloques",
-            "params": {
-                "target": 15,
-                "time_limit": 240
-            }
+            "target": 15, // El número de bloques a destruir
+            "time_limit": 240 // Límite de tiempo (0 para sin límite)
         }
     },
     "accuracy_thresholds": {
