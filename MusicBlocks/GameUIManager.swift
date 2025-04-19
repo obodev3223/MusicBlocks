@@ -594,4 +594,54 @@ class GameUIManager {
         leftTopBarNode?.configure(withLevel: level, objectiveTracker: objectiveTracker)
         rightTopBarNode?.configure(withLevel: level, objectiveTracker: objectiveTracker)
     }
+    
+    // MARK: - Time Display Management
+
+    /// Actualiza las visualizaciones de tiempo en la interfaz de usuario
+    /// - Parameter progress: Progreso actual de objetivos
+    func updateTimeDisplay(with progress: ObjectiveProgress) {
+        // Buscar y actualizar todos los TimeDisplayNode en la UI
+        updateAllTimeDisplayNodes(with: progress)
+    }
+
+    /// Actualiza todos los TimeDisplayNode de la interfaz
+    /// - Parameter progress: Progreso actual de objetivos
+    private func updateAllTimeDisplayNodes(with progress: ObjectiveProgress) {
+        guard let scene = scene else { return }
+        
+        // Calcular la fecha de inicio basada en el tiempo transcurrido
+        let referenceDate = Date(timeIntervalSinceReferenceDate:
+            Date().timeIntervalSinceReferenceDate - progress.timeElapsed)
+        
+        // 1. Actualizar nodos en la barra superior derecha (objetivos)
+        if let rightBar = rightTopBarNode {
+            updateTimeNodesIn(node: rightBar, with: referenceDate)
+        }
+        
+        // 2. Actualizar cualquier otro TimeDisplayNode en la escena
+        scene.enumerateChildNodes(withName: "//TimeDisplayNode") { node, _ in
+            if let timeDisplay = node as? TimeDisplayNode {
+                timeDisplay.setStartTime(referenceDate)
+            }
+        }
+        
+        // Debug
+        GameLogger.shared.timeUpdate("⏱️ Actualizados todos los TimeDisplayNode: \(Int(progress.timeElapsed))s")
+    }
+
+    /// Actualiza recursivamente todos los TimeDisplayNode dentro de un nodo
+    /// - Parameters:
+    ///   - node: Nodo a explorar
+    ///   - referenceDate: Fecha de inicio para los contadores
+    private func updateTimeNodesIn(node: SKNode, with referenceDate: Date) {
+        // Actualizar este nodo si es un TimeDisplayNode
+        if let timeDisplay = node as? TimeDisplayNode {
+            timeDisplay.setStartTime(referenceDate)
+        }
+        
+        // Buscar recursivamente en todos los hijos
+        for child in node.children {
+            updateTimeNodesIn(node: child, with: referenceDate)
+        }
+    }
 }
