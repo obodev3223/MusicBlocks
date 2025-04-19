@@ -80,10 +80,12 @@
             },
             "objectives": {
                 "primary": {
-                    "type": "note_accuracy",
-                    "target": 10,
-                    "minimum_accuracy": 0.7,
-                    "time_limit": 180
+                    "type": "total_blocks",
+                    "description": "Destruir un número total de bloques",
+                    "params": {
+                        "target": 15,
+                        "time_limit": 90
+                    }
                 }
             },
             "blocks": {
