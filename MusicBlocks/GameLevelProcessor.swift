@@ -397,17 +397,81 @@ class GameLevelProcessor {
     /// - Returns: El nivel solicitado o nil si no existe
     static func getLevel(from gameConfig: GameConfig, withId id: Int) -> GameLevel? {
         if let level = gameConfig.levels.first(where: { $0.levelId == id }) {
-            print("Nivel \(id) encontrado:")
-            print("- Estilos permitidos: \(level.allowedStyles)")
-            print("- Bloques configurados:")
+            print("📋 Nivel \(id) encontrado: \(level.name)")
+            
+            // Información detallada sobre objetivos
+            print("🎯 OBJETIVOS DEL NIVEL \(id):")
+            let objective = level.objectives.primary
+            print("  • Tipo: \(objective.type)")
+            
+            // Mostrar parámetros específicos según el tipo de objetivo
+            switch objective.type {
+            case "score":
+                print("  • Puntuación objetivo: \(objective.target ?? 0)")
+                if let timeLimit = objective.timeLimit {
+                    print("  • Límite de tiempo: \(timeLimit) segundos")
+                }
+                
+            case "total_notes":
+                print("  • Notas a acertar: \(objective.target ?? 0)")
+                if let timeLimit = objective.timeLimit {
+                    print("  • Límite de tiempo: \(timeLimit) segundos")
+                }
+                
+            case "note_accuracy":
+                print("  • Notas a acertar: \(objective.target ?? 0)")
+                if let minAccuracy = objective.minimumAccuracy {
+                    print("  • Precisión mínima: \(Int(minAccuracy * 100))%")
+                }
+                if let timeLimit = objective.timeLimit {
+                    print("  • Límite de tiempo: \(timeLimit) segundos")
+                }
+                
+            case "block_destruction":
+                print("  • Bloques a destruir por tipo:")
+                if let details = objective.details {
+                    for (blockType, count) in details {
+                        print("    - \(blockType): \(count)")
+                    }
+                }
+                if let timeLimit = objective.timeLimit {
+                    print("  • Límite de tiempo: \(timeLimit) segundos")
+                }
+                
+            case "total_blocks":
+                print("  • Total de bloques a destruir: \(objective.target ?? 0)")
+                if let timeLimit = objective.timeLimit {
+                    print("  • Límite de tiempo: \(timeLimit) segundos")
+                }
+                
+            default:
+                print("  • Tipo de objetivo desconocido")
+            }
+            
+            // Información sobre estilos permitidos
+            print("📦 Estilos de bloques permitidos: \(level.allowedStyles)")
+            
+            // Información sobre bloques configurados
+            print("🧱 Bloques configurados:")
             for (style, block) in level.blocks {
                 print("  • \(style):")
                 print("    - Notas: \(block.notes)")
                 print("    - Estilo: \(block.style)")
+                print("    - Golpes requeridos: \(block.requiredHits)")
+                print("    - Tiempo requerido: \(block.requiredTime)s")
                 print("    - Peso: \(block.weight)")
+                print("    - Puntos base: \(block.basePoints)")
             }
+            
+            // Información sobre vidas
+            print("❤️ Vidas: \(level.lives.initial) (extras: máx \(level.lives.extraLives.maxExtra))")
+            
+            // Información sobre velocidad
+            print("⏱️ Velocidad: inicial \(level.fallingSpeed.initial)s, incremento \(level.fallingSpeed.increment)s")
+            
             return level
         }
+        print("❌ No se encontró el nivel con ID \(id)")
         return nil
     }
     
