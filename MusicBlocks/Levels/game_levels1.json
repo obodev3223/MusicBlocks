@@ -24,7 +24,7 @@
         "block_destruction": {
             "type": "block_destruction",
             "description": "Destruir bloques específicos",
-            "blocks_type": {
+            "details": {
                     "ghostBlock": 2, // El tipo de bloque y el número de bloques a acertar
                     "hardIceBlock": 3,
                     "defaultBlock": 6

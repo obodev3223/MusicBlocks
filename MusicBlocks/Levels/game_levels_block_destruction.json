@@ -25,12 +25,12 @@
             "type": "block_destruction",
             "description": "Destruir bloques específicos",
             "details": {
-                    "ghostBlock": 2, // El tipo de bloque y el número de bloques a acertar
-                    "hardIceBlock": 3,
-                    "defaultBlock": 6
-                },
-                "time_limit": 90, // Límite de tiempo (0 para sin límite)
+                "ghostBlock": 2, // El tipo de bloque y el número de bloques a acertar
+                "hardIceBlock": 3,
+                "defaultBlock": 6
             },
+            "time_limit": 90, // Límite de tiempo (0 para sin límite)
+        },
         "total_blocks": {
             "type": "total_blocks",
             "description": "Destruir un número total de bloques",
@@ -54,26 +54,32 @@
     },
     "levels": [
         {
-            "level_id": 2,
-            "name": "Más bloques...!",
-            "max_score": 700,
-            "allowed_styles": ["defaultBlock", "hardIceBlock", "ghostBlock"],
+            "level_id": 1,
+            "name": "Tutorial",
+            "max_score": 500,
+            "allowed_styles": ["defaultBlock"],
             "falling_speed": {
-                "initial": 6.0,
-                "increment": 0.2
+                "initial": 4.0,
+                "increment": 0.0
             },
             "lives": {
                 "initial": 3,
                 "extra_lives": {
                     "score_thresholds": [500, 1000],
-                    "max_extra": 2
+                    "max_extra": 1
                 }
             },
             "objectives": {
                 "primary": {
-                    "type": "total_blocks",
-                    "target": 15,
-                    "time_limit": 240
+                    "type": "block_destruction",
+                    "description": "Destruir bloques específicos",
+                    "details": {
+                        "ghostBlock": 2,
+                        "hardIceBlock": 3,
+                        "defaultBlock": 6
+                    },
+                    "time_limit": 90
+
                 }
             },
             "blocks": {
@@ -85,33 +91,9 @@
                     ],
                     "requiredHits": 1,
                     "requiredTime": 0.8,
-                    "style": "defaultBlock",
-                    "weight": 0.4,
-                    "base_points": 10
-                },
-                "hardIceBlock": {
-                    "notes": [
-                        "DO6",
-                        "LA5",
-                        "SI5"
-                    ],
-                    "requiredHits": 3,
-                    "requiredTime": 1.6,
-                    "style": "hardIceBlock",
-                    "weight": 0.3,
-                    "base_points": 20
-                },
-                "ghostBlock": {
-                    "notes": [
-                        "SOL5",
-                        "FA5",
-                        "MI4"
-                    ],
-                    "requiredHits": 1,
-                    "requiredTime": 1,
-                    "style": "ghostBlock",
-                    "weight": 0.3,
-                    "base_points": 25
+                    "style": "default",
+                    "weight": 1,
+                    "base_points": 5
                 }
             }
         }

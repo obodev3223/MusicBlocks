@@ -43,16 +43,15 @@ struct ObjectiveTypes: Codable {
 struct ObjectiveTypeDefinition: Codable {
     let type: String?
     let description: String
-    let params: ObjectiveParams
-}
-
-struct ObjectiveParams: Codable {
+    // Campos que antes estaban dentro de params:
     let target: Int?
     let timeLimit: Int?
     let minimumAccuracy: Double?
     let details: [String: Int]?
     
     enum CodingKeys: String, CodingKey {
+        case type
+        case description
         case target
         case timeLimit = "time_limit"
         case minimumAccuracy = "minimum_accuracy"
@@ -248,10 +247,10 @@ class GameLevelProcessor {
         return nil
     }
     
-    /// Carga el archivo game_levels.json y procesa sus datos
+    /// Carga el archivo json y procesa sus datos
     /// - Returns: Objeto GameConfig con los datos del juego
     static func loadGameLevelsFromFile() -> GameConfig? {
-        guard let path = Bundle.main.path(forResource: "game_levels0", ofType: "json") else {
+        guard let path = Bundle.main.path(forResource: "game_levels_note_accuracy", ofType: "json") else {
             print("No se pudo encontrar el archivo game_levels.json")
             return nil
         }
@@ -445,7 +444,12 @@ class GameLevelProcessor {
                 }
                 
             default:
-                print("  • Tipo de objetivo desconocido")
+                print("  • Tipo de objetivo desconocido: \(objective.type)")
+                print("  • Propiedades disponibles:")
+                print("    - target: \(String(describing: objective.target))")
+                print("    - timeLimit: \(String(describing: objective.timeLimit))")
+                print("    - minimumAccuracy: \(String(describing: objective.minimumAccuracy))")
+                print("    - details: \(String(describing: objective.details))")
             }
             
             // Información sobre estilos permitidos
