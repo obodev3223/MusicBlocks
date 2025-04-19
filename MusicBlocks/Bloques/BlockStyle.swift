@@ -8,28 +8,24 @@
 import SpriteKit
 
 struct BlockStyle {
-    // Identificador y propiedades básicas
+    // Propiedades existentes
     let name: String
-    
-    // Relleno y borde
     let backgroundColor: SKColor
     let borderColor: SKColor
     let borderWidth: CGFloat
     let cornerRadius: CGFloat
-    
-    // Sombra (opcional)
     let shadowColor: SKColor?
     let shadowOffset: CGSize?
     let shadowBlur: CGFloat?
-    
-    // Textura
     let fillTexture: SKTexture?
     let textureOpacity: CGFloat
     let textureScale: CGFloat
-    
-    // Comportamiento especial (opcional)
     let specialBehavior: SpecialBehavior?
     
+    // NUEVAS PROPIEDADES para texturas de daño
+    let damageTextures: [SKTexture]?  // Array de texturas adicionales para mostrar daño
+    
+    // Enumeración de comportamientos especiales existente
     enum SpecialBehavior {
         case ghost(fadeOutAlpha: CGFloat, fadeInAlpha: CGFloat, duration: TimeInterval)
         case changing(changeInterval: TimeInterval)
@@ -37,6 +33,7 @@ struct BlockStyle {
     }
 }
 
+// Actualizar las definiciones de estilos específicos
 extension BlockStyle {
     static let defaultBlock = BlockStyle(
         name: "defaultBlock",
@@ -50,7 +47,8 @@ extension BlockStyle {
         fillTexture: nil,
         textureOpacity: 1.0,
         textureScale: 1.0,
-        specialBehavior: nil
+        specialBehavior: nil,
+        damageTextures: nil  // No tiene texturas de daño
     )
     
     static let iceBlock = BlockStyle(
@@ -62,10 +60,14 @@ extension BlockStyle {
         shadowColor: SKColor.blue,
         shadowOffset: CGSize(width: 2, height: -2),
         shadowBlur: 4.0,
-        fillTexture: SKTexture(imageNamed: "iceTexture"),
+        fillTexture: SKTexture(imageNamed: "iceTexture"),  // Textura inicial
         textureOpacity: 0.5,
         textureScale: 1.0,
-        specialBehavior: nil
+        specialBehavior: nil,
+        damageTextures: [
+            SKTexture(imageNamed: "iceTexture_damaged_1"),  // Textura después del primer golpe
+            SKTexture(imageNamed: "iceTexture_damaged_2")   // Textura después del segundo golpe
+        ]
     )
     
     static let hardiceBlock = BlockStyle(
@@ -77,10 +79,15 @@ extension BlockStyle {
         shadowColor: SKColor.darkGray,
         shadowOffset: CGSize(width: 3, height: -3),
         shadowBlur: 3.0,
-        fillTexture: SKTexture(imageNamed: "iceTexture2"),
+        fillTexture: SKTexture(imageNamed: "iceTexture2"),  // Textura inicial
         textureOpacity: 0.2,
         textureScale: 1.0,
-        specialBehavior: nil
+        specialBehavior: nil,
+        damageTextures: [
+            SKTexture(imageNamed: "hardIceTexture_damaged_1"),  // Textura después del primer golpe
+            SKTexture(imageNamed: "hardIceTexture_damaged_2"),  // Textura después del segundo golpe
+            SKTexture(imageNamed: "hardIceTexture_damaged_3")   // Textura después del tercer golpe
+        ]
     )
     
     static let ghostBlock = BlockStyle(
@@ -95,7 +102,8 @@ extension BlockStyle {
         fillTexture: SKTexture(imageNamed: "ghostTexture"),
         textureOpacity: 1.0,
         textureScale: 1.0,
-        specialBehavior: .ghost(fadeOutAlpha: 0.2, fadeInAlpha: 0.7, duration: 0.5)
+        specialBehavior: .ghost(fadeOutAlpha: 0.2, fadeInAlpha: 0.7, duration: 0.5),
+        damageTextures: nil  // No tiene texturas de daño
     )
     
     static let changingBlock = BlockStyle(
@@ -110,7 +118,8 @@ extension BlockStyle {
         fillTexture: SKTexture(imageNamed: "wavesTexture"),
         textureOpacity: 1.0,
         textureScale: 1.0,
-        specialBehavior: .changing(changeInterval: 1.0)
+        specialBehavior: .changing(changeInterval: 1.0),
+        damageTextures: nil  // No tiene texturas de daño
     )
     
     static let explosiveBlock = BlockStyle(
@@ -125,6 +134,7 @@ extension BlockStyle {
         fillTexture: SKTexture(imageNamed: "explosionTexture"),
         textureOpacity: 1.0,
         textureScale: 1.0,
-        specialBehavior: .explosive(holdTime: 4.0)
+        specialBehavior: .explosive(holdTime: 4.0),
+        damageTextures: nil  // No tiene texturas de daño
     )
 }

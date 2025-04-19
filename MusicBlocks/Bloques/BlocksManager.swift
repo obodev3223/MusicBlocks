@@ -665,6 +665,7 @@ class BlocksManager {
             )
         default:
             // Default case for blocks without special effects
+            GameLogger.shared.blockMovement("No special effects for block style: \(style)")
             break
         }
     }

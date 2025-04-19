@@ -26,8 +26,7 @@ struct IceBlockEffects {
         let progress = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
         
         updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits, blockSize: blockSize)
-        addCracksTexture(to: block, progress: progress, blockType: .iceBlock, blockSize: blockSize)
-        updateTransparency(for: block, progress: progress, blockType: .iceBlock)
+        updateBlockDamageTexture(block: block, currentHits: currentHits, requiredHits: requiredHits, blockType: .iceBlock)
         addImpactEffect(to: block)
         addIceParticles(to: block, intensity: 0.5)
     }
@@ -47,12 +46,54 @@ struct IceBlockEffects {
         let progress = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
         
         updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits, blockSize: blockSize)
-        addCracksTexture(to: block, progress: progress, blockType: .hardIceBlock, blockSize: blockSize)
-        updateTransparency(for: block, progress: progress * 0.7, blockType: .hardIceBlock)
+        updateBlockDamageTexture(block: block, currentHits: currentHits, requiredHits: requiredHits, blockType: .hardIceBlock)
         addImpactEffect(to: block, intensity: 1.2)
         addIceParticles(to: block, intensity: 1.0)
         addFrostGlowEffect(to: block)
     }
+
+// NUEVO MÉTODO para actualizar la textura según el daño
+    private static func updateBlockDamageTexture(
+        block: SKNode,
+        currentHits: Int,
+        requiredHits: Int,
+        blockType: BlockType
+    ) {
+        // Buscar el nodo de fondo
+        guard let background = findBackgroundNode(in: block) else { return }
+        
+        // Determinar el estilo del bloque
+        let style: BlockStyle
+        switch blockType {
+        case .iceBlock:
+            style = BlockStyle.iceBlock
+        case .hardIceBlock:
+            style = BlockStyle.hardiceBlock
+        }
+        
+        // Verificar si hay texturas de daño disponibles
+        guard let damageTextures = style.damageTextures, !damageTextures.isEmpty else {
+            // Si no hay texturas de daño, usar efectos alternativos
+            updateTransparency(for: block, progress: CGFloat(currentHits) / CGFloat(requiredHits), blockType: blockType)
+            return
+        }
+        
+        // Calcular el índice de la textura de daño a usar
+        // Si currentHits = 0, usar textura original
+        // Si currentHits > 0, usar textura de damageTextures[currentHits-1] si está disponible
+        if currentHits == 0 {
+            background.fillTexture = style.fillTexture
+        } else {
+            let textureIndex = min(currentHits - 1, damageTextures.count - 1)
+            background.fillTexture = damageTextures[textureIndex]
+        }
+        
+        // Animar el cambio de textura
+        let fadeOut = SKAction.fadeAlpha(to: 0.7, duration: 0.1)
+        let fadeIn = SKAction.fadeAlpha(to: style.textureOpacity, duration: 0.2)
+        background.run(SKAction.sequence([fadeOut, fadeIn]))
+    }
+
     
     // MARK: - Private Visual Effect Methods
     
