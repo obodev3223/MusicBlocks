@@ -840,6 +840,11 @@ class BlocksManager {
     
     /// Creates a background node for a block
     private func createBackground(with style: BlockStyle) -> SKNode {
+        // Crear un nodo contenedor para manejar la máscara
+        let container = SKNode()
+        container.name = "background"
+        
+        // Crear la forma del fondo con el radio de esquina
         let background = SKShapeNode(
             rectOf: blockSize,
             cornerRadius: style.cornerRadius
@@ -847,15 +852,34 @@ class BlocksManager {
         background.fillColor = style.backgroundColor
         background.strokeColor = style.borderColor
         background.lineWidth = style.borderWidth
-        background.zPosition = 2
+        background.zPosition = 1
+        container.addChild(background)
         
-        // Apply texture if defined
+        // Configuración específica para textura
         if let texture = style.fillTexture {
-            background.fillTexture = texture
-            background.alpha = style.textureOpacity
+            // Crear un nodo de máscara con el mismo radio de esquina
+            let maskNode = SKShapeNode(
+                rectOf: blockSize,
+                cornerRadius: style.cornerRadius
+            )
+            maskNode.fillColor = .white
+            maskNode.strokeColor = .clear
+            
+            // Crear sprite de textura
+            let textureSprite = SKSpriteNode(texture: texture)
+            textureSprite.size = blockSize
+            textureSprite.alpha = style.textureOpacity
+            textureSprite.zPosition = 2
+            
+            // Aplicar máscara
+            let cropNode = SKCropNode()
+            cropNode.maskNode = maskNode
+            cropNode.addChild(textureSprite)
+            
+            container.addChild(cropNode)
         }
         
-        return background
+        return container
     }
     
     // MARK: - Public Accessors
