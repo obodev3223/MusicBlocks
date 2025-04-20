@@ -493,62 +493,75 @@ class BlocksManager {
             return false
         }
         
-        var currentInfo = blockInfos[index]
+        let currentInfo = blockInfos[index]
         
         // IMPORTANTE: Verificar que la nota en blockInfo coincide con la del userData
         if let userData = currentInfo.node.userData,
            let currentNodeNote = userData.value(forKey: "noteName") as? String,
            currentNodeNote != currentInfo.note {
-            // Hay una discrepancia, actualizar el blockInfo con la nota actualizada
-            GameLogger.shared.blockMovement("⚠️ Corrigiendo discrepancia en nota: BlockInfo=\(currentInfo.note), Node=\(currentNodeNote)")
-            currentInfo.note = currentNodeNote
+            // Hay una discrepancia, pero no podemos modificar directamente .note
+            // En su lugar, creamos un nuevo BlockInfo con la nota actualizada
+            GameLogger.shared.blockMovement("⚠️ Detectada discrepancia en nota: BlockInfo=\(currentInfo.note), Node=\(currentNodeNote)")
+            
+            // Crear un nuevo BlockInfo con la nota actualizada y los mismos valores para el resto de propiedades
+            let updatedInfo = BlockInfo(
+                node: currentInfo.node,
+                note: currentNodeNote,  // Usamos la nota actualizada del nodo
+                style: currentInfo.style,
+                config: currentInfo.config,
+                requiredHits: currentInfo.requiredHits,
+                requiredTime: currentInfo.requiredTime,
+                currentHits: currentInfo.currentHits,
+                holdStartTime: currentInfo.holdStartTime
+            )
+            
+            // Reemplazar el BlockInfo en la lista
+            blockInfos[index] = updatedInfo
+            
+            // Continuar trabajando con la versión actualizada
+            return updateCurrentBlockProgress(hitTime: hitTime)
         }
         
-        // VERIFICAR: Imprimir info para debug
-        GameLogger.shared.blockMovement("""
-            Procesando golpe:
-            - Bloque: \(currentInfo.style)
-            - Nota: \(currentInfo.note)
-            - Golpes actuales: \(currentInfo.currentHits)
-            - Golpes requeridos: \(currentInfo.requiredHits)
-            """)
-        
-        currentInfo.currentHits += 1
+        // Crear una copia modificable para actualizar los hits
+        var updatedInfo = BlockInfo(
+            node: currentInfo.node,
+            note: currentInfo.note,
+            style: currentInfo.style,
+            config: currentInfo.config,
+            requiredHits: currentInfo.requiredHits,
+            requiredTime: currentInfo.requiredTime,
+            currentHits: currentInfo.currentHits + 1,  // Incrementar aquí en lugar de hacer currentHits += 1
+            holdStartTime: currentInfo.holdStartTime
+        )
         
         GameLogger.shared.blockMovement("""
             Hit registered:
-            - Note: \(currentInfo.note)
-            - Hits: \(currentInfo.currentHits)/\(currentInfo.requiredHits)
+            - Note: \(updatedInfo.note)
+            - Hits: \(updatedInfo.currentHits)/\(updatedInfo.requiredHits)
             """)
         
+        // Actualizar el blockInfo con los hits incrementados
+        blockInfos[index] = updatedInfo
+        
         // Update block appearance for multi-hit blocks
-        if currentInfo.requiredHits > 1 && currentInfo.currentHits < currentInfo.requiredHits {
+        if updatedInfo.requiredHits > 1 && updatedInfo.currentHits < updatedInfo.requiredHits {
             // Actualizar apariencia visual del bloque
             updateBlockAppearanceForHit(
-                node: currentInfo.node,
-                style: currentInfo.style,
-                currentHits: currentInfo.currentHits,
-                requiredHits: currentInfo.requiredHits
+                node: updatedInfo.node,
+                style: updatedInfo.style,
+                currentHits: updatedInfo.currentHits,
+                requiredHits: updatedInfo.requiredHits
             )
             
             // Si es un bloque de hielo o hielo duro, cambiar la nota
-            if currentInfo.style == "iceBlock" || currentInfo.style == "hardiceBlock" {
-                // Guardar el blockInfo actualizado antes de cambiar la nota
-                blockInfos[index] = currentInfo
-                
-                // Cambiar la nota (esta función se ha modificado para actualizar también blockInfos)
-                changeBlockNote(node: currentInfo.node, config: currentInfo.config)
-                
-                // Recargar el blockInfo después del cambio de nota
-                currentInfo = blockInfos[index]
+            if updatedInfo.style == "iceBlock" || updatedInfo.style == "hardiceBlock" {
+                // Cambiar la nota (esta función debe crear un nuevo BlockInfo)
+                changeBlockNote(node: updatedInfo.node, config: updatedInfo.config)
             }
-        } else {
-            // Guardar el blockInfo actualizado (para casos que no sean bloques de hielo)
-            blockInfos[index] = currentInfo
         }
         
         // Check if block is completed
-        let isCompleted = currentInfo.currentHits >= currentInfo.requiredHits
+        let isCompleted = updatedInfo.currentHits >= updatedInfo.requiredHits
         
         if isCompleted {
             GameLogger.shared.blockMovement("Block completed, removing")
@@ -563,8 +576,6 @@ class BlocksManager {
         
         return isCompleted
     }
-
-
 
     // Nueva función a añadir en la clase BlocksManager
     private func changeBlockNote(node: SKNode, config: Block) {
@@ -607,11 +618,22 @@ class BlocksManager {
         // Encontrar el índice del bloque en blocks
         if let blockIndex = blocks.firstIndex(where: { $0 === node }),
            blockIndex < blockInfos.count {
-            var blockInfo = blockInfos[blockIndex]
+            let blockInfo = blockInfos[blockIndex]
             
-            // Aquí está la parte crítica: actualizar la nota en el blockInfo
-            blockInfo.note = newNote.fullName
-            blockInfos[blockIndex] = blockInfo
+            // Crear un nuevo BlockInfo con la nota actualizada
+            let updatedInfo = BlockInfo(
+                node: blockInfo.node,
+                note: newNote.fullName,  // <-- Aquí usamos la nueva nota
+                style: blockInfo.style,
+                config: blockInfo.config,
+                requiredHits: blockInfo.requiredHits,
+                requiredTime: blockInfo.requiredTime,
+                currentHits: blockInfo.currentHits,
+                holdStartTime: blockInfo.holdStartTime
+            )
+            
+            // Reemplazar el BlockInfo existente con el actualizado
+            blockInfos[blockIndex] = updatedInfo
             
             GameLogger.shared.blockMovement("✅ BlockInfo actualizado con nueva nota: \(newNote.fullName)")
         } else {
