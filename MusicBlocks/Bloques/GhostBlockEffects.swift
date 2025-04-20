@@ -12,17 +12,18 @@ struct GhostBlockEffects {
     
     // MARK: - Constants
     private struct Constants {
-        // Transparencia base y límites
-        static let baseAlpha: CGFloat = 0.7
-        static let minAlpha: CGFloat = 0.05  // Más transparente
-        static let maxAlpha: CGFloat = 0.9
+        // Niveles de transparencia
+        static let maxVisibleAlpha: CGFloat = 0.9    // Más visible
+        static let mediumVisibleAlpha: CGFloat = 0.6 // Visibilidad media
+        static let lowVisibleAlpha: CGFloat = 0.3    // Poco visible
+        static let minVisibleAlpha: CGFloat = 0.1    // Casi invisible
         
-        // Duraciones de las transiciones (más rápidas)
-        static let fadeDuration: TimeInterval = 0.2
+        // Duración de cada pulso (corta para que sea más errático)
+        static let pulseDuration: TimeInterval = 0.3
         
-        // Intervalos entre cambios (más cortos y radicales)
-        static let minFlickerInterval: TimeInterval = 0.3
-        static let maxFlickerInterval: TimeInterval = 0.7
+        // Intervalos entre cambios (muy cortos para parecer pulsante)
+        static let minPulseInterval: TimeInterval = 0.1
+        static let maxPulseInterval: TimeInterval = 0.2
     }
     
     // MARK: - Public Methods
@@ -30,20 +31,17 @@ struct GhostBlockEffects {
     /// Starts the ghost effect for a block, applying periodic transparency changes
     /// - Parameter block: The block node to apply effects to
     static func startGhostEffect(for block: SKNode) {
-        GameLogger.shared.blockMovement("👻 Iniciando efecto fantasma para bloque")
+        GameLogger.shared.blockMovement("👻 Iniciando efecto fantasma pulsante para bloque")
         
         // Stop any existing ghost effects
         stopGhostEffect(for: block)
         
-        // Create a new sequence of fade actions
-        let fadeSequence = createRandomFadeSequence()
-        
-        // Apply initial transparent appearance
+        // Apply initial transparency appearance
         applyInitialTransparency(to: block)
         
-        // Create and run the repeating action
-        let repeatAction = SKAction.repeatForever(fadeSequence)
-        block.run(repeatAction, withKey: "ghostEffect")
+        // Create and run a randomized pulsing action
+        let pulsingAction = createPulsingAction()
+        block.run(SKAction.repeatForever(pulsingAction), withKey: "ghostEffect")
     }
     
     /// Stops the ghost effect for a block
@@ -74,56 +72,76 @@ struct GhostBlockEffects {
     
     // MARK: - Private Methods
     
-    /// Creates a random sequence of fade actions for ghost blocks
-    /// - Returns: An SKAction sequence
-    private static func createRandomFadeSequence() -> SKAction {
-        let actions = SKAction.sequence([
-            createRandomFadeAction(),
-            SKAction.wait(forDuration: randomFlickerInterval())
-        ])
+    /// Creates a pulsing action that alternates between different transparency levels
+    /// - Returns: A sequence of fade actions with random intervals
+    private static func createPulsingAction() -> SKAction {
+        // Crear una secuencia de acciones con 5-7 pulsos aleatorios
+        let numberOfPulses = Int.random(in: 5...7)
+        var pulseActions: [SKAction] = []
         
-        return actions
-    }
-    
-    /// Creates a random fade action (fade in or out)
-    /// - Returns: A single fade action
-    private static func createRandomFadeAction() -> SKAction {
-        // Decide randomly whether to fade in or out with mayor probabilidad de desvanecerse
-        let fadeIn = Bool.random() && Bool.random()  // 25% probabilidad de aparecer, 75% de desaparecer
-        
-        // Determine target alpha
-        let targetAlpha: CGFloat
-        if fadeIn {
-            // When fading in, use a value between baseAlpha and maxAlpha
-            targetAlpha = CGFloat.random(in: Constants.baseAlpha...Constants.maxAlpha)
-        } else {
-            // When fading out, use a value between minAlpha and baseAlpha
-            // Más probabilidad de desaparecer casi por completo
-            targetAlpha = CGFloat.random(in: Constants.minAlpha...(Constants.baseAlpha * 0.6))
+        // Generar una secuencia de pulsos aleatoria
+        for _ in 0..<numberOfPulses {
+            // Seleccionar un nivel de transparencia aleatorio para este pulso
+            let targetAlpha = randomTransparencyLevel()
+            
+            // Crear acción de fade con duración aleatoria
+            let fadeDuration = Constants.pulseDuration * Double.random(in: 0.8...1.2)
+            let fadeAction = SKAction.fadeAlpha(to: targetAlpha, duration: fadeDuration)
+            
+            // Añadir pequeña espera entre pulsos (totalmente aleatoria)
+            let waitDuration = Double.random(in: Constants.minPulseInterval...Constants.maxPulseInterval)
+            let waitAction = SKAction.wait(forDuration: waitDuration)
+            
+            // Añadir ambas acciones a la secuencia
+            pulseActions.append(fadeAction)
+            pulseActions.append(waitAction)
         }
         
-        // Duración fija más corta para transiciones más rápidas y radicales
-        return SKAction.fadeAlpha(to: targetAlpha, duration: Constants.fadeDuration)
+        // Crear secuencia completa
+        return SKAction.sequence(pulseActions)
     }
     
-    /// Determines a random interval between flickers
-    /// - Returns: A random time interval
-    private static func randomFlickerInterval() -> TimeInterval {
-        return TimeInterval.random(in: Constants.minFlickerInterval...Constants.maxFlickerInterval)
+    /// Generates a random transparency level from predefined values
+    /// - Returns: A random alpha value
+    private static func randomTransparencyLevel() -> CGFloat {
+        // Usar una array de posibles niveles de transparencia
+        let alphaLevels = [
+            Constants.maxVisibleAlpha,
+            Constants.mediumVisibleAlpha,
+            Constants.lowVisibleAlpha,
+            Constants.minVisibleAlpha
+        ]
+        
+        // Seleccionar un valor aleatorio
+        return alphaLevels.randomElement() ?? Constants.mediumVisibleAlpha
     }
     
     /// Sets the initial transparency for a ghost block
     /// - Parameter block: The block node to modify
     private static func applyInitialTransparency(to block: SKNode) {
-        // Apply transparency to the container and background
+        // Definir a qué nodo aplicar la transparencia
+        let targetNode: SKNode? = findNodeForTransparency(in: block)
+        
+        // Empezar con visibilidad media para que el efecto sea más notable
+        targetNode?.alpha = Constants.mediumVisibleAlpha
+    }
+    
+    /// Finds the appropriate node to apply transparency to
+    /// - Parameter block: The block to search in
+    /// - Returns: The node that should receive transparency effects
+    private static func findNodeForTransparency(in block: SKNode) -> SKNode? {
+        // Primero intentamos con el contenedor
         if let container = block.childNode(withName: "container") {
-            container.alpha = Constants.baseAlpha
-        } else if let background = findBackgroundNode(in: block) {
-            background.alpha = Constants.baseAlpha
-        } else {
-            // Fallback - apply to whole block
-            block.alpha = Constants.baseAlpha
+            return container
         }
+        
+        // Luego intentamos con el background
+        if let background = findBackgroundNode(in: block) {
+            return background
+        }
+        
+        // Si no hay ninguno, usamos el bloque completo
+        return block
     }
     
     /// Finds the background node in a block's hierarchy

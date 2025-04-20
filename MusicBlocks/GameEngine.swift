@@ -289,27 +289,34 @@ class GameEngine: ObservableObject {
         BlockFeedbackEffects.showSuccessFeedback(for: block.node)
         
         // Procesamiento secuencial de bloques
-        let blockCompleted = blockManager?.updateCurrentBlockProgress(hitTime: Date()) ?? false
-        
-        // Si el bloque completó su procesamiento, actualizar el estado adecuadamente
-        if blockCompleted {
-            GameLogger.shared.noteDetection("🎯 Bloque completado!")
-            handleSuccess(deviation: deviation, blockConfig: block.config)
-        } else {
-            // Actualizar el estado visual pero no iniciar otra verificación
-            noteState = .correct(deviation: deviation)
-            GameLogger.shared.noteDetection("🔄 Bloque continúa, progreso actualizado")
+        // IMPORTANTE: El bloque se debe eliminar DESPUÉS de mostrar el efecto visual
+        // por lo que lo procesamos con un pequeño retraso para permitir que se vea el efecto
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self, weak blockManager] in
+            guard let self = self, let blockManager = blockManager else { return }
             
-            // Verificar después de un breve tiempo si el procesamiento quedó atascado
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak blockManager] in
-                guard let self = self, let blockManager = blockManager else { return }
+            // Procesamiento secuencial de bloques
+            let blockCompleted = blockManager.updateCurrentBlockProgress(hitTime: Date()) ?? false
+            
+            // Si el bloque completó su procesamiento, actualizar el estado adecuadamente
+            if blockCompleted {
+                GameLogger.shared.noteDetection("🎯 Bloque completado!")
+                self.handleSuccess(deviation: deviation, blockConfig: block.config)
+            } else {
+                // Actualizar el estado visual pero no iniciar otra verificación
+                self.noteState = .correct(deviation: deviation)
+                GameLogger.shared.noteDetection("🔄 Bloque continúa, progreso actualizado")
                 
-                if blockManager.isProcessingBlock,
-                   let startTime = self.lastProcessingStartTime,
-                   Date().timeIntervalSince(startTime) > self.maxProcessingTime {
-                    GameLogger.shared.noteDetection("⚠️ Detectado bloque atascado después de handleCorrectNote")
-                    blockManager.forceResetProcessingState()
-                    self.lastProcessingStartTime = nil
+                // Verificar después de un breve tiempo si el procesamiento quedó atascado
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self, weak blockManager] in
+                    guard let self = self, let blockManager = blockManager else { return }
+                    
+                    if blockManager.isProcessingBlock,
+                       let startTime = self.lastProcessingStartTime,
+                       Date().timeIntervalSince(startTime) > self.maxProcessingTime {
+                        GameLogger.shared.noteDetection("⚠️ Detectado bloque atascado después de handleCorrectNote")
+                        blockManager.forceResetProcessingState()
+                        self.lastProcessingStartTime = nil
+                    }
                 }
             }
         }
@@ -328,9 +335,12 @@ class GameEngine: ObservableObject {
         
         // NUEVO: Obtener el bloque actual y aplicar el efecto visual de fallo
         if let currentBlock = blockManager?.getCurrentBlock() {
+            // Añadir el efecto visual de fallo al bloque
+            // Esto NO debe interferir con la animación de caída existente
             BlockFeedbackEffects.showFailureFeedback(for: currentBlock.node)
         }
         
+        // Resetear el progreso del bloque SIN cambiar su posición
         blockManager?.resetCurrentBlockProgress()
         
         // Add immediate notification for UI update

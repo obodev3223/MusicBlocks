@@ -16,10 +16,10 @@ struct BlockFeedbackEffects {
         static let successColor = SKColor(red: 0.0, green: 0.8, blue: 0.2, alpha: 1.0)  // Verde más brillante
         static let failureColor = SKColor(red: 1.0, green: 0.1, blue: 0.1, alpha: 1.0)  // Rojo más intenso
         
-        // Duración de animaciones
-        static let successGlowDuration: TimeInterval = 0.5
-        static let failureGlowDuration: TimeInterval = 0.4
-        static let borderFlashDuration: TimeInterval = 0.5
+        // Duración de animaciones - VALORES REDUCIDOS para que sean más rápidos
+        static let successGlowDuration: TimeInterval = 0.25  // Más corto para que el bloque desaparezca rápido
+        static let failureGlowDuration: TimeInterval = 0.2   // Muy corto para no interferir con la animación de caída
+        static let borderFlashDuration: TimeInterval = 0.2    // Más rápido
         
         // Propiedades visuales
         static let successGlowRadius: Float = 15.0
@@ -29,8 +29,7 @@ struct BlockFeedbackEffects {
         static let failureBorderWidth: CGFloat = 4.0
         
         // Propiedades para efectos adicionales
-        static let successParticleCount = 10
-        static let failureShakeIntensity: CGFloat = 5.0
+        static let failureShakeIntensity: CGFloat = 3.0  // Reducido para ser menos disruptivo
     }
     
     // MARK: - Success Effects
@@ -46,9 +45,6 @@ struct BlockFeedbackEffects {
         
         // Añadir efecto de brillo (glow) verde
         addSuccessGlowEffect(to: block)
-        
-        // Añadir pequeñas partículas de "éxito" alrededor del bloque
-        addSuccessParticles(to: block)
         
         // Añadir efecto de "pulso" para enfatizar el acierto
         addSuccessPulseEffect(to: block)
@@ -116,11 +112,11 @@ struct BlockFeedbackEffects {
                 // Aumentar el grosor del borde durante la primera mitad
                 if progress < 0.5 {
                     // 0.0 -> 0.5: aumentar grosor
-                    shape.lineWidth = Constants.originalBorderWidth + 
+                    shape.lineWidth = Constants.originalBorderWidth +
                                      (newWidth - Constants.originalBorderWidth) * (progress * 2)
                 } else {
                     // 0.5 -> 1.0: disminuir grosor
-                    shape.lineWidth = newWidth - 
+                    shape.lineWidth = newWidth -
                                      (newWidth - Constants.originalBorderWidth) * ((progress - 0.5) * 2)
                 }
             }
@@ -188,31 +184,36 @@ struct BlockFeedbackEffects {
         let flashSequence = SKAction.sequence([flashIn, flashOut, SKAction.removeFromParent()])
         
         flashNode.run(flashSequence)
-        
-        // 3. EFECTO ADICIONAL: LÍNEAS DE "ERROR" (como marcas de X)
-        addErrorLines(to: block, size: blockSize)
     }
     
     /// Añade un efecto de sacudida (shake) para el fallo
     /// - Parameter block: El nodo del bloque
     private static func addFailureShakeEffect(to block: SKNode) {
-        // Secuencia de movimientos para simular sacudida (más violenta para el fallo)
-        let shakeAction = SKAction.customAction(withDuration: 0.4) { node, elapsedTime in
+        // Guardar la posición original del bloque
+        let originalPosition = block.position
+        
+        // Secuencia de movimientos para simular sacudida (más sutiles para no interferir con la animación de caída)
+        let shakeAction = SKAction.customAction(withDuration: 0.3) { node, elapsedTime in
             // Calcular intensidad basada en el tiempo (decrece con el tiempo)
-            let intensity = Constants.failureShakeIntensity * (1.0 - elapsedTime / 0.4)
+            let intensity = max(Constants.failureShakeIntensity * (1.0 - elapsedTime / 0.3), 0.01)
             
-            // Calcular desplazamiento aleatorio
+            // Calcular desplazamiento aleatorio (solo horizontal para no afectar la caída vertical)
+            // Aseguramos que intensity sea positivo para evitar el error "Range requires lowerBound <= upperBound"
             let xOffset = CGFloat.random(in: -intensity...intensity)
-            let yOffset = CGFloat.random(in: -intensity * 0.3...intensity * 0.3)  // Menor en Y
             
-            // Aplicar movimiento
-            node.position = CGPoint(x: xOffset, y: yOffset)
+            // Aplicar movimiento relativo a la posición original
+            node.position = CGPoint(x: originalPosition.x + xOffset, y: originalPosition.y)
         }
         
-        // Reset position after shake
-        let resetAction = SKAction.move(to: .zero, duration: 0.1)
+        // Restaurar la posición original después del efecto
+        let resetAction = SKAction.run {
+            // No restauramos completamente para no interferir con animaciones en curso
+            // Solo corregimos el componente X para eliminar el efecto lateral
+            block.position = CGPoint(x: originalPosition.x, y: block.position.y)
+        }
         
-        block.run(SKAction.sequence([shakeAction, resetAction]))
+        // Ejecutar secuencia con un nombre específico para identificarla
+        block.run(SKAction.sequence([shakeAction, resetAction]), withKey: "shakeEffect")
     }
     
     /// Añade líneas de "error" al bloque
@@ -351,87 +352,24 @@ struct BlockFeedbackEffects {
         flashNode.run(flashSequence)
     }
     
-    /// Añade partículas de éxito alrededor del bloque
-    /// - Parameter block: El nodo del bloque
-    private static func addSuccessParticles(to block: SKNode) {
-        // Calcular el tamaño del bloque
-        let frame = block.calculateAccumulatedFrame()
-        
-        // Crear múltiples partículas en posiciones aleatorias alrededor del borde
-        for _ in 0..<Constants.successParticleCount {
-            // Determinar posición aleatoria en el perímetro
-            let side = Int.random(in: 0...3)  // 0: arriba, 1: derecha, 2: abajo, 3: izquierda
-            var position: CGPoint
-            
-            switch side {
-            case 0:  // Arriba
-                position = CGPoint(
-                    x: CGFloat.random(in: -frame.width/2...frame.width/2),
-                    y: frame.height/2
-                )
-            case 1:  // Derecha
-                position = CGPoint(
-                    x: frame.width/2,
-                    y: CGFloat.random(in: -frame.height/2...frame.height/2)
-                )
-            case 2:  // Abajo
-                position = CGPoint(
-                    x: CGFloat.random(in: -frame.width/2...frame.width/2),
-                    y: -frame.height/2
-                )
-            default:  // Izquierda
-                position = CGPoint(
-                    x: -frame.width/2,
-                    y: CGFloat.random(in: -frame.height/2...frame.height/2)
-                )
-            }
-            
-            // Crear partícula
-            let particle = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...4))
-            particle.fillColor = Constants.successColor
-            particle.strokeColor = .clear
-            particle.position = position
-            particle.zPosition = 50
-            particle.alpha = 0
-            
-            // Añadir a la vista
-            block.addChild(particle)
-            
-            // Calcular dirección para el movimiento (desde el centro hacia afuera)
-            let direction = CGVector(
-                dx: position.x * CGFloat.random(in: 0.7...1.3),
-                dy: position.y * CGFloat.random(in: 0.7...1.3)
-            )
-            
-            // Animar la partícula
-            let fadeIn = SKAction.fadeIn(withDuration: 0.1)
-            let moveOut = SKAction.move(by: direction, duration: 0.3)
-            let fadeOut = SKAction.fadeOut(withDuration: 0.2)
-            let remove = SKAction.removeFromParent()
-            
-            let sequence = SKAction.sequence([
-                fadeIn,
-                SKAction.group([moveOut, fadeOut]),
-                remove
-            ])
-            
-            particle.run(sequence)
-        }
-    }
+
     
     /// Añade un efecto de pulso al bloque para indicar éxito
     /// - Parameter block: El nodo del bloque
     private static func addSuccessPulseEffect(to block: SKNode) {
+        // Guardar la escala original del bloque para poder revertir a ella
+        let originalScale = block.xScale // Asumimos que xScale y yScale son iguales
+        
         // Un pulso es una secuencia de escala: normal -> ligeramente más grande -> normal
-        let scaleUp = SKAction.scale(to: 1.05, duration: 0.1)
-        let scaleDown = SKAction.scale(to: 1.0, duration: 0.15)
+        let scaleUp = SKAction.scale(to: originalScale * 1.05, duration: 0.1)
+        let scaleDown = SKAction.scale(to: originalScale, duration: 0.15)
         
         // Usar timingMode para un efecto más natural
         scaleUp.timingMode = .easeOut
         scaleDown.timingMode = .easeIn
         
         // Ejecutar la secuencia
-        block.run(SKAction.sequence([scaleUp, scaleDown]))
+        block.run(SKAction.sequence([scaleUp, scaleDown]), withKey: "pulseEffect")
     }
     
     /// Restaura la apariencia original del bloque
@@ -443,8 +381,8 @@ struct BlockFeedbackEffects {
         // Restaurar el color original del borde
         guard let backgroundShape = findBackgroundShape(in: block),
               let originalColor = block.userData?.value(forKey: "originalBorderColor") as? SKColor,
-              let originalWidth = block.userData?.value(forKey: "originalBorderWidth") as? CGFloat else { 
-            return 
+              let originalWidth = block.userData?.value(forKey: "originalBorderWidth") as? CGFloat else {
+            return
         }
         
         // Animación para restaurar el color original
@@ -462,12 +400,14 @@ struct BlockFeedbackEffects {
         block.childNode(withName: "feedbackFlash")?.removeFromParent()
         block.childNode(withName: "errorLines")?.removeFromParent()
         
-        // Restablecer la posición del bloque si ha sido desplazado por algún efecto
-        block.position = .zero
-        block.setScale(1.0)
+        // NO restauramos la posición ni la escala para evitar interferir con las animaciones de caída
+        // ELIMINADO: block.position = .zero
+        // ELIMINADO: block.setScale(1.0)
         
-        // Eliminar cualquier acción pendiente que pudiera afectar a la apariencia
-        block.removeAllActions()
+        // Eliminamos solo las acciones relacionadas con los efectos visuales
+        // pero NO todas las acciones para no interferir con la animación de caída
+        // MODIFICADO: No eliminamos todas las acciones
+        // ELIMINADO: block.removeAllActions()
     }
     
     /// Busca y devuelve el nodo de forma del fondo del bloque
