@@ -734,12 +734,10 @@ class BlocksManager {
                 blockSize: blockSize
             )
         case "ghostBlock":
-            GhostBlockEffects.updateGhostBlockAppearance(
-                block: node,
-                currentHits: currentHits,
-                requiredHits: requiredHits,
-                blockSize: blockSize
-            )
+                // Los bloques fantasma no necesitan actualización visual al ser golpeados
+                // ya que son siempre de un solo hit
+                GameLogger.shared.blockMovement("👻 Bloque fantasma: no se requiere actualización visual")
+            
         default:
             // Default case for blocks without special effects
             GameLogger.shared.blockMovement("No special effects for block style: \(style)")

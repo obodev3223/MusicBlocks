@@ -282,10 +282,13 @@ class GameEngine: ObservableObject {
     private func handleCorrectNote(deviation: Double, block: BlockInfo) {
         GameLogger.shared.noteDetection("🎵 HandleCorrectNote - Intento registrado con desviación: \(deviation)")
         
-        // Procesamiento secuencial de bloques
         // Registrar tiempo de inicio en caso de que necesitemos detectar un bloqueo
         lastProcessingStartTime = Date()
         
+        // NUEVO: Añadir efecto visual de éxito al bloque antes de actualizar su progreso
+        BlockFeedbackEffects.showSuccessFeedback(for: block.node)
+        
+        // Procesamiento secuencial de bloques
         let blockCompleted = blockManager?.updateCurrentBlockProgress(hitTime: Date()) ?? false
         
         // Si el bloque completó su procesamiento, actualizar el estado adecuadamente
@@ -311,7 +314,7 @@ class GameEngine: ObservableObject {
             }
         }
         
-        // Incrementar combo solo si el bloque no se completó o si se completó exitosamente
+        // Incrementar combo
         combo += 1
     }
     
@@ -322,6 +325,12 @@ class GameEngine: ObservableObject {
         lives -= 1
         combo = 0
         noteState = .wrong
+        
+        // NUEVO: Obtener el bloque actual y aplicar el efecto visual de fallo
+        if let currentBlock = blockManager?.getCurrentBlock() {
+            BlockFeedbackEffects.showFailureFeedback(for: currentBlock.node)
+        }
+        
         blockManager?.resetCurrentBlockProgress()
         
         // Add immediate notification for UI update
