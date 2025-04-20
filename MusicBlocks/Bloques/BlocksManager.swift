@@ -840,11 +840,9 @@ class BlocksManager {
     
     /// Creates a background node for a block
     private func createBackground(with style: BlockStyle) -> SKNode {
-        // Crear un nodo contenedor para manejar la máscara
         let container = SKNode()
         container.name = "background"
         
-        // Crear la forma del fondo con el radio de esquina
         let background = SKShapeNode(
             rectOf: blockSize,
             cornerRadius: style.cornerRadius
@@ -855,9 +853,7 @@ class BlocksManager {
         background.zPosition = 1
         container.addChild(background)
         
-        // Configuración específica para textura
         if let texture = style.fillTexture {
-            // Crear un nodo de máscara con el mismo radio de esquina
             let maskNode = SKShapeNode(
                 rectOf: blockSize,
                 cornerRadius: style.cornerRadius
@@ -865,14 +861,13 @@ class BlocksManager {
             maskNode.fillColor = .white
             maskNode.strokeColor = .clear
             
-            // Crear sprite de textura
             let textureSprite = SKSpriteNode(texture: texture)
             textureSprite.size = blockSize
             textureSprite.alpha = style.textureOpacity
             textureSprite.zPosition = 2
             
-            // Aplicar máscara
             let cropNode = SKCropNode()
+            cropNode.name = "textureCrop"  // Añadir nombre para identificación
             cropNode.maskNode = maskNode
             cropNode.addChild(textureSprite)
             
