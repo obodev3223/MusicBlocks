@@ -77,85 +77,179 @@ struct IceBlockEffects {
         blockType: BlockType,
         blockSize: CGSize
     ) {
-        print("🔍 Buscando nodos en el bloque:")
+        print("🔍 Buscando nodos correctos en el bloque para actualizar textura...")
         
-        // Imprimir todos los nombres de nodos hijos
-        block.children.forEach { child in
-            print("Nodo hijo: \(child.name ?? "Sin nombre") - Tipo: \(type(of: child))")
-        }
-        
-        // Intentar buscar el nodo de fondo de diferentes maneras
-        let backgroundNodes = block.children.filter {
-            $0.name == "background" ||
-            $0 is SKShapeNode ||
-            $0.name == nil
-        }
-        
-        print("🕵️ Nodos de fondo encontrados: \(backgroundNodes.count)")
-
-        // Depuración de texturas
+        // Determinamos el estilo según el tipo de bloque
         let style: BlockStyle
         switch blockType {
         case .iceBlock:
             style = BlockStyle.iceBlock
-            print("🧊 IceBlock - Texturas de daño:")
-            print("Total texturas: \(style.damageTextures?.count ?? 0)")
-            style.damageTextures?.enumerated().forEach { index, texture in
-                print("Textura \(index): \(texture.description)")
-            }
         case .hardIceBlock:
             style = BlockStyle.hardiceBlock
-            print("❄️ HardIceBlock - Texturas de daño:")
-            print("Total texturas: \(style.damageTextures?.count ?? 0)")
-            style.damageTextures?.enumerated().forEach { index, texture in
-                print("Textura \(index): \(texture.description)")
+        }
+        
+        // Verificamos si hay texturas de daño disponibles
+        guard let damageTextures = style.damageTextures,
+              !damageTextures.isEmpty else {
+            print("⚠️ No hay texturas de daño disponibles")
+            return
+        }
+        
+        // Buscar el container que contiene el background
+        guard let containerNode = block.childNode(withName: "container") else {
+            print("❌ No se encontró el nodo container")
+            return
+        }
+        
+        // Calculamos qué textura usar basada en los hits actuales
+        let textureIndex = min(currentHits - 1, damageTextures.count - 1)
+        if textureIndex < 0 {
+            print("⚠️ Índice de textura inválido: \(textureIndex)")
+            return
+        }
+        
+        let texture = damageTextures[textureIndex]
+        print("✅ Usando textura de daño \(textureIndex + 1) de \(damageTextures.count)")
+        
+        // Buscar el background dentro del container
+        if let backgroundNode = containerNode.childNode(withName: "background") {
+            // Verificar si ya existe un nodo de textura
+            if let existingTexture = backgroundNode.childNode(withName: "textureCrop") as? SKCropNode {
+                // Actualizamos la textura existente
+                if let textureSprite = existingTexture.children.first as? SKSpriteNode {
+                    // Animación de cambio de textura
+                    let fadeOut = SKAction.fadeAlpha(to: 0.7, duration: 0.1)
+                    let changeTexture = SKAction.run {
+                        textureSprite.texture = texture
+                    }
+                    let fadeIn = SKAction.fadeAlpha(to: style.textureOpacity, duration: 0.2)
+                    let sequence = SKAction.sequence([fadeOut, changeTexture, fadeIn])
+                    textureSprite.run(sequence)
+                    
+                    print("✅ Textura de daño actualizada en nodo existente")
+                }
+            } else {
+                // Si no existe el nodo de textura, creamos uno nuevo
+                let maskNode = SKShapeNode(rectOf: blockSize, cornerRadius: style.cornerRadius)
+                maskNode.fillColor = .white
+                maskNode.strokeColor = .clear
+                
+                let textureSprite = SKSpriteNode(texture: texture)
+                textureSprite.size = blockSize
+                textureSprite.alpha = style.textureOpacity
+                textureSprite.zPosition = 2
+                
+                let cropNode = SKCropNode()
+                cropNode.name = "textureCrop"
+                cropNode.maskNode = maskNode
+                cropNode.addChild(textureSprite)
+                
+                backgroundNode.addChild(cropNode)
+                print("✅ Nuevo nodo de textura de daño creado")
+            }
+        } else {
+            // Enfoque alternativo para buscar nodos más profundamente
+            let backgroundShape = containerNode.childNode(withName: "background_shape") as? SKShapeNode
+            
+            if backgroundShape != nil {
+                print("🔍 Encontrado nodo background_shape, creando efecto visual alternativo...")
+                
+                // Si no podemos modificar la textura, al menos modificamos el color/transparencia
+                let alphaChange = 1.0 - (CGFloat(currentHits) / CGFloat(requiredHits) * 0.3)
+                let colorChange = SKAction.colorize(
+                    with: SKColor(red: 1.0, green: 1.0, blue: 1.0, alpha: alphaChange),
+                    colorBlendFactor: CGFloat(currentHits) / CGFloat(requiredHits) * 0.5,
+                    duration: 0.2
+                )
+                backgroundShape?.run(colorChange)
+                
+                // Añadir efecto visual para mostrar daño
+                let crackEffect = SKSpriteNode(texture: texture)
+                crackEffect.name = "damageEffect"
+                crackEffect.size = blockSize
+                crackEffect.alpha = 0.0
+                crackEffect.zPosition = 1.5
+                containerNode.addChild(crackEffect)
+                
+                let fadeIn = SKAction.fadeAlpha(to: 0.5, duration: 0.2)
+                crackEffect.run(fadeIn)
+                
+                print("✅ Aplicado efecto visual alternativo")
+            } else {
+                print("❌ No se encontró estructura adecuada para aplicar textura de daño")
+                // Último intento - buscar cualquier SKShapeNode para aplicar cambio visual
+                let shapes = findAllShapeNodes(in: block)
+                if let mainShape = shapes.first {
+                    print("🔍 Encontrado shape alternativo, aplicando cambio visual básico")
+                    
+                    // Aplicar un cambio visual básico
+                    let fadeAction = SKAction.fadeAlpha(
+                        to: 0.8 - (CGFloat(currentHits) / CGFloat(requiredHits) * 0.3),
+                        duration: 0.2
+                    )
+                    mainShape.run(fadeAction)
+                }
             }
         }
         
-        guard let backgroundContainer = backgroundNodes.first else {
-            print("❌ No se encontró ningún nodo de fondo")
-            return
+        // Añadir efecto de partículas independientemente de si pudimos cambiar la textura
+        addImpactParticles(to: block, intensity: CGFloat(currentHits) / CGFloat(requiredHits))
+    }
+
+    // Método auxiliar para encontrar todos los SKShapeNode en un nodo
+    private static func findAllShapeNodes(in node: SKNode) -> [SKShapeNode] {
+        var shapes: [SKShapeNode] = []
+        
+        // Verificar si el nodo actual es un SKShapeNode
+        if let shape = node as? SKShapeNode {
+            shapes.append(shape)
         }
         
-        print("✅ Nodo de fondo encontrado: \(backgroundContainer.name ?? "Sin nombre")")
-        
-        // Buscar el nodo de fondo
-        guard let backgroundContainer = block.childNode(withName: "background") as? SKNode,
-              let damageTextures = style.damageTextures,
-              !damageTextures.isEmpty else {
-            print("⚠️ No se encontraron texturas de daño o nodo de fondo")
-            updateTransparency(for: block, progress: CGFloat(currentHits) / CGFloat(requiredHits), blockType: blockType)
-            return
+        // Buscar en todos los hijos recursivamente
+        for child in node.children {
+            shapes.append(contentsOf: findAllShapeNodes(in: child))
         }
         
-        // Calcular el índice de la textura de daño
-        let textureIndex = min(currentHits - 1, damageTextures.count - 1)
-        print("🎯 Usando índice de textura: \(textureIndex)")
+        return shapes
+    }
+
+    // Método auxiliar para añadir partículas de impacto
+    private static func addImpactParticles(to block: SKNode, intensity: CGFloat) {
+        // Crear emitter
+        let emitter = SKEmitterNode()
+        emitter.name = "impactParticles"
+        emitter.targetNode = block.parent
         
-        // Buscar el nodo de textura existente
-        if let cropNode = backgroundContainer.childNode(withName: "textureCrop") as? SKCropNode {
-            // Eliminar el sprite de textura anterior
-            cropNode.removeAllChildren()
-            
-            // Crear nuevo sprite con la textura de daño
-            let selectedTexture = damageTextures[textureIndex]
-            print("📦 Textura seleccionada: \(selectedTexture.description)")
-            
-            let textureSprite = SKSpriteNode(texture: selectedTexture)
-            textureSprite.size = blockSize
-            textureSprite.alpha = style.textureOpacity
-            textureSprite.zPosition = 2
-            
-            cropNode.addChild(textureSprite)
-            
-            // Animar el cambio de textura
-            let fadeOut = SKAction.fadeAlpha(to: 0.7, duration: 0.1)
-            let fadeIn = SKAction.fadeAlpha(to: style.textureOpacity, duration: 0.2)
-            let sequence = SKAction.sequence([fadeOut, fadeIn])
-            textureSprite.run(sequence)
-        } else {
-            print("❌ No se encontró el nodo de textura (textureCrop)")
-        }
+        // Configuración de partículas
+        emitter.particleBirthRate = 20 * intensity
+        emitter.numParticlesToEmit = Int(15 * intensity)
+        emitter.particleLifetime = 0.5
+        emitter.particleLifetimeRange = 0.2
+        emitter.emissionAngle = .pi / 2
+        emitter.emissionAngleRange = .pi
+        
+        // Dinámica de partículas
+        emitter.particleSpeed = 25 * intensity
+        emitter.particleSpeedRange = 10
+        emitter.particleScale = 0.03
+        emitter.particleScaleRange = 0.02
+        emitter.xAcceleration = 0
+        emitter.yAcceleration = -10
+        
+        // Apariencia de partículas
+        emitter.particleColor = SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
+        emitter.particleAlpha = 0.7
+        emitter.particleTexture = SKTexture(imageNamed: "spark")
+        
+        // Posicionamiento
+        emitter.position = .zero
+        emitter.zPosition = 20
+        block.addChild(emitter)
+        
+        // Auto-destrucción
+        let waitAction = SKAction.wait(forDuration: 0.5)
+        let removeAction = SKAction.removeFromParent()
+        emitter.run(SKAction.sequence([waitAction, removeAction]))
     }
 
     

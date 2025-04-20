@@ -72,21 +72,20 @@ extension BlockStyle {
     
     static let hardiceBlock = BlockStyle(
         name: "hardiceBlock",
-        backgroundColor: SKColor(red: 0.6, green: 0.8, blue: 1.0, alpha: 1.0),
+        backgroundColor: .clear,
         borderColor: SKColor.blue,
         borderWidth: 3.0,
         cornerRadius: 20.0,
         shadowColor: SKColor.darkGray,
         shadowOffset: CGSize(width: 3, height: -3),
         shadowBlur: 3.0,
-        fillTexture: SKTexture(imageNamed: "iceTexture2"),  // Textura inicial
-        textureOpacity: 0.2,
+        fillTexture: SKTexture(imageNamed: "hardIceTexture"),  // Textura inicial
+        textureOpacity: 1.0,
         textureScale: 1.0,
         specialBehavior: nil,
         damageTextures: [
             SKTexture(imageNamed: "hardIceTexture_damaged_1"),  // Textura después del primer golpe
             SKTexture(imageNamed: "hardIceTexture_damaged_2"),  // Textura después del segundo golpe
-            SKTexture(imageNamed: "hardIceTexture_damaged_3")   // Textura después del tercer golpe
         ]
     )
     

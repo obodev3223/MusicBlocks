@@ -57,7 +57,7 @@
             "level_id": 1,
             "name": "Tutorial",
             "max_score": 500,
-            "allowed_styles": ["iceBlock"],
+            "allowed_styles": ["hardiceBlock"],
             "falling_speed": {
                 "initial": 4.0,
                 "increment": 0.0
@@ -78,15 +78,15 @@
                 }
             },
             "blocks": {
-                "iceBlock": {
+                "hardiceBlock": {
                     "notes": [
                         "SOL4",
                         "LA4",
                         "SI4"
                     ],
-                    "requiredHits": 2,
+                    "requiredHits": 3,
                     "requiredTime": 0.8,
-                    "style": "default",
+                    "style": "hardiceBlock",
                     "weight": 1,
                     "base_points": 10
                 }
