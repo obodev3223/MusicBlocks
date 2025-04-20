@@ -57,9 +57,9 @@
             "level_id": 1,
             "name": "Tutorial",
             "max_score": 500,
-            "allowed_styles": ["hardiceBlock"],
+            "allowed_styles": ["iceBlock", "hardiceBlock"],
             "falling_speed": {
-                "initial": 4.0,
+                "initial": 6.0,
                 "increment": 0.0
             },
             "lives": {
@@ -73,11 +73,22 @@
                 "primary": {
                     "type": "score",
                     "description": "Alcanzar una puntuación específica en un tiempo límite",
-                    "target": 100,
+                    "target": 200,
                     "time_limit": 90
                 }
             },
             "blocks": {
+                "iceBlock": {
+                    "notes": [
+                        "DO5",
+                        "FA#4"
+                    ],
+                    "requiredHits": 2,
+                    "requiredTime": 0.8,
+                    "style": "iceBlock",
+                    "weight": 0.5,
+                    "base_points": 10
+                },
                 "hardiceBlock": {
                     "notes": [
                         "SOL4",
@@ -87,8 +98,8 @@
                     "requiredHits": 3,
                     "requiredTime": 0.8,
                     "style": "hardiceBlock",
-                    "weight": 1,
-                    "base_points": 10
+                    "weight": 0.5,
+                    "base_points": 20
                 }
             }
         }

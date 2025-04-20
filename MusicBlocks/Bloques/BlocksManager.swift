@@ -252,12 +252,23 @@ class BlocksManager {
         userData.setValue(config.requiredTime, forKey: "requiredTime")
         blockNode.userData = userData
         
+        // Iniciar efectos especiales según el tipo de bloque
+        if randomStyle == "ghostBlock" {
+            // Usamos un pequeño delay para asegurar que el bloque ya esté configurado completamente
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak blockNode] in
+                guard let node = blockNode else { return }
+                GhostBlockEffects.startGhostEffect(for: node)
+                GameLogger.shared.blockMovement("👻 Iniciado efecto fantasma para bloque")
+            }
+        }
+        
         // Add hit counter for multi-hit blocks
         if config.requiredHits > 1 {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 self?.updateHitCounter(on: blockNode, currentHits: 0, requiredHits: config.requiredHits)
             }
         }
+        
         
         GameLogger.shared.blockMovement("Block created: Note \(note.fullName), Style: \(randomStyle)")
         return blockNode
@@ -445,6 +456,14 @@ class BlocksManager {
         let group = SKAction.group([fadeOut, scaleDown])
         let remove = SKAction.removeFromParent()
         let sequence = SKAction.sequence([group, remove])
+        
+        // Detener cualquier efecto especial según el tipo de bloque
+        if let style = blockInfos.last?.style {
+            if style == "ghostBlock" {
+                GhostBlockEffects.stopGhostEffect(for: lastBlock)
+                GameLogger.shared.blockMovement("👻 Detenido efecto fantasma antes de eliminar bloque")
+            }
+        }
         
         lastBlock.run(sequence) { [weak self, weak lastBlock] in
             guard let self = self, let block = lastBlock else {
@@ -709,6 +728,13 @@ class BlocksManager {
             )
         case "hardiceBlock":
             IceBlockEffects.updateHardIceBlockAppearance(
+                block: node,
+                currentHits: currentHits,
+                requiredHits: requiredHits,
+                blockSize: blockSize
+            )
+        case "ghostBlock":
+            GhostBlockEffects.updateGhostBlockAppearance(
                 block: node,
                 currentHits: currentHits,
                 requiredHits: requiredHits,

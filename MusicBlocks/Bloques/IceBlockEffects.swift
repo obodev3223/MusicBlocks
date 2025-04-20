@@ -36,7 +36,6 @@ struct IceBlockEffects {
         )
         
         addImpactEffect(to: block)
-        addIceParticles(to: block, intensity: 0.5)
     }
 
     
@@ -65,7 +64,6 @@ struct IceBlockEffects {
         )
         
         addImpactEffect(to: block, intensity: 1.2)
-        addIceParticles(to: block, intensity: 1.0)
         addFrostGlowEffect(to: block)
     }
 
@@ -268,48 +266,6 @@ struct IceBlockEffects {
     private enum BlockType {
         case iceBlock
         case hardIceBlock
-    }
-    
-    /// Creates ice particles effect when a block is hit
-    /// - Parameters:
-    ///   - block: The block node to attach particles to
-    ///   - intensity: Intensity of the particle effect (0.0 to 1.0)
-    private static func addIceParticles(to block: SKNode, intensity: CGFloat) {
-        let emitter = SKEmitterNode()
-        emitter.name = "iceParticles"
-        emitter.targetNode = block.parent
-        
-        // Particle configuration
-        emitter.particleBirthRate = 15 * intensity
-        emitter.numParticlesToEmit = Int(10 * intensity)
-        emitter.particleLifetime = 0.6
-        emitter.particleLifetimeRange = 0.3
-        emitter.emissionAngle = .pi / 2
-        emitter.emissionAngleRange = .pi * 2
-        
-        // Particle dynamics
-        emitter.particleSpeed = 20 * intensity
-        emitter.particleSpeedRange = 15
-        emitter.particleScale = 0.03 + (0.02 * intensity)
-        emitter.particleScaleRange = 0.02
-        emitter.xAcceleration = 0
-        emitter.yAcceleration = -50
-        
-        // Particle appearance
-        emitter.particleColor = SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
-        emitter.particleColorBlendFactor = 1.0
-        emitter.particleAlpha = 0.7
-        emitter.particleAlphaRange = 0.3
-        emitter.particleTexture = SKTexture(imageNamed: "spark")
-        
-        // Positioning and lifecycle
-        emitter.position = .zero
-        emitter.zPosition = 20
-        block.addChild(emitter)
-        
-        let waitAction = SKAction.wait(forDuration: 0.3)
-        let removeAction = SKAction.removeFromParent()
-        emitter.run(SKAction.sequence([waitAction, removeAction]))
     }
     
     // Blends two colors based on a percentage
@@ -517,31 +473,43 @@ struct IceBlockEffects {
         return block.childNode(withName: "//background") as? SKShapeNode
     }
     
+    
+    
     /// Adds impact effect when block is hit
     private static func addImpactEffect(to block: SKNode, intensity: CGFloat = 1.0) {
-        // Scale pulse
-        let scaleDown = SKAction.scale(to: 0.97, duration: 0.05 * intensity)
-        let scaleUp = SKAction.scale(to: 1.0, duration: 0.1 * intensity)
-        let scaleSequence = SKAction.sequence([scaleDown, scaleUp])
+        // MEJORA: Pulso de escala más pronunciado
+        let scaleDown = SKAction.scale(to: 0.92, duration: 0.05 * intensity) // Más reducción (antes 0.97)
+        let scaleUp = SKAction.scale(to: 1.03, duration: 0.08 * intensity)   // Rebote por encima de 1.0
+        let scaleNormal = SKAction.scale(to: 1.0, duration: 0.07 * intensity)
+        let scaleSequence = SKAction.sequence([scaleDown, scaleUp, scaleNormal])
         block.run(scaleSequence)
         
-        // Shake effect
+        // MEJORA: Vibración más pronunciada
         let shakeSequence = SKAction.sequence([
-            SKAction.moveBy(x: 2 * intensity, y: 0, duration: 0.02),
-            SKAction.moveBy(x: -4 * intensity, y: 0, duration: 0.04),
-            SKAction.moveBy(x: 2 * intensity, y: 0, duration: 0.02)
+            SKAction.moveBy(x: 3 * intensity, y: 1 * intensity, duration: 0.02),      // Aumentado y añadido movimiento vertical
+            SKAction.moveBy(x: -6 * intensity, y: -2 * intensity, duration: 0.03),    // Aumentado y añadido movimiento vertical
+            SKAction.moveBy(x: 5 * intensity, y: 2 * intensity, duration: 0.02),      // Nuevo paso
+            SKAction.moveBy(x: -3 * intensity, y: 0, duration: 0.02),                 // Nuevo paso
+            SKAction.moveBy(x: 1 * intensity, y: -1 * intensity, duration: 0.01)      // Regreso a posición
         ])
         block.run(shakeSequence)
+            
+        // Añadimos un flash de color para dar feedback visual adicional
+        let flashOverlay = SKSpriteNode(color: .white, size: block.calculateAccumulatedFrame().size)
+        flashOverlay.alpha = 0
+        flashOverlay.zPosition = 100 // Por encima de todo
+        flashOverlay.name = "impactFlash"
+        block.addChild(flashOverlay)
         
-        // Crack texture pulse
-        if let cracksTexture = block.childNode(withName: "cracksTexture") as? SKSpriteNode {
-            let crackPulse = SKAction.sequence([
-                SKAction.fadeAlpha(to: 1.0, duration: 0.05),
-                SKAction.fadeAlpha(to: cracksTexture.alpha, duration: 0.1)
-            ])
-            cracksTexture.run(crackPulse)
-        }
+        let flashAction = SKAction.sequence([
+            SKAction.fadeAlpha(to: 0.3, duration: 0.05),
+            SKAction.fadeAlpha(to: 0, duration: 0.1),
+            SKAction.removeFromParent()
+        ])
+        flashOverlay.run(flashAction)
+        
     }
+
     
     /// Adds a frost glow effect for hard ice blocks
     private static func addFrostGlowEffect(to block: SKNode) {
