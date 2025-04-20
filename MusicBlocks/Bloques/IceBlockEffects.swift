@@ -26,10 +26,19 @@ struct IceBlockEffects {
         let progress = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
         
         updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits, blockSize: blockSize)
-        updateBlockDamageTexture(block: block, currentHits: currentHits, requiredHits: requiredHits, blockType: .iceBlock)
+        
+        // Modificar este método para cambiar la textura
+        updateBlockDamageTexture(
+            block: block,
+            currentHits: currentHits,
+            requiredHits: requiredHits,
+            blockType: .iceBlock
+        )
+        
         addImpactEffect(to: block)
         addIceParticles(to: block, intensity: 0.5)
     }
+
     
     /// Updates the visual appearance of a Hard Ice Block when hit
     /// - Parameters:
@@ -46,7 +55,15 @@ struct IceBlockEffects {
         let progress = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
         
         updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits, blockSize: blockSize)
-        updateBlockDamageTexture(block: block, currentHits: currentHits, requiredHits: requiredHits, blockType: .hardIceBlock)
+        
+        // Modificar este método para cambiar la textura
+        updateBlockDamageTexture(
+            block: block,
+            currentHits: currentHits,
+            requiredHits: requiredHits,
+            blockType: .hardIceBlock
+        )
+        
         addImpactEffect(to: block, intensity: 1.2)
         addIceParticles(to: block, intensity: 1.0)
         addFrostGlowEffect(to: block)
@@ -60,7 +77,7 @@ struct IceBlockEffects {
         blockType: BlockType
     ) {
         // Buscar el nodo de fondo
-        guard let background = findBackgroundNode(in: block) else { return }
+        guard let backgroundContainer = block.childNode(withName: "background") else { return }
         
         // Determinar el estilo del bloque
         let style: BlockStyle
@@ -79,19 +96,27 @@ struct IceBlockEffects {
         }
         
         // Calcular el índice de la textura de daño a usar
-        // Si currentHits = 0, usar textura original
-        // Si currentHits > 0, usar textura de damageTextures[currentHits-1] si está disponible
-        if currentHits == 0 {
-            background.fillTexture = style.fillTexture
-        } else {
-            let textureIndex = min(currentHits - 1, damageTextures.count - 1)
-            background.fillTexture = damageTextures[textureIndex]
-        }
+        let textureIndex = min(currentHits - 1, damageTextures.count - 1)
         
-        // Animar el cambio de textura
-        let fadeOut = SKAction.fadeAlpha(to: 0.7, duration: 0.1)
-        let fadeIn = SKAction.fadeAlpha(to: style.textureOpacity, duration: 0.2)
-        background.run(SKAction.sequence([fadeOut, fadeIn]))
+        // Buscar el nodo de textura existente
+        if let cropNode = backgroundContainer.childNode(withName: "textureCrop") as? SKCropNode {
+            // Eliminar el sprite de textura anterior
+            cropNode.removeAllChildren()
+            
+            // Crear nuevo sprite con la textura de daño
+            let textureSprite = SKSpriteNode(texture: damageTextures[textureIndex])
+            textureSprite.size = blockSize
+            textureSprite.alpha = style.textureOpacity
+            textureSprite.zPosition = 2
+            
+            cropNode.addChild(textureSprite)
+            
+            // Animar el cambio de textura
+            let fadeOut = SKAction.fadeAlpha(to: 0.7, duration: 0.1)
+            let fadeIn = SKAction.fadeAlpha(to: style.textureOpacity, duration: 0.2)
+            let sequence = SKAction.sequence([fadeOut, fadeIn])
+            textureSprite.run(sequence)
+        }
     }
 
     
@@ -481,12 +506,8 @@ extension IceBlockEffects {
     /// Obtiene el estilo de bloque a partir del nombre del estilo
     private static func getBlockStyle(for styleName: String) -> BlockStyle? {
         switch styleName {
-        case "defaultBlock": return .defaultBlock
         case "iceBlock": return .iceBlock
         case "hardiceBlock": return .hardiceBlock
-        case "ghostBlock": return .ghostBlock
-        case "changingBlock": return .changingBlock
-        case "explosiveBlock": return .explosiveBlock
         default: return nil
         }
     }
