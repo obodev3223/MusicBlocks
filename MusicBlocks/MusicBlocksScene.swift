@@ -30,6 +30,10 @@ class MusicBlocksScene: SKScene  {
     
     private var isProcessingNotification = false
     
+    // Añadir propiedades para el timer dedicado:
+    private var uiUpdateTimer: Timer?
+    private let uiUpdateInterval: TimeInterval = 0.1 // Actualizar 10 veces por segundo para fluidez
+    
     // MARK: - Lifecycle Methods
     override func didMove(to view: SKView) {
         super.didMove(to: view)
@@ -54,6 +58,10 @@ class MusicBlocksScene: SKScene  {
         // Detener todos los sistemas
         audioController.stop()
         blocksManager.stopBlockGeneration()
+        
+        // AÑADIR: Detener el timer dedicado
+        uiUpdateTimer?.invalidate()
+        uiUpdateTimer = nil
         
         // Eliminar todos los observadores
         NotificationCenter.default.removeObserver(self)
@@ -252,6 +260,50 @@ class MusicBlocksScene: SKScene  {
                 let progress = tracker.getCurrentProgress()
                 self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
             }
+            
+            // AÑADIR: Iniciar el timer dedicado para actualización de UI
+            self.startDedicatedUIUpdateTimer()
+        }
+    }
+    
+    // Añadir método para iniciar el timer dedicado:
+    private func startDedicatedUIUpdateTimer() {
+        // Detener timer existente si hay uno
+        uiUpdateTimer?.invalidate()
+        
+        // Crear un nuevo timer que se ejecute en el RunLoop principal
+        uiUpdateTimer = Timer.scheduledTimer(
+            timeInterval: uiUpdateInterval,
+            target: self,
+            selector: #selector(updateUITimers),
+            userInfo: nil,
+            repeats: true
+        )
+        
+        // Añadir el timer al RunLoop común para que no se interrumpa durante animaciones
+        if let timer = uiUpdateTimer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+        
+        print("⏱️ Timer dedicado para actualización de UI iniciado")
+    }
+
+    // Añadir el método que será llamado por el timer:
+    @objc private func updateUITimers() {
+        // Solo actualizar si el juego está en estado 'playing'
+        guard case .playing = gameEngine.gameState else {
+            return
+        }
+        
+        // Forzar actualización de todos los timeDisplayNodes sin actualizar el tiempo del tracker
+        // Para asegurar que se muestren los segundos de forma fluida
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Solo actualizamos las vistas, no el modelo (el tiempo del juego)
+            if let scene = self.scene {
+                self.updateTimeDisplayNodesRecursively(in: scene)
+            }
         }
     }
     
@@ -349,25 +401,10 @@ class MusicBlocksScene: SKScene  {
             // Incrementar el tiempo en el tracker (sólo si el juego está en curso)
             tracker.updateProgress(deltaTime: timeUpdateInterval)
             
-            // Obtener el progreso actualizado
+            // NO ES NECESARIO actualizar los nodos aquí, lo hará el timer dedicado
+            // Solo actualizamos el progreso en el modelo
             let progress = tracker.getCurrentProgress()
-            
-            // Debug log
-            GameLogger.shared.timeUpdate("⏱️ Tiempo actualizado: \(progress.timeElapsed) segundos")
-            
-            // Actualizar todos los TimeDisplayNode manualmente en cada frame de actualización
-            // para asegurar que el tiempo se muestre de forma fluida
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                
-                // Actualizar la información del panel de objetivos
-                self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
-                
-                // Activar manualmente la actualización de cada TimeDisplayNode
-                if let scene = self.scene {
-                    self.updateTimeDisplayNodesRecursively(in: scene)
-                }
-            }
+            GameLogger.shared.timeUpdate("⏱️ Tiempo actualizado en modelo: \(progress.timeElapsed) segundos")
         }
     }
 

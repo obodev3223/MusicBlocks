@@ -250,6 +250,7 @@ class TimeDisplayNode: SKNode {
      func update() {
          if timeLimit == 0 {
              timeLabel.text = "∞"
+             timeLabel.fontSize = TopBarLayout.titleFontSize * 1.5
              return
          }
          
@@ -370,7 +371,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             
             let infiniteLabel = SKLabelNode(fontNamed: "Helvetica")
             infiniteLabel.text = "∞"
-            infiniteLabel.fontSize = TopBarLayout.titleFontSize
+            infiniteLabel.fontSize = TopBarLayout.titleFontSize * 1.5
             infiniteLabel.fontColor = .darkGray
             infiniteLabel.verticalAlignmentMode = .center
             infiniteLabel.horizontalAlignmentMode = .left
@@ -972,7 +973,7 @@ struct BlockDestructionObjectivePreviewContainer: View, ObjectivePreviewContaine
             accuracyCount: 100,
             blocksByType: blocksDestroyed,
             totalBlocksDestroyed: blocksDestroyed.values.reduce(0, +),
-            timeElapsed: 60
+            timeElapsed: 90
         )
         
         let panelSize = CGSize(width: size.width * 0.8, height: size.height * 0.7)

@@ -74,7 +74,7 @@
                     "type": "total_notes",
                     "description": "Acertar un número de notas específico",
                     "target": 20, // El número de notas a acertar
-                    "time_limit": 0 // Límite de tiempo (0 para sin límite)
+                    "time_limit": 90 // Límite de tiempo (0 para sin límite)
                 }
             },
             "blocks": {
