@@ -77,27 +77,60 @@ struct IceBlockEffects {
         blockType: BlockType,
         blockSize: CGSize
     ) {
-        // Buscar el nodo de fondo
-        guard let backgroundContainer = block.childNode(withName: "background") as? SKNode else { return }
+        print("🔍 Buscando nodos en el bloque:")
+        
+        // Imprimir todos los nombres de nodos hijos
+        block.children.forEach { child in
+            print("Nodo hijo: \(child.name ?? "Sin nombre") - Tipo: \(type(of: child))")
+        }
+        
+        // Intentar buscar el nodo de fondo de diferentes maneras
+        let backgroundNodes = block.children.filter {
+            $0.name == "background" ||
+            $0 is SKShapeNode ||
+            $0.name == nil
+        }
+        
+        print("🕵️ Nodos de fondo encontrados: \(backgroundNodes.count)")
 
-        // Determinar el estilo del bloque
+        // Depuración de texturas
         let style: BlockStyle
         switch blockType {
         case .iceBlock:
             style = BlockStyle.iceBlock
+            print("🧊 IceBlock - Texturas de daño:")
+            print("Total texturas: \(style.damageTextures?.count ?? 0)")
+            style.damageTextures?.enumerated().forEach { index, texture in
+                print("Textura \(index): \(texture.description)")
+            }
         case .hardIceBlock:
             style = BlockStyle.hardiceBlock
+            print("❄️ HardIceBlock - Texturas de daño:")
+            print("Total texturas: \(style.damageTextures?.count ?? 0)")
+            style.damageTextures?.enumerated().forEach { index, texture in
+                print("Textura \(index): \(texture.description)")
+            }
         }
         
-        // Verificar si hay texturas de daño disponibles
-        guard let damageTextures = style.damageTextures, !damageTextures.isEmpty else {
-            // Si no hay texturas de daño, usar efectos alternativos
+        guard let backgroundContainer = backgroundNodes.first else {
+            print("❌ No se encontró ningún nodo de fondo")
+            return
+        }
+        
+        print("✅ Nodo de fondo encontrado: \(backgroundContainer.name ?? "Sin nombre")")
+        
+        // Buscar el nodo de fondo
+        guard let backgroundContainer = block.childNode(withName: "background") as? SKNode,
+              let damageTextures = style.damageTextures,
+              !damageTextures.isEmpty else {
+            print("⚠️ No se encontraron texturas de daño o nodo de fondo")
             updateTransparency(for: block, progress: CGFloat(currentHits) / CGFloat(requiredHits), blockType: blockType)
             return
         }
         
-        // Calcular el índice de la textura de daño a usar
+        // Calcular el índice de la textura de daño
         let textureIndex = min(currentHits - 1, damageTextures.count - 1)
+        print("🎯 Usando índice de textura: \(textureIndex)")
         
         // Buscar el nodo de textura existente
         if let cropNode = backgroundContainer.childNode(withName: "textureCrop") as? SKCropNode {
@@ -105,7 +138,10 @@ struct IceBlockEffects {
             cropNode.removeAllChildren()
             
             // Crear nuevo sprite con la textura de daño
-            let textureSprite = SKSpriteNode(texture: damageTextures[textureIndex])
+            let selectedTexture = damageTextures[textureIndex]
+            print("📦 Textura seleccionada: \(selectedTexture.description)")
+            
+            let textureSprite = SKSpriteNode(texture: selectedTexture)
             textureSprite.size = blockSize
             textureSprite.alpha = style.textureOpacity
             textureSprite.zPosition = 2
@@ -117,6 +153,8 @@ struct IceBlockEffects {
             let fadeIn = SKAction.fadeAlpha(to: style.textureOpacity, duration: 0.2)
             let sequence = SKAction.sequence([fadeOut, fadeIn])
             textureSprite.run(sequence)
+        } else {
+            print("❌ No se encontró el nodo de textura (textureCrop)")
         }
     }
 
