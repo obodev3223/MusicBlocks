@@ -53,7 +53,7 @@ extension BlockStyle {
     
     static let iceBlock = BlockStyle(
         name: "iceBlock",
-        backgroundColor: SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.5),
+        backgroundColor: SKColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 0.1),
         borderColor: SKColor(red: 0.5, green: 0.7, blue: 0.9, alpha: 1.0),
         borderWidth: 3.0,
         cornerRadius: 20.0,
@@ -61,7 +61,7 @@ extension BlockStyle {
         shadowOffset: CGSize(width: 2, height: -2),
         shadowBlur: 4.0,
         fillTexture: SKTexture(imageNamed: "iceTexture"),  // Textura inicial
-        textureOpacity: 0.5,
+        textureOpacity: 0.9,
         textureScale: 1.0,
         specialBehavior: nil,
         damageTextures: [

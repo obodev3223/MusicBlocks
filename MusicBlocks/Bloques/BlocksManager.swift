@@ -473,19 +473,19 @@ class BlocksManager {
     func updateCurrentBlockProgress(hitTime: Date) -> Bool {
         GameLogger.shared.blockMovement("Updating block progress at \(hitTime)")
         
-        // Prevent processing if already processing or too soon after last hit
+        // Prevenir procesamiento si ya está procesando o es demasiado pronto después del último golpe
         guard !isProcessingBlock,
               lastHitTime == nil || hitTime.timeIntervalSince(lastHitTime!) >= 0.5 else {
             GameLogger.shared.blockMovement("Block processing skipped")
             return false
         }
         
-        // Mark as processing and record hit time
+        // Marcar como procesando y registrar tiempo de golpe
         isProcessingBlock = true
         lastHitTime = hitTime
         setupProcessingTimeout()
         
-        // Validate current block
+        // Validar bloque actual
         guard let index = blockInfos.indices.last,
               index < blockInfos.count else {
             GameLogger.shared.blockMovement("No block to process or index out of range")
@@ -494,6 +494,15 @@ class BlocksManager {
         }
         
         var currentInfo = blockInfos[index]
+        
+        // IMPORTANTE: Verificar que la nota en blockInfo coincide con la del userData
+        if let userData = currentInfo.node.userData,
+           let currentNodeNote = userData.value(forKey: "noteName") as? String,
+           currentNodeNote != currentInfo.note {
+            // Hay una discrepancia, actualizar el blockInfo con la nota actualizada
+            GameLogger.shared.blockMovement("⚠️ Corrigiendo discrepancia en nota: BlockInfo=\(currentInfo.note), Node=\(currentNodeNote)")
+            currentInfo.note = currentNodeNote
+        }
         
         // VERIFICAR: Imprimir info para debug
         GameLogger.shared.blockMovement("""
@@ -524,11 +533,19 @@ class BlocksManager {
             
             // Si es un bloque de hielo o hielo duro, cambiar la nota
             if currentInfo.style == "iceBlock" || currentInfo.style == "hardiceBlock" {
+                // Guardar el blockInfo actualizado antes de cambiar la nota
+                blockInfos[index] = currentInfo
+                
+                // Cambiar la nota (esta función se ha modificado para actualizar también blockInfos)
                 changeBlockNote(node: currentInfo.node, config: currentInfo.config)
+                
+                // Recargar el blockInfo después del cambio de nota
+                currentInfo = blockInfos[index]
             }
+        } else {
+            // Guardar el blockInfo actualizado (para casos que no sean bloques de hielo)
+            blockInfos[index] = currentInfo
         }
-        
-        blockInfos[index] = currentInfo
         
         // Check if block is completed
         let isCompleted = currentInfo.currentHits >= currentInfo.requiredHits
@@ -546,6 +563,7 @@ class BlocksManager {
         
         return isCompleted
     }
+
 
 
     // Nueva función a añadir en la clase BlocksManager
@@ -584,10 +602,21 @@ class BlocksManager {
         )
         
         GameLogger.shared.blockMovement("Nota del bloque cambiada de \(currentNoteStr) a \(newNote.fullName)")
-                
-        // Importante: NO actualizar las estadísticas de bloques destruidos aquí,
-        // ya que el bloque aún no ha sido destruido completamente.
-        // Las notas acertadas se contabilizarán en GameEngine.handleSuccess
+        
+        // IMPORTANTE: También actualizar la nota en blockInfos
+        // Encontrar el índice del bloque en blocks
+        if let blockIndex = blocks.firstIndex(where: { $0 === node }),
+           blockIndex < blockInfos.count {
+            var blockInfo = blockInfos[blockIndex]
+            
+            // Aquí está la parte crítica: actualizar la nota en el blockInfo
+            blockInfo.note = newNote.fullName
+            blockInfos[blockIndex] = blockInfo
+            
+            GameLogger.shared.blockMovement("✅ BlockInfo actualizado con nueva nota: \(newNote.fullName)")
+        } else {
+            GameLogger.shared.blockMovement("❌ No se pudo encontrar el BlockInfo correspondiente para actualizar la nota")
+        }
     }
     
     /// Resets the current block's progress

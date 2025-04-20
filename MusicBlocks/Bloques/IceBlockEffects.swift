@@ -457,6 +457,8 @@ extension IceBlockEffects {
         
         // Añadir un efecto visual para resaltar el cambio
         animateNoteChange(node: contentNode)
+        
+        GameLogger.shared.blockMovement("✏️ Nota del bloque actualizada a: \(newNote.fullName)")
     }
     
     /// Genera una animación para destacar el cambio de nota

@@ -250,14 +250,24 @@ class GameEngine: ObservableObject {
             return
         }
         
-        print("🎯 CheckNote: Comparando nota \(currentNote) con objetivo \(currentBlock.note), desviación: \(deviation)")
+        // IMPORTANTE: Obtener la nota directamente del nodo para evitar discrepancias
+        var targetNote = currentBlock.note
+        if let userData = currentBlock.node.userData,
+           let nodeNote = userData.value(forKey: "noteName") as? String,
+           nodeNote != targetNote {
+            // Si hay discrepancia, confiar en la nota del nodo
+            GameLogger.shared.noteDetection("⚠️ Corrigiendo discrepancia: BlockInfo nota=\(targetNote), Node nota=\(nodeNote)")
+            targetNote = nodeNote
+        }
+        
+        print("🎯 CheckNote: Comparando nota \(currentNote) con objetivo \(targetNote), desviación: \(deviation)")
         
         // Usar comparación exacta o enarmónica
-        if areMusicallyEquivalent(currentNote, currentBlock.note) {
-            print("✓ ACIERTO: Nota correcta \(currentNote) coincide con \(currentBlock.note)")
+        if areMusicallyEquivalent(currentNote, targetNote) {
+            print("✓ ACIERTO: Nota correcta \(currentNote) coincide con \(targetNote)")
             handleCorrectNote(deviation: deviation, block: currentBlock)
         } else {
-            print("✗ FALLO: Nota incorrecta \(currentNote) ≠ \(currentBlock.note)")
+            print("✗ FALLO: Nota incorrecta \(currentNote) ≠ \(targetNote)")
             handleWrongNote()
         }
     }
