@@ -34,6 +34,10 @@ class GameSessionManager {
     
     // MARK: - Gestión de Nivel
     func setupGame() {
+        // Resetear el TimeDirectUpdater
+        TimeDirectUpdater.shared.reset()
+        
+        // Delegar la configuración del juego al GameSessionManager
         let userProfile = UserProfile.load()
         let targetLevelId = userProfile.statistics.currentLevel
         
@@ -155,14 +159,26 @@ class GameSessionManager {
             }
         }
         
-        // AÑADIR: Acción para activar los timers después de todo lo demás
+        // Acción para activar los timers y el TimeDirectUpdater
         let activateTimersAction = SKAction.run { [weak self] in
             guard let self = self else { return }
             print("⏱️ Activando timers del juego")
+            
+            // Obtener el límite de tiempo del objetivo actual si existe
+            if let objective = self.objectiveTracker?.getPrimaryObjective(),
+               let timeLimit = objective.timeLimit {
+                // Configurar el TimeDirectUpdater con este límite
+                TimeDirectUpdater.shared.setTimeLimit(TimeInterval(timeLimit))
+            }
+            
+            // Iniciar el actualizador directo
+            TimeDirectUpdater.shared.start()
+            
+            // También activar los timers normales (aunque ya no los usaremos para la UI)
             self.gameEngine.activateTimers()
         }
         
-        // MODIFICAR: Añadir la acción de activación de timers al final de la secuencia
+        // Secuencia completa con todas las acciones
         let startupSequence = SKAction.sequence([
             startGameEngineAction,
             waitForEngineAction,
@@ -180,6 +196,9 @@ class GameSessionManager {
     
     func navigateToMainMenu() {
         print("🏠 Navigating to main menu...")
+        
+        // Detener el actualizador directo
+        TimeDirectUpdater.shared.stop()
         
         // Reproducir sonido de botón
         uiSoundController.playUISound(.buttonTap)

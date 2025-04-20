@@ -59,7 +59,10 @@ class MusicBlocksScene: SKScene  {
         audioController.stop()
         blocksManager.stopBlockGeneration()
         
-        // AÑADIR: Detener el timer dedicado
+        // Detener el updater directo
+        TimeDirectUpdater.shared.stop()
+        
+        // Detener cualquier timer dedicado
         uiUpdateTimer?.invalidate()
         uiUpdateTimer = nil
         
@@ -159,7 +162,7 @@ class MusicBlocksScene: SKScene  {
                 )
             }
         }
-           
+        
         isProcessingNotification = false
     }
     
@@ -221,7 +224,7 @@ class MusicBlocksScene: SKScene  {
             name: .audioTunerDataUpdated,
             object: nil
         )
-           
+        
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(handleAudioStabilityUpdate(_:)),
@@ -245,25 +248,20 @@ class MusicBlocksScene: SKScene  {
     }
     
     // MARK: -  Métodos para activar timers
-
+    
     @objc func handleTimerActivation(_ notification: Notification) {
         print("⏱️ Recibida notificación para activar timers")
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            
-            // Activar todos los TimeDisplayNode existentes
-            self.activateAllTimeDisplayNodes()
-            
-            // También actualizar el tiempo transcurrido inicial a cero
-            if let tracker = self.objectiveTracker {
-                tracker.updateProgress(deltaTime: 0) // Sólo para asegurar que comienza desde cero
-                let progress = tracker.getCurrentProgress()
-                self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
-            }
-            
-            // AÑADIR: Iniciar el timer dedicado para actualización de UI
-            self.startDedicatedUIUpdateTimer()
+        
+        // Ya no necesitamos activar los TimeDisplayNode manualmente
+        // ni iniciar un timer dedicado para actualizarlos
+        // eso lo maneja TimeDirectUpdater
+        
+        // Solo actualizar estado inicial
+        if let tracker = self.objectiveTracker {
+            tracker.updateProgress(deltaTime: 0) // Sólo para asegurar que comienza desde cero
         }
+        
+        // Las activaciones de timer se manejan ahora desde GameSessionManager
     }
     
     // Añadir método para iniciar el timer dedicado:
@@ -287,7 +285,7 @@ class MusicBlocksScene: SKScene  {
         
         print("⏱️ Timer dedicado para actualización de UI iniciado")
     }
-
+    
     // Añadir el método que será llamado por el timer:
     @objc private func updateUITimers() {
         // Solo actualizar si el juego está en estado 'playing'
@@ -313,7 +311,7 @@ class MusicBlocksScene: SKScene  {
             activateTimeDisplayNodesRecursively(in: scene)
         }
     }
-
+    
     // Método recursivo auxiliar
     private func activateTimeDisplayNodesRecursively(in node: SKNode) {
         // Primero buscar en este nodo
@@ -350,7 +348,7 @@ class MusicBlocksScene: SKScene  {
             }
         }
     }
-
+    
     @objc func handleAudioStabilityUpdate(_ notification: Notification) {
         guard let userInfo = notification.userInfo else { return }
         
@@ -392,7 +390,7 @@ class MusicBlocksScene: SKScene  {
             updateGameState()
         }
     }
-
+    
     // Método para actualizar la información del tiempo
     private func updateTimeDisplay() {
         guard case .playing = gameEngine.gameState else { return }
@@ -401,13 +399,14 @@ class MusicBlocksScene: SKScene  {
             // Incrementar el tiempo en el tracker (sólo si el juego está en curso)
             tracker.updateProgress(deltaTime: timeUpdateInterval)
             
-            // NO ES NECESARIO actualizar los nodos aquí, lo hará el timer dedicado
-            // Solo actualizamos el progreso en el modelo
+            // El tiempo en la UI se maneja ahora a través de TimeDirectUpdater
+            // NO es necesario actualizar la UI aquí
+            
             let progress = tracker.getCurrentProgress()
             GameLogger.shared.timeUpdate("⏱️ Tiempo actualizado en modelo: \(progress.timeElapsed) segundos")
         }
     }
-
+    
     // Método nuevo para actualizar cada TimeDisplayNode manualmente
     private func updateTimeDisplayNodesRecursively(in node: SKNode) {
         if let timeDisplay = node as? TimeDisplayNode {
@@ -460,9 +459,11 @@ class MusicBlocksScene: SKScene  {
         audioController.stop()
         blocksManager.stopBlockGeneration()
         
+        // Detener el TimeDirectUpdater
+        TimeDirectUpdater.shared.stop()
+        
         // Actualizar estadísticas del juego
         if let currentLevel = gameManager.currentLevel {
-            // Actualizar con el estado de victoria
             gameManager.updateGameStatistics(
                 levelId: currentLevel.levelId,
                 score: gameEngine.score,

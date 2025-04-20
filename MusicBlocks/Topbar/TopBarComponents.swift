@@ -164,17 +164,11 @@ class TimeDisplayNode: SKNode {
     private let timeIcon: SKSpriteNode
     private let timeLabel: SKLabelNode
     private let timeLimit: TimeInterval
-    var startTime: Date
     
-    // MODIFICACIÓN: Hacer que esta propiedad sea pública
-    // y eliminar el Timer interno que causa problemas
-    private var updateTimer: Timer?
-    
-    // NUEVA PROPIEDAD: Marca el punto cuando el timer debe comenzar realmente
-    private var timerActivated: Bool = false
+    // Remover todas las propiedades y métodos relacionados con timers internos
     
     init(timeLimit: TimeInterval) {
-        // Configuración existente
+        // Configuración del icono
         let iconTexture = SKTexture(imageNamed: "timer_icon")
         timeIcon = SKSpriteNode(texture: iconTexture)
         
@@ -186,16 +180,17 @@ class TimeDisplayNode: SKNode {
         
         timeIcon.size = CGSize(width: w * scale, height: h * scale)
         
+        // Configuración de la etiqueta
         self.timeLabel = SKLabelNode(fontNamed: "Helvetica")
         self.timeLimit = timeLimit
-        self.startTime = Date()
         
         super.init()
         
         setupTimeComponents()
         
-        // MODIFICACIÓN: No iniciar el Timer automáticamente
-        // startAutoUpdate()
+        // Registrar la etiqueta con el actualizador directo
+        TimeDirectUpdater.shared.registerTimeLabel(timeLabel)
+        TimeDirectUpdater.shared.setTimeLimit(timeLimit)
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -203,92 +198,45 @@ class TimeDisplayNode: SKNode {
     }
     
     private func setupTimeComponents() {
-        // Configuración existente sin cambios
+        // Posicionar el icono
         timeIcon.position = CGPoint(x: -TopBarLayout.iconTextSpacing/2, y: 0)
         addChild(timeIcon)
         
+        // Configurar la etiqueta
         timeLabel.fontSize = TopBarLayout.fontSize
         timeLabel.fontColor = .darkGray
         timeLabel.verticalAlignmentMode = .center
         timeLabel.horizontalAlignmentMode = .left
         timeLabel.position = CGPoint(x: timeIcon.position.x + TopBarLayout.iconTextSpacing, y: 0)
+        
+        // Mostrar tiempo inicial
+        let minutes = Int(timeLimit) / 60
+        let seconds = Int(timeLimit) % 60
+        timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
+        
         addChild(timeLabel)
-        
-        update()
     }
     
-    // MÉTODO NUEVO: Activa el timer
+    // Simplificar método update y activateTimer para que solo actualice la UI
+    // sin mantener estado interno
+    
     func activateTimer() {
-        timerActivated = true
-        startTime = Date()
-        update()
+        // Ahora solo llama al updater centralizado
+        TimeDirectUpdater.shared.start()
     }
     
-    // NUEVO MÉTODO: Inicia la actualización automática
-    private func startAutoUpdate() {
-        // Crear y configurar un Timer para actualizar cada segundo
-        updateTimer = Timer.scheduledTimer(
-            timeInterval: 0.5,  // Actualizar cada 0.5 segundos
-            target: self,
-            selector: #selector(timerFired),
-            userInfo: nil,
-            repeats: true
-        )
-        
-        // Asegurar que el timer se ejecute incluso durante animaciones
-        if let timer = updateTimer {
-            RunLoop.current.add(timer, forMode: .common)
-        }
+    func update() {
+        // No hacer nada aquí - la actualización la maneja TimeDirectUpdater
     }
     
-    // NUEVO MÉTODO: Callback para el timer
-    @objc private func timerFired() {
-        update()
+    func stopTimer() {
+        // Opcional - solo si necesitas detener explícitamente
     }
     
-    // MÉTODO MODIFICADO: actualizar sin timer interno
-     func update() {
-         if timeLimit == 0 {
-             timeLabel.text = "∞"
-             timeLabel.fontSize = TopBarLayout.titleFontSize * 1.5
-             return
-         }
-         
-         // Si el timer no está activado aún, mostrar el tiempo completo
-         if !timerActivated {
-             let minutes = Int(timeLimit) / 60
-             let seconds = Int(timeLimit) % 60
-             timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
-             timeLabel.fontColor = .darkGray
-             return
-         }
-         
-         let elapsedTime = Date().timeIntervalSince(startTime)
-         let remainingTime = max(timeLimit - elapsedTime, 0)
-         let minutes = Int(remainingTime) / 60
-         let seconds = Int(remainingTime) % 60
-         
-         timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
-         
-         // Cambiar color cuando queda poco tiempo
-         if remainingTime < 30 {
-             timeLabel.fontColor = .red
-         } else {
-             timeLabel.fontColor = .darkGray
-         }
-     }
-    
-    // MÉTODO MODIFICADO: Detener el timer de forma segura
-       func stopTimer() {
-           updateTimer?.invalidate()
-           updateTimer = nil
-       }
-       
-       // Se llama cuando el nodo se elimina de la escena
-       override func removeFromParent() {
-           stopTimer()
-           super.removeFromParent()
-       }
+    override func removeFromParent() {
+        // No detener el timer central, solo eliminar el nodo
+        super.removeFromParent()
+    }
 }
 
 // MARK: - Panel Base de Objetivos

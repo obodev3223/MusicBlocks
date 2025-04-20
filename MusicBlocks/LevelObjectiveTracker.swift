@@ -61,6 +61,17 @@ class LevelObjectiveTracker {
         if let deltaTime = deltaTime {
             currentProgress.timeElapsed += deltaTime
             print("⏱️ Tiempo actualizado en LevelObjectiveTracker: \(currentProgress.timeElapsed)")
+            
+            // AÑADIDO: Verificar si hay un límite de tiempo y actualizarlo en TimeDirectUpdater
+            // Esto es útil para mantener sincronizado el tiempo restante en la UI
+            if let primary = getPrimaryObjective(), let timeLimit = primary.timeLimit {
+                let remainingTime = TimeInterval(timeLimit) - currentProgress.timeElapsed
+                if remainingTime >= 0 {
+                    // No actualizamos directamente TimeDirectUpdater aquí porque queremos mantener
+                    // la independencia del modelo y la vista. El tiempo total ya lo establecimos
+                    // al iniciar la cuenta atrás.
+                }
+            }
         } else {
             // Si no se proporciona deltaTime, asegurar que el tiempo no se pierde
             currentProgress.timeElapsed = currentTimeElapsed
