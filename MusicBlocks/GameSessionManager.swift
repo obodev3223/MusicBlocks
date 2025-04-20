@@ -155,13 +155,23 @@ class GameSessionManager {
             }
         }
         
-        // Ejecutar la secuencia completa
+        // AÑADIR: Acción para activar los timers después de todo lo demás
+        let activateTimersAction = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            print("⏱️ Activando timers del juego")
+            self.gameEngine.activateTimers()
+        }
+        
+        // MODIFICAR: Añadir la acción de activación de timers al final de la secuencia
         let startupSequence = SKAction.sequence([
             startGameEngineAction,
             waitForEngineAction,
             startAudioAction,
             waitForAudioAction,
-            startBlocksAction
+            startBlocksAction,
+            // Añadir un pequeño retraso antes de activar los timers
+            SKAction.wait(forDuration: 0.5),
+            activateTimersAction
         ])
         
         // Ejecutar la secuencia en la escena

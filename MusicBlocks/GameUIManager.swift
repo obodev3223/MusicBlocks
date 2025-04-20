@@ -92,16 +92,30 @@ class GameUIManager {
         }
     }
     
-    func updateTimeUI() {
+    // Añadir método para activar todos los timers
+    func activateAllTimers() {
+        // Activar timers en la barra derecha (objetivos)
+        rightTopBarNode?.activateAllTimers()
+        
+        // También actualizar la UI para reflejar el estado inicial
         if let tracker = objectiveTracker {
             let progress = tracker.getCurrentProgress()
-            
-            // Usar el método updateObjectiveInfo que ahora actualiza tanto el panel
-            // como los timeDisplayNodes dentro de él
             rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
     }
     
+    // Mejorar el método updateTimeUI para actualización fluida
+    func updateTimeUI() {
+        if let tracker = objectiveTracker {
+            let progress = tracker.getCurrentProgress()
+            
+            // Actualizar la información del panel de objetivos
+            rightTopBarNode?.updateObjectiveInfo(with: progress)
+            
+            // Forzar actualización manual de todos los TimeDisplayNode
+            rightTopBarNode?.updateAllTimers()
+        }
+    }
     
     // MARK: - Setup Methods
     private func setupBackground() {
@@ -424,7 +438,7 @@ class GameUIManager {
             overlay?.hide(duration: 0.2)
         }
     }
-
+    
     func showFailureOverlay() {
         guard let scene = scene else { return }
         
@@ -558,7 +572,7 @@ class GameUIManager {
         
         print("🎉 GameUIManager: Overlay de felicitaciones mostrado correctamente")
     }
-
+    
     func clearCurrentOverlay() {
         // Remover overlay actual con una animación de desvanecimiento
         if let overlay = currentOverlay {

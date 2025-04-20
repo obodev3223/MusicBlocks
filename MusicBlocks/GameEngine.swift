@@ -56,6 +56,22 @@ class GameEngine: ObservableObject {
     private var lastProcessingStartTime: Date?
     private let maxProcessingTime: TimeInterval = 2.0
     
+    // Propiedad y método para controlar cuándo activar los timers
+    private var timersActivated: Bool = false
+    
+    // MARK: - Timing
+    // Método para controlar cuándo activar los timers
+    func activateTimers() {
+        // Este método debe llamarse después de que el overlay de inicio de nivel desaparezca
+        timersActivated = true
+        
+        // Actualizar la UI inmediatamente con los timers activados
+        NotificationCenter.default.post(
+            name: NSNotification.Name("ActivateTimers"),
+            object: nil
+        )
+    }
+    
     // MARK: - Initialization
     /// Inicializa el GameEngine con el TunerEngine y el BlocksManager (que puede ser nil)
     init(tunerEngine: TunerEngine = .shared, blockManager: BlocksManager?) {
@@ -67,13 +83,16 @@ class GameEngine: ObservableObject {
     
     // MARK: - Game Control
     /// Inicia una nueva partida, reseteando todas las métricas y configurando el nivel actual.
-
+    
     func startNewGame() {
         // Verificar si ya estamos en estado playing para evitar inicializaciones múltiples
         if case .playing = gameState {
             print("⚠️ El juego ya está en curso, evitando reinicializaciones")
             return
         }
+        
+        // AÑADIR: Resetear el estado de los timers
+        timersActivated = false
         
         guard let currentLevel = gameManager.currentLevel else {
             print("❌ No se pudo iniciar el juego: no hay nivel actual")
@@ -222,7 +241,7 @@ class GameEngine: ObservableObject {
         print("🔄 Mejor racha: \(bestStreakInGame)")
         print("📏 Precisión: \(Int(averageAccuracy * 100))%")
         print("🏆 Estado: \(reason == .victory ? "Victoria" : "Derrota")")
-
+        
         let totalBlocksAcertados = blockHitsByStyle.values.reduce(0, +)
         print("📦 Bloques acertados: \(totalBlocksAcertados)")
         for (style, count) in blockHitsByStyle {
@@ -271,7 +290,7 @@ class GameEngine: ObservableObject {
             handleWrongNote()
         }
     }
-
+    
     /// Determina si dos notas son musicalmente equivalentes (misma nota o enarmónicas)
     private func areMusicallyEquivalent(_ note1: String, _ note2: String) -> Bool {
         return MusicalNote.areNotesEquivalent(note1, note2)
@@ -387,7 +406,7 @@ class GameEngine: ObservableObject {
         
         // 2. Obtener puntuación y mensaje según la precisión
         let (baseScore, message) = calculateScore(accuracy: accuracy, blockConfig: blockConfig, note: currentNote)
-            
+        
         let comboBonus = calculateComboBonus(baseScore: baseScore)
         let finalScore = baseScore + comboBonus
         score += finalScore
@@ -417,7 +436,7 @@ class GameEngine: ObservableObject {
             blockDestroyed: isBlockFullyDestroyed ? blockStyle : nil,  // Solo contar el bloque si fue destruido completamente
             deltaTime: nil
         )
-            
+        
         // 7. Send immediate notification to UI
         NotificationCenter.default.post(
             name: NSNotification.Name("GameDataUpdated"),
@@ -503,7 +522,7 @@ class GameEngine: ObservableObject {
         
         return (0, "Fallo")
     }
-        
+    
     /// Calcula el bono por combo.
     private func calculateComboBonus(baseScore: Int) -> Int {
         // Limitar el multiplicador de combo a 10x como máximo

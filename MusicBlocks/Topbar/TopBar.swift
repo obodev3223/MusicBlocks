@@ -210,7 +210,6 @@ class TopBar: SKNode {
         bottomRow.addChild(panel)
     }
 
-
     
     // MARK: - Score y Vidas
     func updateScore(_ newScore: Int) {
@@ -332,6 +331,53 @@ class TopBar: SKNode {
                 // Debug
                 GameLogger.shared.scoreUpdate("TopBar: progreso \(Int(progress * 100))% (score \(currentScore)/\(maxScore))")
             }
+        }
+    }
+  
+    // MARK: - Timers
+    // Añadir un nuevo método para activar todos los TimeDisplayNode
+    func activateAllTimers() {
+        if type == .objectives {
+            // Buscar y activar los TimeDisplayNode en el panel de objetivos
+            if let panel = objectivePanel {
+                activateTimeDisplayNodesRecursively(in: panel)
+            }
+        }
+    }
+
+    // Método recursivo auxiliar para activar
+    private func activateTimeDisplayNodesRecursively(in node: SKNode) {
+        // Primero buscar en este nodo
+        if let timeDisplay = node as? TimeDisplayNode {
+            timeDisplay.activateTimer()
+        }
+        
+        // Luego buscar en todos los hijos
+        for child in node.children {
+            activateTimeDisplayNodesRecursively(in: child)
+        }
+    }
+
+    // Método para actualizar manualmente todos los TimeDisplayNode
+    func updateAllTimers() {
+        if type == .objectives {
+            // Buscar y actualizar los TimeDisplayNode en el panel de objetivos
+            if let panel = objectivePanel {
+                updateTimeDisplayNodesRecursively(in: panel)
+            }
+        }
+    }
+
+    // Método recursivo auxiliar para actualizar
+    private func updateTimeDisplayNodesRecursively(in node: SKNode) {
+        // Primero buscar en este nodo
+        if let timeDisplay = node as? TimeDisplayNode {
+            timeDisplay.update()
+        }
+        
+        // Luego buscar en todos los hijos
+        for child in node.children {
+            updateTimeDisplayNodesRecursively(in: child)
         }
     }
 }

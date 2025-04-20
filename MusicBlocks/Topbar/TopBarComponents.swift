@@ -166,8 +166,12 @@ class TimeDisplayNode: SKNode {
     private let timeLimit: TimeInterval
     var startTime: Date
     
-    // Añadir un timer para actualización automática
+    // MODIFICACIÓN: Hacer que esta propiedad sea pública
+    // y eliminar el Timer interno que causa problemas
     private var updateTimer: Timer?
+    
+    // NUEVA PROPIEDAD: Marca el punto cuando el timer debe comenzar realmente
+    private var timerActivated: Bool = false
     
     init(timeLimit: TimeInterval) {
         // Configuración existente
@@ -189,7 +193,9 @@ class TimeDisplayNode: SKNode {
         super.init()
         
         setupTimeComponents()
-        startAutoUpdate()
+        
+        // MODIFICACIÓN: No iniciar el Timer automáticamente
+        // startAutoUpdate()
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -208,6 +214,13 @@ class TimeDisplayNode: SKNode {
         timeLabel.position = CGPoint(x: timeIcon.position.x + TopBarLayout.iconTextSpacing, y: 0)
         addChild(timeLabel)
         
+        update()
+    }
+    
+    // MÉTODO NUEVO: Activa el timer
+    func activateTimer() {
+        timerActivated = true
+        startTime = Date()
         update()
     }
     
@@ -233,44 +246,48 @@ class TimeDisplayNode: SKNode {
         update()
     }
     
-    func update() {
-        if timeLimit == 0 {
-            timeLabel.text = "∞"
-            return
-        }
-        
-        let elapsedTime = Date().timeIntervalSince(startTime)
-        let remainingTime = max(timeLimit - elapsedTime, 0)
-        let minutes = Int(remainingTime) / 60
-        let seconds = Int(remainingTime) % 60
-        
-        timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
-        
-        // Cambiar color cuando queda poco tiempo
-        if remainingTime < 30 {
-            timeLabel.fontColor = .red
-        } else {
-            timeLabel.fontColor = .darkGray
-        }
-        
-        // Si el tiempo ha expirado, detener el timer
-        if remainingTime <= 0 {
-            updateTimer?.invalidate()
-            updateTimer = nil
-        }
-    }
+    // MÉTODO MODIFICADO: actualizar sin timer interno
+     func update() {
+         if timeLimit == 0 {
+             timeLabel.text = "∞"
+             return
+         }
+         
+         // Si el timer no está activado aún, mostrar el tiempo completo
+         if !timerActivated {
+             let minutes = Int(timeLimit) / 60
+             let seconds = Int(timeLimit) % 60
+             timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
+             timeLabel.fontColor = .darkGray
+             return
+         }
+         
+         let elapsedTime = Date().timeIntervalSince(startTime)
+         let remainingTime = max(timeLimit - elapsedTime, 0)
+         let minutes = Int(remainingTime) / 60
+         let seconds = Int(remainingTime) % 60
+         
+         timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
+         
+         // Cambiar color cuando queda poco tiempo
+         if remainingTime < 30 {
+             timeLabel.fontColor = .red
+         } else {
+             timeLabel.fontColor = .darkGray
+         }
+     }
     
-    // NUEVO MÉTODO: Detener el timer cuando el nodo se elimina
-    func stopTimer() {
-        updateTimer?.invalidate()
-        updateTimer = nil
-    }
-    
-    // Se llama cuando el nodo se elimina de la escena
-    override func removeFromParent() {
-        stopTimer()
-        super.removeFromParent()
-    }
+    // MÉTODO MODIFICADO: Detener el timer de forma segura
+       func stopTimer() {
+           updateTimer?.invalidate()
+           updateTimer = nil
+       }
+       
+       // Se llama cuando el nodo se elimina de la escena
+       override func removeFromParent() {
+           stopTimer()
+           super.removeFromParent()
+       }
 }
 
 // MARK: - Panel Base de Objetivos
@@ -353,7 +370,7 @@ class ObjectiveInfoPanel: TopBarBaseNode {
             
             let infiniteLabel = SKLabelNode(fontNamed: "Helvetica")
             infiniteLabel.text = "∞"
-            infiniteLabel.fontSize = TopBarLayout.fontSize
+            infiniteLabel.fontSize = TopBarLayout.titleFontSize
             infiniteLabel.fontColor = .darkGray
             infiniteLabel.verticalAlignmentMode = .center
             infiniteLabel.horizontalAlignmentMode = .left

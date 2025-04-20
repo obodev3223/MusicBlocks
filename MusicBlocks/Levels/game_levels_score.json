@@ -57,7 +57,7 @@
             "level_id": 1,
             "name": "Tutorial",
             "max_score": 500,
-            "allowed_styles": ["iceBlock", "hardiceBlock", "ghostBlock"],
+            "allowed_styles": ["default", "iceBlock", "hardiceBlock", "ghostBlock"],
             "falling_speed": {
                 "initial": 6.0,
                 "increment": 0.0
@@ -71,13 +71,25 @@
             },
             "objectives": {
                 "primary": {
-                    "type": "score",
-                    "description": "Alcanzar una puntuación específica en un tiempo límite",
-                    "target": 500,
-                    "time_limit": 90
+                    "type": "total_notes",
+                    "description": "Acertar un número de notas específico",
+                    "target": 20, // El número de notas a acertar
+                    "time_limit": 0 // Límite de tiempo (0 para sin límite)
                 }
             },
             "blocks": {
+                "default": {
+                    "notes": [
+                        "SOL4",
+                        "LA4",
+                        "SI4"
+                    ],
+                    "requiredHits": 1,
+                    "requiredTime": 0.6,
+                    "style": "default",
+                    "weight": 0.5,
+                    "base_points": 5
+                },
                 "iceBlock": {
                     "notes": [
                         "DO5",
@@ -96,7 +108,7 @@
                         "SI4"
                     ],
                     "requiredHits": 3,
-                    "requiredTime": 0.8,
+                    "requiredTime": 1.0,
                     "style": "hardiceBlock",
                     "weight": 0.5,
                     "base_points": 20
@@ -107,7 +119,7 @@
                         "FA5"
                     ],
                     "requiredHits": 1,
-                    "requiredTime": 0.8,
+                    "requiredTime": 0.6,
                     "style": "ghostBlock",
                     "weight": 0.5,
                     "base_points": 30

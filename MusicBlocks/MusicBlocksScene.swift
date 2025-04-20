@@ -221,12 +221,58 @@ class MusicBlocksScene: SKScene  {
             object: nil
         )
         
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTimerActivation(_:)),
+            name: NSNotification.Name("ActivateTimers"),
+            object: nil
+        )
+        
         print("✅ Managers inicializados correctamente")
     }
     
     private func setupGame() {
         // Delegar la configuración del juego al GameSessionManager
         sessionManager.setupGame()
+    }
+    
+    // MARK: -  Métodos para activar timers
+
+    @objc func handleTimerActivation(_ notification: Notification) {
+        print("⏱️ Recibida notificación para activar timers")
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Activar todos los TimeDisplayNode existentes
+            self.activateAllTimeDisplayNodes()
+            
+            // También actualizar el tiempo transcurrido inicial a cero
+            if let tracker = self.objectiveTracker {
+                tracker.updateProgress(deltaTime: 0) // Sólo para asegurar que comienza desde cero
+                let progress = tracker.getCurrentProgress()
+                self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+            }
+        }
+    }
+    
+    // Método para activar todos los TimeDisplayNode en la jerarquía
+    private func activateAllTimeDisplayNodes() {
+        if let scene = self.scene {
+            activateTimeDisplayNodesRecursively(in: scene)
+        }
+    }
+
+    // Método recursivo auxiliar
+    private func activateTimeDisplayNodesRecursively(in node: SKNode) {
+        // Primero buscar en este nodo
+        if let timeDisplay = node as? TimeDisplayNode {
+            timeDisplay.activateTimer()
+        }
+        
+        // Luego buscar en todos los hijos
+        for child in node.children {
+            activateTimeDisplayNodesRecursively(in: child)
+        }
     }
     
     // MARK: -  Métodos para manejar las notificaciones
@@ -300,20 +346,40 @@ class MusicBlocksScene: SKScene  {
         guard case .playing = gameEngine.gameState else { return }
         
         if let tracker = objectiveTracker {
-            // Incrementar el tiempo en el tracker
+            // Incrementar el tiempo en el tracker (sólo si el juego está en curso)
             tracker.updateProgress(deltaTime: timeUpdateInterval)
             
             // Obtener el progreso actualizado
             let progress = tracker.getCurrentProgress()
             
             // Debug log
-            GameLogger.shared.timeUpdate("⏱️ Tiempo actualizado: \(progress.timeElapsed) segundos (restantes: \(Int(180 - progress.timeElapsed))s)")
+            GameLogger.shared.timeUpdate("⏱️ Tiempo actualizado: \(progress.timeElapsed) segundos")
             
-            // Actualizar directamente el componente de UI asegurando que se ejecuta en el hilo principal
-            DispatchQueue.main.async {
-                // Usar el método updateObjectiveInfo de TopBar que ahora actualiza todos los TimeDisplayNode
+            // Actualizar todos los TimeDisplayNode manualmente en cada frame de actualización
+            // para asegurar que el tiempo se muestre de forma fluida
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                
+                // Actualizar la información del panel de objetivos
                 self.uiManager.rightTopBarNode?.updateObjectiveInfo(with: progress)
+                
+                // Activar manualmente la actualización de cada TimeDisplayNode
+                if let scene = self.scene {
+                    self.updateTimeDisplayNodesRecursively(in: scene)
+                }
             }
+        }
+    }
+
+    // Método nuevo para actualizar cada TimeDisplayNode manualmente
+    private func updateTimeDisplayNodesRecursively(in node: SKNode) {
+        if let timeDisplay = node as? TimeDisplayNode {
+            timeDisplay.update() // Forzar la actualización manual del nodo
+        }
+        
+        // Recursivamente actualizar los hijos
+        for child in node.children {
+            updateTimeDisplayNodesRecursively(in: child)
         }
     }
     
