@@ -301,7 +301,7 @@ class TopBar: SKNode {
         findAndUpdateTimeDisplayNodes(in: panel, with: progress)
     }
 
-    // Nuevo método en la clase TopBar
+    // Nuevo método recursivo para encontrar y actualizar todos los TimeDisplayNode
     private func findAndUpdateTimeDisplayNodes(in node: SKNode, with progress: ObjectiveProgress) {
         // Primero procesar el nodo actual
         if let timeDisplay = node as? TimeDisplayNode {

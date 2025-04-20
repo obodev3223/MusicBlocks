@@ -95,6 +95,9 @@ class GameUIManager {
     func updateTimeUI() {
         if let tracker = objectiveTracker {
             let progress = tracker.getCurrentProgress()
+            
+            // Usar el método updateObjectiveInfo que ahora actualiza tanto el panel
+            // como los timeDisplayNodes dentro de él
             rightTopBarNode?.updateObjectiveInfo(with: progress)
         }
     }
