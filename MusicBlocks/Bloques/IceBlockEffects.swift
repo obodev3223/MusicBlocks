@@ -23,16 +23,16 @@ struct IceBlockEffects {
         requiredHits: Int,
         blockSize: CGSize
     ) {
-        let progress = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
+        _ = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
         
         updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits, blockSize: blockSize)
         
-        // Modificar este método para cambiar la textura
         updateBlockDamageTexture(
             block: block,
             currentHits: currentHits,
             requiredHits: requiredHits,
-            blockType: .iceBlock
+            blockType: .iceBlock,
+            blockSize: blockSize
         )
         
         addImpactEffect(to: block)
@@ -52,16 +52,16 @@ struct IceBlockEffects {
         requiredHits: Int,
         blockSize: CGSize
     ) {
-        let progress = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
+        _ = calculateProgress(currentHits: currentHits, requiredHits: requiredHits)
         
         updateHitCounter(on: block, currentHits: currentHits, requiredHits: requiredHits, blockSize: blockSize)
         
-        // Modificar este método para cambiar la textura
         updateBlockDamageTexture(
             block: block,
             currentHits: currentHits,
             requiredHits: requiredHits,
-            blockType: .hardIceBlock
+            blockType: .hardIceBlock,
+            blockSize: blockSize
         )
         
         addImpactEffect(to: block, intensity: 1.2)
@@ -74,11 +74,12 @@ struct IceBlockEffects {
         block: SKNode,
         currentHits: Int,
         requiredHits: Int,
-        blockType: BlockType
+        blockType: BlockType,
+        blockSize: CGSize
     ) {
         // Buscar el nodo de fondo
-        guard let backgroundContainer = block.childNode(withName: "background") else { return }
-        
+        guard let backgroundContainer = block.childNode(withName: "background") as? SKNode else { return }
+
         // Determinar el estilo del bloque
         let style: BlockStyle
         switch blockType {
@@ -241,7 +242,7 @@ struct IceBlockEffects {
             background.fillColor = SKColor(red: 0.8, green: 0.95, blue: 1.0, alpha: 0.9)
             background.strokeColor = .clear
             return (background,
-                    SKColor(red: 0.8, green: 0.95, blue: 1.0, alpha: 0.9),
+                    .clear,  // Cambiado de counterColor a .clear
                     SKColor(red: 0.1, green: 0.4, blue: 0.8, alpha: 1.0))
             
         case "hardiceBlock":
@@ -250,14 +251,14 @@ struct IceBlockEffects {
             background.strokeColor = SKColor(red: 0.0, green: 0.5, blue: 0.9, alpha: 0.8)
             background.lineWidth = 2.0
             return (background,
-                    SKColor(red: 0.7, green: 0.85, blue: 1.0, alpha: 0.9),
+                    .clear,  // Cambiado de counterColor a .clear
                     SKColor(red: 0.0, green: 0.3, blue: 0.7, alpha: 1.0))
             
         default:
             let background = SKShapeNode(circleOfRadius: radius)
             background.fillColor = .white
             background.strokeColor = .clear
-            return (background, .white, .darkGray)
+            return (background, .clear, .darkGray)
         }
     }
     
