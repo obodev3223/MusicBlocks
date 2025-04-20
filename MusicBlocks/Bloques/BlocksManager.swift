@@ -840,6 +840,8 @@ class BlocksManager {
     
     /// Creates a background node for a block
     private func createBackground(with style: BlockStyle) -> SKNode {
+        print("🏗️ Creando fondo para estilo: \(style.name)")
+        
         let container = SKNode()
         container.name = "background"
         
@@ -847,6 +849,7 @@ class BlocksManager {
             rectOf: blockSize,
             cornerRadius: style.cornerRadius
         )
+        background.name = "background_shape"  // Añadir nombre identificativo
         background.fillColor = style.backgroundColor
         background.strokeColor = style.borderColor
         background.lineWidth = style.borderWidth
@@ -854,6 +857,8 @@ class BlocksManager {
         container.addChild(background)
         
         if let texture = style.fillTexture {
+            print("🖼️ Añadiendo textura: \(texture.description)")
+            
             let maskNode = SKShapeNode(
                 rectOf: blockSize,
                 cornerRadius: style.cornerRadius
@@ -867,11 +872,12 @@ class BlocksManager {
             textureSprite.zPosition = 2
             
             let cropNode = SKCropNode()
-            cropNode.name = "textureCrop"  // Añadir nombre para identificación
+            cropNode.name = "textureCrop"
             cropNode.maskNode = maskNode
             cropNode.addChild(textureSprite)
             
             container.addChild(cropNode)
+            print("✅ Textura añadida al contenedor")
         }
         
         return container
